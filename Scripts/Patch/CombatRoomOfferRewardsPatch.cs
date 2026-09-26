@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Rewards;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models;
@@ -86,11 +87,21 @@ internal static class CombatRoomOfferRewardsPatch
 
             AddExtraCrossCharacterCardRewards(combatRoom, allPlayers, generatedSets);
 
+            Player displayPlayer = allPlayers.FirstOrDefault((p) => p.Creature?.IsDead != true) ?? allPlayers[0];
+
+            // Couch simultaneous mode: the teammate takes their rewards in their own panel, not the merged list.
+            RewardsSet? teammateSet = CouchTeammateRewards.PickTeammateSet(generatedSets, displayPlayer);
+
             // Mirror vanilla: the before-offered hook runs on the sets that will actually be shown.
             List<Reward> mergedRewards = new();
             foreach (RewardsSet perPlayerSet in generatedSets)
             {
                 await Hook.BeforeCombatRewardOffered(perPlayerSet, runState, combatRoom);
+                if (perPlayerSet == teammateSet)
+                {
+                    continue;
+                }
+
                 foreach (Reward reward in perPlayerSet.Rewards)
                 {
                     RewardPlayerLabelRegistry.Register(reward, perPlayerSet.Player.NetId);
@@ -99,7 +110,6 @@ internal static class CombatRoomOfferRewardsPatch
                 mergedRewards.AddRange(perPlayerSet.Rewards);
             }
 
-            Player displayPlayer = allPlayers.FirstOrDefault((p) => p.Creature?.IsDead != true) ?? allPlayers[0];
             LocalMultiControlRuntime.SwitchControlledPlayerTo(displayPlayer.NetId, "merged-rewards-offer-from-combatroom");
             RewardsSet displaySet = new RewardsSet(displayPlayer).WithCustomRewards(mergedRewards);
 
@@ -114,6 +124,11 @@ internal static class CombatRoomOfferRewardsPatch
             }
 
             NRewardsScreen rewardScreen = NRewardsScreen.ShowScreen(displaySet, isTerminal: true, displayPlayer.RunState);
+            if (teammateSet != null)
+            {
+                CouchTeammateRewards.Open(rewardScreen, teammateSet);
+            }
+
             await rewardScreen.ToSignal(rewardScreen, NRewardsScreen.SignalName.Completed);
         }
         finally

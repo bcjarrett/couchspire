@@ -1,5 +1,6 @@
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Rewards;
 using MegaCrit.Sts2.Core.Runs;
@@ -26,6 +27,13 @@ internal static class CardRewardPatch
         }
 
         if (RunManager.Instance.NetService is not LocalLoopbackHostGameService loopback)
+        {
+            return;
+        }
+
+        // Couch simultaneous mode: the teammate picks this card in their own rewards panel, through the game's
+        // remote-player path, so don't make them the local player here.
+        if (CouchTeammateRewards.OwnsReward(__instance))
         {
             return;
         }

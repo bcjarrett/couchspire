@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Models.Relics;
 using LocalMultiControl.Scripts.Patch;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Cards;
@@ -532,6 +533,12 @@ internal static class LocalMultiControlRuntime
     public static void TryAutoSwitchAfterEndTurn(ulong endedPlayerId)
     {
         if (!LocalSelfCoopContext.IsEnabled || !RunManager.Instance.IsInProgress || !CombatManager.Instance.IsInProgress)
+        {
+            return;
+        }
+
+        // Couch simultaneous combat: the driver keeps the screen for the whole combat.
+        if (CouchTeammate.DriverKeepsScreen)
         {
             return;
         }

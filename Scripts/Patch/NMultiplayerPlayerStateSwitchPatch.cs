@@ -4,6 +4,7 @@ using MegaCrit.Sts2.Core.Combat;
 using Godot;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models.Characters;
@@ -53,7 +54,8 @@ internal static class LocalMultiplayerPlayerStateSwitchUi
             return;
         }
 
-        bool shouldShow = LocalSelfCoopContext.IsEnabled && RunManager.Instance.IsInProgress;
+        // Couch simultaneous mode: no on-screen swap arrows (right-click, Tab, or a stick click still swap).
+        bool shouldShow = LocalSelfCoopContext.IsEnabled && RunManager.Instance.IsInProgress && !CouchConfig.SimultaneousEnabled;
         button.Visible = shouldShow;
         if (!shouldShow)
         {

@@ -1,6 +1,7 @@
 using Godot;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Nodes;
@@ -161,7 +162,10 @@ internal static class LocalCombatSwitchButtons
 
         int runPlayerCount = RunManager.Instance.DebugOnlyGetState()?.Players.Count ?? 0;
         bool hasMultiplePlayers = LocalMultiControlRuntime.SessionState.OrderedPlayerIds.Count > 1 || runPlayerCount > 1;
+        // Couch simultaneous mode: no on-screen swap buttons (each player has their own controls; Tab or a stick
+        // click on the teammate's pad still swaps in an emergency).
         bool shouldShow = LocalSelfCoopContext.IsEnabled
+                          && !CouchConfig.SimultaneousEnabled
                           && RunManager.Instance.IsInProgress
                           && CombatManager.Instance.IsInProgress
                           && hasMultiplePlayers;

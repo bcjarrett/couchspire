@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Godot;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.ControllerInput;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Context;
@@ -82,6 +83,12 @@ internal static class RestSiteSynchronizerChooseLocalOptionPatch
         {
             LocalMultiControlLogger.Warn(
                 $"休息区选项执行失败，不触发自动切人: player={localPlayerId.Value}, optionIndex={optionIndex}, snapshot={DescribeOptions(sourceOptionsSnapshot)}");
+            return success;
+        }
+
+        // Couch simultaneous mode: the teammate picks in their own rest site panel.
+        if (CouchConfig.SimultaneousEnabled && CouchTeammate.FindTeammate() != null)
+        {
             return success;
         }
 

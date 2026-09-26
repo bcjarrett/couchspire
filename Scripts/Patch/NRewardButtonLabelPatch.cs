@@ -2,6 +2,8 @@ using System.Threading.Tasks;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Rewards;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
+using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Rewards;
 using MegaCrit.Sts2.Core.Rewards;
@@ -24,6 +26,12 @@ internal static class NRewardButtonLabelPatch
 
         Reward? reward = __instance.Reward;
         if (reward == null)
+        {
+            return;
+        }
+
+        // Couch simultaneous mode: the driver's screen shows the driver's own rewards; no need to label them.
+        if (CouchConfig.SimultaneousEnabled && reward.Player.NetId == LocalContext.NetId)
         {
             return;
         }

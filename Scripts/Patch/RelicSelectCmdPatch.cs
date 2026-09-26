@@ -1,5 +1,6 @@
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Runs;
@@ -18,6 +19,12 @@ internal static class RelicSelectCmdPatch
         }
 
         if (RunManager.Instance.NetService is not LocalLoopbackHostGameService)
+        {
+            return true;
+        }
+
+        // Couch simultaneous mode: the teammate picks this relic in their own card picker (remote path).
+        if (CouchTeammate.IsSimultaneousTeammate(player) && CouchTeammateChoices.HasRequest(player))
         {
             return true;
         }

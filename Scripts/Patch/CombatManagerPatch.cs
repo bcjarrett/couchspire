@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Players;
 
@@ -13,6 +14,12 @@ internal static class CombatManagerPatch
     private static void Prefix(Player player, ref bool canBackOut, ref Func<Task>? actionDuringEnemyTurn)
     {
         if (!LocalSelfCoopContext.IsEnabled)
+        {
+            return;
+        }
+
+        // Couch simultaneous combat: each player can un-end their own turn, as in vanilla co-op.
+        if (CouchTeammate.DriverKeepsScreen)
         {
             return;
         }

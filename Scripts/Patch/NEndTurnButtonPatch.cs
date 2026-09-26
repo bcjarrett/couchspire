@@ -1,5 +1,6 @@
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -14,6 +15,13 @@ internal static class NEndTurnButtonPatch
     private static bool Prefix(NEndTurnButton __instance)
     {
         if (!LocalSelfCoopContext.IsEnabled)
+        {
+            return true;
+        }
+
+        // Couch simultaneous combat: each player ends (and un-ends) only their own turn, as in vanilla co-op. The
+        // hotseat rules below would block "Undo End Turn" and could end the teammate's turn for them.
+        if (CouchTeammate.DriverKeepsScreen)
         {
             return true;
         }

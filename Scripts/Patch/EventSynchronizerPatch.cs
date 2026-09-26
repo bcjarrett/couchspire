@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Godot;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -81,6 +82,13 @@ internal static class EventSynchronizerPatch
     private static void TryAutoProxyEventChoice(EventSynchronizer synchronizer, int index)
     {
         if (!LocalSelfCoopContext.IsEnabled)
+        {
+            return;
+        }
+
+        // Couch simultaneous mode: the teammate votes and chooses in their own event panel, so don't vote for them
+        // or switch the screen to their event.
+        if (CouchTeammateEvent.IsActive)
         {
             return;
         }
@@ -249,10 +257,17 @@ internal static class EventSynchronizerChooseOptionForEventPatch
                 return;
             }
 
+            ulong? driverBefore = LocalContext.NetId;
             LocalMultiControlRuntime.SwitchControlledPlayerTo(player.NetId, "event-shared-serial-execution");
             LocalMultiControlLogger.Info($"共享事件开始执行角色选项: player={player.NetId}, key={eventOption.TextKey}");
             await eventOption.Chosen();
             LocalMultiControlLogger.Info($"共享事件角色选项执行完成: player={player.NetId}, key={eventOption.TextKey}");
+
+            // Couch simultaneous mode: give the screen back to the driver after running the teammate's part.
+            if (CouchConfig.SimultaneousEnabled && driverBefore.HasValue && driverBefore.Value != player.NetId)
+            {
+                LocalMultiControlRuntime.SwitchControlledPlayerTo(driverBefore.Value, "event-shared-serial-restore-driver");
+            }
         }
         catch (Exception exception)
         {

@@ -1,6 +1,7 @@
 using Godot;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Commands;
@@ -61,7 +62,8 @@ internal static class CardSelectForegroundSwitchPatch
 
     private static void EnsureForegroundForCombatChoice(Player player, string source)
     {
-        if (!LocalSelfCoopContext.IsEnabled || !LocalSelfCoopContext.UseSingleAdventureMode)
+        // Couch simultaneous combat: the driver keeps the screen; the teammate answers its own choice.
+        if (!LocalSelfCoopContext.IsEnabled || !LocalSelfCoopContext.UseSingleAdventureMode || CouchTeammate.IsTeammate(player))
         {
             return;
         }

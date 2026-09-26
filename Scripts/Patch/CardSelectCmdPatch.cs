@@ -1,6 +1,7 @@
 using System.Linq;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
@@ -15,6 +16,13 @@ internal static class CardSelectCmdPatch
     private static bool Prefix(Player player, ref bool __result)
     {
         if (!LocalSelfCoopContext.IsEnabled || !LocalSelfCoopContext.UseSingleAdventureMode)
+        {
+            return true;
+        }
+
+        // Couch simultaneous mode: a teammate's selection that their own UI can answer takes the game's remote path
+        // and is answered as that teammate (CouchTeammateChoices). Forcing it local would show it on the driver's screen.
+        if (CouchTeammate.IsSimultaneousTeammate(player) && CouchTeammateChoices.HasRequest(player))
         {
             return true;
         }
@@ -37,7 +45,8 @@ internal static class CardSelectCmdPatch
     [HarmonyPostfix]
     private static void Postfix(Player player, ref bool __result)
     {
-        if (!LocalSelfCoopContext.IsEnabled || !LocalSelfCoopContext.UseSingleAdventureMode)
+        if (!LocalSelfCoopContext.IsEnabled || !LocalSelfCoopContext.UseSingleAdventureMode
+            || (CouchTeammate.IsSimultaneousTeammate(player) && CouchTeammateChoices.HasRequest(player)))
         {
             return;
         }

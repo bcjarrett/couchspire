@@ -2,6 +2,7 @@ using System.Linq;
 using Godot;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
@@ -68,6 +69,12 @@ internal static class NEventRoomPatch
             return false;
         }
 
+        // Couch simultaneous mode: the teammate plays their event in their own panel.
+        if (CouchTeammateEvent.IsActive)
+        {
+            return false;
+        }
+
         if (NOverlayStack.Instance?.ScreenCount > 0)
         {
             LocalMultiControlLogger.Info($"事件已完成，等待弹窗关闭后自动切换到下一位: {eventModel.Owner.NetId} -> {pendingEvent.Owner.NetId}");
@@ -102,6 +109,12 @@ internal static class NEventRoomOptionButtonPatch
         }
 
         if (LocalSelfCoopContext.UseSingleEventFlow)
+        {
+            return true;
+        }
+
+        // Couch simultaneous mode: don't swap to the teammate's event; NEventRoom.Proceed waits for them instead.
+        if (CouchTeammateEvent.IsActive)
         {
             return true;
         }

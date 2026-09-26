@@ -1,12 +1,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Godot;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Rewards;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Logging;
+using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Rewards;
 using MegaCrit.Sts2.Core.Rooms;
@@ -125,6 +128,22 @@ internal static class RewardsSetPatch
         if (!rewardsSet.Rewards.All((reward) => reward.IsPopulated) && rewardsSet.Rewards.Any((reward) => reward.IsPopulated))
         {
             Log.Warn("Some rewards are populated and others are not when calling RewardsCmd.Offer! This might lead to hooks getting called twice");
+        }
+
+        // Couch simultaneous mode: rewards for the teammate (from events, relics...) go to their own panel instead of
+        // switching the whole screen to them. The panel claims through the synchronizer, which completes this set.
+        if (CouchTeammateRewards.ShouldTakeRewards(rewardsSet.Player))
+        {
+            Node? host = (Node?)NRun.Instance?.GlobalUi ?? NGame.Instance;
+            if (host != null)
+            {
+                Task teammateSetTask = RunManager.Instance.RewardsSetSynchronizer.BeginRewardsSet(rewardsSet);
+                CouchTeammateRewards.Open(host, rewardsSet, synchronized: true);
+                await teammateSetTask;
+                return;
+            }
+
+            LocalMultiControlLogger.Warn("No UI host for the teammate rewards panel; falling back to the main screen.");
         }
 
         LocalMultiControlRuntime.SwitchControlledPlayerTo(rewardsSet.Player.NetId, "rewards-offer");

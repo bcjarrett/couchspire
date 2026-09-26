@@ -1,4 +1,5 @@
 using Godot;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.ControllerInput;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Nodes;
@@ -48,7 +49,8 @@ internal static class LocalGamepadAxisRouter
 
     public static void Tick()
     {
-        if (!LocalSelfCoopContext.IsEnabled)
+        // Couch routing gives each controller its own character; the LT+stick switch combos would fight it.
+        if (!LocalSelfCoopContext.IsEnabled || CouchInputRouter.IsActive)
         {
             Reset();
             return;
@@ -110,7 +112,7 @@ internal static class LocalGamepadAxisRouter
 
     public static bool TryInterceptControllerInput(InputEvent inputEvent)
     {
-        if (!LocalSelfCoopContext.IsEnabled)
+        if (!LocalSelfCoopContext.IsEnabled || CouchInputRouter.IsActive)
         {
             return false;
         }
@@ -192,7 +194,7 @@ internal static class LocalGamepadAxisRouter
 
     public static bool ShouldBlockOriginalControllerInput(InputEvent inputEvent)
     {
-        if (!LocalSelfCoopContext.IsEnabled || !_isLtHeld)
+        if (!LocalSelfCoopContext.IsEnabled || !_isLtHeld || CouchInputRouter.IsActive)
         {
             return false;
         }

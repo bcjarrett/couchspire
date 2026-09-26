@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -356,8 +357,9 @@ internal sealed partial class LocalGhostHandsOverlay : Control
             return;
         }
 
+        // Skip whoever the couch teammate HUD is already showing.
         List<Player> others = runState.Players
-            .Where((player) => player.NetId != localNetId.Value)
+            .Where((player) => player.NetId != localNetId.Value && !CouchTeammateHud.IsShowing(player.NetId))
             .ToList();
         if (others.Count == 0)
         {
@@ -454,15 +456,10 @@ internal sealed partial class LocalGhostHandsOverlay : Control
 
         foreach (CardModel card in handCards)
         {
-            NCard? cardNode = NCard.Create(card);
-            if (cardNode == null)
-            {
-                continue;
-            }
-
-            DisableInteractionRecursively(cardNode);
+            // Private (non-pooled) card nodes: the ghost cards are made click-through, and pooled cards would carry
+            // that back into the game's own screens.
+            NCard cardNode = CouchCards.Create(card, row.Container);
             cardNode.Scale = new Vector2(LocalGhostHandsRuntime.GhostScale, LocalGhostHandsRuntime.GhostScale);
-            row.Container.AddChild(cardNode);
             row.CardNodes.Add(cardNode);
         }
     }
@@ -516,8 +513,7 @@ internal sealed partial class LocalGhostHandsOverlay : Control
                 return;
             }
 
-            cardNode.GetParent()?.RemoveChild(cardNode);
-            NodePool.Free(cardNode);
+            CouchCards.Free(cardNode);
         }
         catch (Exception exception)
         {

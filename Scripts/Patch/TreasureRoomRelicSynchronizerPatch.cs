@@ -4,6 +4,7 @@ using System.Linq;
 using Godot;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
+using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.TreasureRelicPicking;
@@ -172,6 +173,12 @@ internal static class TreasureRoomRelicSynchronizerPatch
 
     internal static bool TryAutoSwitchToNextUnpickedPlayer(TreasureRoomRelicSynchronizer synchronizer, ulong currentPlayerId, string source)
     {
+        // Couch simultaneous mode: the teammate picks in their own treasure panel.
+        if (CouchConfig.SimultaneousEnabled && CouchTeammate.FindTeammate() != null)
+        {
+            return false;
+        }
+
         try
         {
             List<TreasureRoomRelicSynchronizer.PlayerVote>? votes =
