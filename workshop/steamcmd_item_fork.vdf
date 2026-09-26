@@ -1,0 +1,34 @@
+"workshopitem"
+{
+	"appid"		"2868840"
+	"contentfolder"		"C:\\Users\\User\\Desktop\\guy\\WebDev\\STS2_DualRoleAdventure\\workshop\\content"
+	"previewfile"		"C:\\Users\\User\\Desktop\\guy\\WebDev\\STS2_DualRoleAdventure\\workshop\\preview.jpg"
+	"visibility"		"0"
+	"title"		"Local Multi-Control — Solo Multiplayer, 2–12 Characters | 本地多角色"
+	"description"		"[h1]Local Multi-Control (DualRoleAdventure)[/h1]
+[b]⚠ Requires the game's public-beta branch (v0.111).[/b] Right-click the game in Steam → Properties → Betas → select [i]public-beta[/i]. On the default branch the mod cannot load (you'd see a 'reflection type' error — your saves are NOT deleted, they reappear on the matching version). Default-branch players can use the original item (v1.30) linked below.
+[b]⚠ 需要游戏 public-beta 测试分支（v0.111）[/b]：Steam 右键游戏 → 属性 → 测试版 → 选择 public-beta。正式版分支无法加载本 Mod（存档不会丢失）。正式版玩家可使用下方链接的原版条目（v1.30）。
+
+Play Slay the Spire 2's official multiplayer entirely by yourself: control 2–12 characters on one machine, switching between them freely. No network and no second player — the real multiplayer rules run underneath, so decks, energy, gold, potions, relics, and choices all stay separate per character.
+
+[h2]Features[/h2]
+[list]
+[*]2–12 local characters (duplicates allowed): Multiplayer → Host → Local Multi-Control
+[*]Switch characters anytime with Tab / Shift+Tab
+[*]Full run flow: combat, per-character rewards, events, shops, rest sites, treasure, bosses, save & continue
+[*]Vakuu AI auto-play — hand any character (or the whole team) to the built-in autopilot
+[*]Optional 'ghost hands' overlay (F8): see your other characters' hands above your own, reposition with Ctrl+Arrows
+[*]Pure code mod, no asset pack; also works with Custom mode (seeds & modifiers)
+[/list]
+
+[h2]Heritage[/h2]
+Created by 磁石战士Ω (liwenhao0427), who designed and built everything up to v1.30 before discontinuing in June 2026. They gave written permission for this continuation and link here from the original item. This version (v1.31+) is actively maintained — currently updated for game v0.111.0. Original item: https://steamcommunity.com/sharedfiles/filedetails/?id=3747538947
+
+[h2]Feedback & source[/h2]
+https://github.com/GuyGinat/STS2_DualRoleAdventure — report bugs via GitHub Issues with your act, screen, steps, and the log from %APPDATA%/SlayTheSpire2/logs/godot.log
+
+[h2]中文简介[/h2]
+单人操控 2–12 名角色的本地多控 Mod。进入方式：多人模式 → 创建 → 单人多角色；Tab 切换角色，F8 显示队友手牌。原作者 磁石战士Ω 已授权本条目接手维护（原版条目见上方链接）；反馈请到 GitHub Issues。"
+	"changenote"		"v1.33: Silken Tress (and other one-shot reward relics) fixed; ghost hands Ctrl+Right + off-screen position fixed; optional extra cross-character card rewards (see guide); clean version check for the default branch — the mod needs public-beta (v0.111). 修复丝绸秀发、幽灵手牌问题；新增可选跨角色卡牌奖励；正式版分支将得到明确的版本提示（需 public-beta）。"
+	"publishedfileid"		"3772900244"
+}

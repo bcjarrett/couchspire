@@ -1,0 +1,10 @@
+{
+  "title": "Local Multi-Control — Solo Multiplayer, 2–12 Characters | 本地多角色",
+  "description": "Reference copy of the Workshop item metadata; the authoritative source is steamcmd_item_fork.vdf. Play official multiplayer solo: 2–12 characters on one machine, Tab/Shift+Tab switching, per-character resources, Vakuu AI auto-play, optional ghost-hands overlay (F8). Community-maintained continuation of 磁石战士Ω's mod (original item 3747538947) with written permission. Feedback: https://github.com/GuyGinat/STS2_DualRoleAdventure/issues",
+  "visibility": "public",
+  "changeNote": "Metadata update: English title and description; in-game mod name now bilingual (Local Multi-Control / 多角色冒险).",
+  "tags": [
+    "gameplay"
+  ],
+  "dependencies": []
+}

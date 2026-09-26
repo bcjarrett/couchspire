@@ -1,0 +1,30 @@
+# Godot generated
+.godot/
+.import/
+
+# .NET build outputs
+bin/
+obj/
+
+# Local export artifacts
+DualRoleAdventure.dll
+DualRoleAdventure.pck
+LocalMultiControl.pck
+
+# IDE/user files
+.vs/
+.idea/
+*.user
+*.suo
+*.tmp
+
+# Decompiled game source (read-only reference, never commit)
+src/
+
+# Keep repository code-focused
+*.uid
+*.sln
+.dotnet
+/DualRoleAdventure.pck
+/DualRoleAdventure.dll
+release/
