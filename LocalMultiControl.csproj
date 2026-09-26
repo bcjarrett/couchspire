@@ -5,14 +5,19 @@
     <LangVersion>12.0</LangVersion>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <AssemblyName>DualRoleAdventure</AssemblyName>
+    <AssemblyName>CouchSpire</AssemblyName>
     <RootNamespace>DualRoleAdventure</RootNamespace>
 
     <!-- 改成你的杀戮尖塔2目录 -->
-    <!-- Windows path when building from Windows, WSL mount path when building from WSL -->
-    <Sts2Dir Condition="'$(OS)' == 'Windows_NT'">C:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2</Sts2Dir>
-    <Sts2Dir Condition="'$(OS)' != 'Windows_NT'">/mnt/c/Program Files (x86)/Steam/steamapps/common/Slay the Spire 2</Sts2Dir>
-    <Sts2DataDir>$(Sts2Dir)\data_sts2_windows_x86_64</Sts2DataDir>
+    <!-- Game install dir; override with -p:Sts2Dir=... . Windows, WSL (C: drive mount), macOS, native Linux. -->
+    <WslSts2Dir>/mnt/c/Program Files (x86)/Steam/steamapps/common/Slay the Spire 2</WslSts2Dir>
+    <Sts2Dir Condition="'$(Sts2Dir)' == '' and '$(OS)' == 'Windows_NT'">C:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2</Sts2Dir>
+    <Sts2Dir Condition="'$(Sts2Dir)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">$(HOME)/Library/Application Support/Steam/steamapps/common/Slay the Spire 2</Sts2Dir>
+    <Sts2Dir Condition="'$(Sts2Dir)' == '' and Exists('$(WslSts2Dir)')">$(WslSts2Dir)</Sts2Dir>
+    <Sts2Dir Condition="'$(Sts2Dir)' == ''">$(HOME)/.local/share/Steam/steamapps/common/Slay the Spire 2</Sts2Dir>
+    <Sts2DataDir Condition="'$(Sts2DataDir)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">$(Sts2Dir)/SlayTheSpire2.app/Contents/Resources/data_sts2_macos_arm64</Sts2DataDir>
+    <Sts2DataDir Condition="'$(Sts2DataDir)' == '' and Exists('$(Sts2Dir)/data_sts2_linux_x86_64')">$(Sts2Dir)/data_sts2_linux_x86_64</Sts2DataDir>
+    <Sts2DataDir Condition="'$(Sts2DataDir)' == ''">$(Sts2Dir)\data_sts2_windows_x86_64</Sts2DataDir>
   </PropertyGroup>
 
   <ItemGroup>

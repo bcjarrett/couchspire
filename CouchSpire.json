@@ -1,0 +1,12 @@
+{
+    "id": "CouchSpire",
+    "name": "CouchSpire (couch co-op)",
+    "author": "CouchSpire fork of LocalMultiControl by liwenhao0427 and GuyGinat",
+    "description": "Couch co-op on one screen: each controller drives its own character in a local multi-character run. Press a button on your controller to take over when your teammate isn't mid-action. Based on Local Multi-Control (DualRoleAdventure); do not enable both.",
+    "version": "0.1.0",
+    "min_game_version": "0.111.0",
+    "has_pck": false,
+    "has_dll": true,
+    "dependencies": [],
+    "affects_gameplay": true
+}

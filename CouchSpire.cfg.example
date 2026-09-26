@@ -1,0 +1,21 @@
+# CouchSpire settings. Copy to CouchSpire.cfg in the repo root; deploy.sh installs it next to the mod.
+# Environment variables (COUCHSPIRE_PROBE etc.) override these; on Mac, use this file instead,
+# because Steam for Mac doesn't support "VAR=value %command%" launch options.
+
+# Verbose input diagnostics in the game log, plus the debug overlay at startup.
+probe = 0
+
+# Per-controller routing (each controller drives its own character). 0 = plain Local Multi-Control.
+routing = 1
+
+# Show the debug overlay at startup (F10 toggles it anyway).
+overlay = 0
+
+# Simultaneous combat: the driver keeps the screen all combat; the other character acts as a remote teammate.
+# 0 = the fork's hotseat behavior (auto-switch after end turn, the teammate's choices on the main screen).
+simultaneous = 1
+
+# Teammate HUD placement (game UI coordinates of its top-left corner) and card scale.
+hud_x = 300
+hud_y = 112
+hud_scale = 0.45

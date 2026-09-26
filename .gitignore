@@ -7,6 +7,7 @@ bin/
 obj/
 
 # Local export artifacts
+CouchSpire.dll
 DualRoleAdventure.dll
 DualRoleAdventure.pck
 LocalMultiControl.pck
@@ -28,3 +29,4 @@ src/
 /DualRoleAdventure.pck
 /DualRoleAdventure.dll
 release/
+CouchSpire.cfg
