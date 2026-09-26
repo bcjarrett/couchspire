@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using Godot;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Runs;
 
@@ -17,10 +19,11 @@ internal enum CouchRouteDecision
 }
 
 /// <summary>
-/// Decides what happens to each controller input during a couch run. The seat whose character is the
-/// current local player (<see cref="LocalContext.NetId"/>) is the driver and its input passes. A button press
-/// from another seat claims control when the fork's switch guard allows it (nobody mid-card-play, targeting,
-/// or card selection, and combat is in the play phase); otherwise it is swallowed.
+/// Decides what happens to each controller input during a couch run and on the couch character select screen. The
+/// seat whose character is the current local player (<see cref="LocalContext.NetId"/>) is the driver and its input
+/// passes. During a run, a press from another seat drives that seat's own HUD and panels (simultaneous mode) or claims
+/// control when the fork's switch guard allows it. On character select, a press from another seat makes that seat the
+/// one being edited, so each controller picks its own character.
 /// </summary>
 internal static class CouchInputRouter
 {
@@ -33,8 +36,8 @@ internal static class CouchInputRouter
     private static bool _wasActive;
 
     /// <summary>
-    /// True during a local multi-character run with at least two characters and routing enabled.
-    /// Outside of that, every input passes and the game behaves as the fork does.
+    /// True during a local multi-character run with at least two characters, or on its character select screen, with
+    /// routing enabled. Outside of that, every input passes and the game behaves as the fork does.
     /// </summary>
     public static bool IsActive
     {
@@ -42,9 +45,7 @@ internal static class CouchInputRouter
         {
             bool active = CouchConfig.RoutingEnabled
                 && LocalSelfCoopContext.IsEnabled
-                && LocalMultiControlRuntime.SessionState.IsInitialized
-                && LocalMultiControlRuntime.SessionState.OrderedPlayerIds.Count >= 2
-                && RunManager.Instance.IsInProgress;
+                && (InRun || InLobby);
             if (active != _wasActive)
             {
                 _wasActive = active;
@@ -53,6 +54,27 @@ internal static class CouchInputRouter
 
             return active;
         }
+    }
+
+    private static bool InRun =>
+        RunManager.Instance.IsInProgress
+        && LocalMultiControlRuntime.SessionState.IsInitialized
+        && LocalMultiControlRuntime.SessionState.OrderedPlayerIds.Count >= 2;
+
+    /// <summary>The local co-op character select screen is up (before the run starts).</summary>
+    private static bool InLobby =>
+        !RunManager.Instance.IsInProgress
+        && LocalSelfCoopContext.DesiredLocalPlayerCount >= 2
+        && LocalSelfCoopContext.ActiveCharacterSelectScreen is { } screen
+        && GodotObject.IsInstanceValid(screen)
+        && screen.IsVisibleInTree();
+
+    /// <summary>Seat order: the run's players, or on character select the local players being set up.</summary>
+    private static IReadOnlyList<ulong> SeatPlayerIds()
+    {
+        return RunManager.Instance.IsInProgress
+            ? LocalMultiControlRuntime.SessionState.OrderedPlayerIds
+            : LocalSelfCoopContext.LocalPlayerIds.Take(LocalSelfCoopContext.DesiredLocalPlayerCount).ToList();
     }
 
     public static CouchRouteDecision Decide(CouchDeviceKey device, string input, CouchInputKind kind)
@@ -67,7 +89,7 @@ internal static class CouchInputRouter
             return CouchRouteDecision.Pass;
         }
 
-        CouchSeats.SyncWithSession(LocalMultiControlRuntime.SessionState.OrderedPlayerIds);
+        CouchSeats.SyncWithSession(SeatPlayerIds());
         CouchSeat? seat = CouchSeats.FindByDevice(device);
         if (seat == null && (kind == CouchInputKind.Press || kind == CouchInputKind.NavPress))
         {
@@ -128,6 +150,19 @@ internal static class CouchInputRouter
 
         Held(_swallowedHeld, device).Add(input);
 
+        // Character select: this controller's seat becomes the one being edited. The press itself is swallowed so it
+        // can't also act on whatever the other player left focused (like Embark).
+        if (!RunManager.Instance.IsInProgress)
+        {
+            bool claimed = LocalSelfCoopContext.SetLobbyEditingPlayer(seat.PlayerId, $"couch:{seat.Label}");
+            if (claimed)
+            {
+                CouchLog.Info($"{seat.Label} is choosing their character.");
+            }
+
+            return claimed ? CouchRouteDecision.Claimed : CouchRouteDecision.Block;
+        }
+
         // Simultaneous mode: a teammate's controller drives their own HUD and panels; it only takes the main screen
         // with the break-glass stick click.
         if (CouchConfig.SimultaneousEnabled)
@@ -184,8 +219,8 @@ internal static class CouchInputRouter
         _passedHeld.Clear();
         _swallowedHeld.Clear();
         CouchLog.Info(active
-            ? $"Couch routing active for this run. {CouchSeats.Describe()}"
-            : "Couch routing inactive (no local multi-character run in progress).");
+            ? $"Couch routing active ({(RunManager.Instance.IsInProgress ? "run" : "character select")}). {CouchSeats.Describe()}"
+            : "Couch routing inactive (no local multi-character run or character select).");
         if (active)
         {
             CouchInputProbe.DumpEnvironment("routing became active");

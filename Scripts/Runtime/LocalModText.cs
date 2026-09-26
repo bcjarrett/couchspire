@@ -43,7 +43,7 @@ internal static class LocalModText
 
     public static string LobbyEditingSlot(string slotLabel)
     {
-        return Select($"大厅编辑角色：{RoleSlot(slotLabel)}", $"Lobby Editor: {RoleSlot(slotLabel)}");
+        return Select($"大厅编辑角色：{RoleSlot(slotLabel)}", $"P{slotLabel} is choosing");
     }
 
     public static string ControlledSlot(string slotLabel)
