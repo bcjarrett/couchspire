@@ -74,12 +74,15 @@ case "${1:-}" in
     fi
     # tar over ssh (the game path has spaces, and rsync/scp remote-path quoting varies by version), unpacked into a
     # staging folder next to the mod and renamed into place, so a running game keeps its loaded copy intact.
-    tar -C "$ROOT" -cf - "${files[@]}" | ssh "$host" "set -e
+    # COPYFILE_DISABLE and --no-xattrs keep macOS metadata out of the archive: Linux tar warns about its xattr headers,
+    # and the AppleDouble "._*" copies would be left behind in the mods folder.
+    COPYFILE_DISABLE=1 tar --no-xattrs -C "$ROOT" -cf - "${files[@]}" | ssh "$host" "set -e
+      rm -rf \"$dest/.staging\"
       mkdir -p \"$dest/.staging\"
       tar -xf - -C \"$dest/.staging\"
       rm -f \"$dest/$MOD_ID.cfg\"
-      for f in \"$dest/.staging\"/*; do mv -f \"\$f\" \"$dest/\"; done
-      rmdir \"$dest/.staging\"
+      for f in ${files[*]}; do mv -f \"$dest/.staging/\$f\" \"$dest/\$f\"; done
+      rm -rf \"$dest/.staging\"
       if pgrep -f 'Slay the Spire 2' >/dev/null; then echo '==> The game is running: it keeps the old build until you restart it.'; fi"
     echo "==> Installed to $host:~/$dest"
     ;;
