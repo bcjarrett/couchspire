@@ -57,6 +57,9 @@ internal sealed class CouchTeammateChoice
     /// <summary>Whether the choice can be closed without picking anything (answered as no index).</summary>
     public bool CanClose { get; init; }
 
+    /// <summary>True when the extra options are just "Skip": picking one answers with no card.</summary>
+    public bool ExtraOptionsSkip { get; init; }
+
     /// <summary>Combat choices are dropped when combat ends; reward choices live outside combat.</summary>
     public bool IsCombatChoice { get; init; } = true;
 

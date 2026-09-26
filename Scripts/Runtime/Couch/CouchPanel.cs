@@ -9,29 +9,35 @@ using MegaCrit.Sts2.Core.Nodes.Vfx;
 namespace LocalMultiControl.Scripts.Runtime.Couch;
 
 /// <summary>
-/// Shared look and plumbing for the teammate's side panels (rest site, treasure, shop, card picker): a dark framed
-/// panel with a title, a list of rows with a cursor, and a hint line that shows keyboard or controller keys depending on
-/// what the teammate last used.
+/// Shared look and plumbing for the teammate's side panels (rest site, treasure, shop, card picker, info): the game's
+/// hover tip frame with a gold title, rows drawn and animated like the game's event options (see <see cref="CouchButton"/>),
+/// and a hint line that shows keyboard or controller keys depending on what the teammate last used. Panels slide in
+/// from their screen edge when they open.
 /// </summary>
 internal abstract partial class CouchPanel : Control
 {
     protected const float RowGap = 6f;
 
+    /// <summary>Rows sit inside the frame's padding.</summary>
+    protected const float RowLeft = CouchFrame.PadLeft - 6f;
+
     private const double FlashSeconds = 3.0;
 
-    private static readonly Color RowColor = new(0.1f, 0.14f, 0.18f, 0.92f);
-
-    private static readonly Color RowCursorColor = new(0.28f, 0.34f, 0.4f, 0.97f);
-
-    private static readonly Color PickedColor = new(0.36f, 0.3f, 0.12f, 0.97f);
-
-    private static readonly Color CursorBorder = new(1f, 0.78f, 0.25f);
+    /// <summary>How far a panel slides in from its screen edge when it opens.</summary>
+    private const float SlideDistance = 60f;
 
     private string _flash = "";
 
     private double _flashUntil;
 
-    protected Panel? Background { get; private set; }
+    /// <summary>0 when the panel has just opened, 1 once it has slid into place.</summary>
+    private float _appear = 1f;
+
+    private bool _onLeft;
+
+    private Tween? _appearTween;
+
+    protected CouchFrame? Background { get; private set; }
 
     protected Label? Title { get; private set; }
 
@@ -42,48 +48,64 @@ internal abstract partial class CouchPanel : Control
     protected abstract float PanelWidth { get; }
 
     /// <summary>Row icon size; compact panels use smaller rows.</summary>
-    protected virtual float RowIconSize => 38f;
+    protected virtual float RowIconSize => 44f;
 
-    protected virtual int RowFontSize => 18;
+    protected virtual int RowFontSize => 20;
+
+    /// <summary>Space around a row's icon or text; compact panels use less.</summary>
+    protected virtual float RowPadding => 16f;
+
+    /// <summary>Gap between rows.</summary>
+    protected virtual float RowSpacing => RowGap;
+
+    /// <summary>Width available to rows.</summary>
+    protected float RowWidth => PanelWidth - RowLeft - CouchFrame.PadRight + 12f;
 
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Ignore;
         Visible = false;
-        Background = new Panel { MouseFilter = MouseFilterEnum.Ignore };
-        Background.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = new Color(0.03f, 0.05f, 0.07f, 0.9f),
-            BorderColor = new Color(0.55f, 0.48f, 0.32f),
-            BorderWidthLeft = 2,
-            BorderWidthRight = 2,
-            BorderWidthTop = 2,
-            BorderWidthBottom = 2,
-            CornerRadiusTopLeft = 8,
-            CornerRadiusTopRight = 8,
-            CornerRadiusBottomLeft = 8,
-            CornerRadiusBottomRight = 8
-        });
+        Background = new CouchFrame();
         AddChild(Background);
-        Title = CreateLabel(23, new Color("f3efe6"), wrap: true);
-        Hint = CreateLabel(16, new Color("d8d2c4"), wrap: true);
+        Title = CouchStyle.CreateLabel(this, 24, bold: true, color: CouchStyle.Gold, wrapWidth: PanelWidth - CouchFrame.PadLeft - CouchFrame.PadRight);
+        Hint = CouchStyle.CreateLabel(this, 18, color: CouchStyle.Muted, wrapWidth: PanelWidth - CouchFrame.PadLeft - CouchFrame.PadRight);
+        VisibilityChanged += OnVisibilityChanged;
         SetProcess(true);
     }
 
     /// <summary>
-    /// Places the panel against the left or right edge of the screen. On the right it starts below the teammate's
-    /// relic bar.
+    /// Places the panel against the left or right edge of the screen, sliding in from that edge when it opens. On the
+    /// right it starts below the teammate's relic bar; on the left, below the players list (names and health bars).
     /// </summary>
     protected void PlaceOnSide(bool left, float top, float margin = 36f)
     {
+        _onLeft = left;
         Vector2 viewport = GetViewportRect().Size;
-        Position = new Vector2(left ? margin : viewport.X - PanelWidth - margin, left ? top : CouchTeammateRelicBar.TopBelowBar(top));
+        float slide = (1f - _appear) * SlideDistance * (left ? -1f : 1f);
+        Position = new Vector2((left ? margin : viewport.X - PanelWidth - margin) + slide, left ? CouchLayout.BelowPlayersList(top) : CouchTeammateRelicBar.TopBelowBar(top));
+    }
+
+    /// <summary>The game's event options ease in from below and fade up; the panels do the same from their side.</summary>
+    private void OnVisibilityChanged()
+    {
+        _appearTween?.Kill();
+        if (!Visible)
+        {
+            _appear = 1f;
+            return;
+        }
+
+        _appear = 0f;
+        Modulate = new Color(1f, 1f, 1f, 0f);
+        _appearTween = CreateTween().SetParallel();
+        _appearTween.TweenMethod(Callable.From<float>((float v) => _appear = v), 0f, 1f, 0.3).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Back);
+        _appearTween.TweenProperty(this, "modulate:a", 1f, 0.25);
     }
 
     protected void SetTitle(string text)
     {
         Title!.Text = text;
-        Title.Position = new Vector2(16f, 12f);
+        Title.Position = new Vector2(CouchFrame.PadLeft, CouchFrame.PadTop);
     }
 
     /// <summary>Title bottom, where content starts.</summary>
@@ -94,19 +116,19 @@ internal abstract partial class CouchPanel : Control
     {
         foreach (RowView row in rows)
         {
-            float textWidth = PanelWidth - 24f - row.TextLeft - 10f;
+            float textWidth = RowWidth - row.TextLeft - 24f;
             row.Label.CustomMinimumSize = new Vector2(textWidth, 0f);
-            float height = Mathf.Max(RowIconSize + 10f, row.Label.GetMinimumSize().Y + 12f);
-            row.Root.Position = new Vector2(12f, y);
-            row.Root.Size = new Vector2(PanelWidth - 24f, height);
+            float height = Mathf.Max(RowIconSize + RowPadding, row.Label.GetMinimumSize().Y + RowPadding + 4f);
+            row.Root.Position = new Vector2(RowLeft, y);
+            row.Root.Size = new Vector2(RowWidth, height);
             row.Label.Position = new Vector2(row.TextLeft, 0f);
             row.Label.Size = new Vector2(textWidth, height);
             if (row.Icon != null)
             {
-                row.Icon.Position = new Vector2(8f, (height - RowIconSize) * 0.5f);
+                row.Icon.Position = new Vector2(16f, (height - RowIconSize) * 0.5f);
             }
 
-            y += height + RowGap;
+            y += height + RowSpacing;
         }
 
         return y;
@@ -115,26 +137,19 @@ internal abstract partial class CouchPanel : Control
     /// <summary>Writes the hint (with any flash message) below <paramref name="y"/> and sizes the background.</summary>
     protected void FinishLayout(float y, params string[] lines)
     {
-        IEnumerable<string> all = new[] { Time.GetTicksMsec() / 1000.0 < _flashUntil ? _flash : "" }.Concat(lines);
+        bool flashing = Time.GetTicksMsec() / 1000.0 < _flashUntil;
+        IEnumerable<string> all = new[] { flashing ? _flash : "" }.Concat(lines);
         Hint!.Text = string.Join("\n", all.Where((string s) => !string.IsNullOrEmpty(s)));
-        Hint.Position = new Vector2(16f, y + 4f);
-        Background!.Size = new Vector2(PanelWidth, Hint.Position.Y + Hint.GetMinimumSize().Y + 14f);
+        Hint.Position = new Vector2(CouchFrame.PadLeft, y + 4f);
+        Background!.Size = new Vector2(PanelWidth, Hint.Position.Y + Hint.GetMinimumSize().Y + CouchFrame.PadBottom);
     }
 
-    protected RowView CreateRow(Texture2D? icon)
+    protected RowView CreateRow(Texture2D? icon, CouchButtonKind kind = CouchButtonKind.Event)
     {
-        StyleBoxFlat style = new()
-        {
-            BgColor = RowColor,
-            CornerRadiusTopLeft = 6,
-            CornerRadiusTopRight = 6,
-            CornerRadiusBottomLeft = 6,
-            CornerRadiusBottomRight = 6
-        };
-        Panel root = new() { MouseFilter = MouseFilterEnum.Ignore, ZIndex = 1 };
-        root.AddThemeStyleboxOverride("panel", style);
+        CouchButton root = new() { ZIndex = 1, Kind = kind };
+        AddChild(root);
         TextureRect? iconRect = null;
-        float textLeft = 14f;
+        float textLeft = 26f;
         if (icon != null)
         {
             iconRect = new TextureRect
@@ -146,7 +161,7 @@ internal abstract partial class CouchPanel : Control
                 MouseFilter = MouseFilterEnum.Ignore
             };
             root.AddChild(iconRect);
-            textLeft = RowIconSize + 16f;
+            textLeft = RowIconSize + 26f;
         }
 
         Label label = new()
@@ -155,23 +170,24 @@ internal abstract partial class CouchPanel : Control
             VerticalAlignment = VerticalAlignment.Center,
             AutowrapMode = TextServer.AutowrapMode.WordSmart
         };
-        label.AddThemeFontSizeOverride("font_size", RowFontSize);
-        label.AddThemeColorOverride("font_color", new Color("f3efe6"));
+        if (kind == CouchButtonKind.Reward)
+        {
+            CouchStyle.Text(label, RowFontSize + 2, outline: 8);
+            label.AddThemeColorOverride("font_outline_color", StsColors.rewardLabelOutline);
+        }
+        else
+        {
+            CouchStyle.Text(label, RowFontSize);
+        }
+
         root.AddChild(label);
-        AddChild(root);
-        return new RowView(root, style, label, iconRect, textLeft);
+        root.Label = label;
+        return new RowView(root, label, iconRect, textLeft);
     }
 
     protected static void StyleRow(RowView row, bool isCursor, bool dimmed, bool picked = false)
     {
-        row.Style.BgColor = picked ? PickedColor : isCursor ? RowCursorColor : RowColor;
-        int border = isCursor ? 2 : 0;
-        row.Style.BorderColor = CursorBorder;
-        row.Style.BorderWidthLeft = border;
-        row.Style.BorderWidthRight = border;
-        row.Style.BorderWidthTop = border;
-        row.Style.BorderWidthBottom = border;
-        row.Root.Modulate = new Color(1f, 1f, 1f, dimmed ? 0.45f : 1f);
+        row.Root.SetState(isCursor, dimmed, picked);
     }
 
     protected static void FreeRows(List<RowView> rows)
@@ -182,23 +198,6 @@ internal abstract partial class CouchPanel : Control
         }
 
         rows.Clear();
-    }
-
-    protected Label CreateLabel(int fontSize, Color color, bool wrap)
-    {
-        Label label = new() { MouseFilter = MouseFilterEnum.Ignore, ZIndex = 1 };
-        if (wrap)
-        {
-            label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-            label.CustomMinimumSize = new Vector2(PanelWidth - 32f, 0f);
-        }
-
-        label.AddThemeFontSizeOverride("font_size", fontSize);
-        label.AddThemeColorOverride("font_color", color);
-        label.AddThemeColorOverride("font_outline_color", new Color("111111"));
-        label.AddThemeConstantOverride("outline_size", 4);
-        AddChild(label);
-        return label;
     }
 
     /// <summary>Shows a short message above the hint; most are refusals, which also get the "no" sound.</summary>
@@ -228,18 +227,5 @@ internal abstract partial class CouchPanel : Control
         NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create($"Waiting for {SeatLabel(teammate)} to finish {what}"));
     }
 
-    protected static void DisableInteraction(Control control)
-    {
-        control.MouseFilter = MouseFilterEnum.Ignore;
-        control.FocusMode = FocusModeEnum.None;
-        foreach (Node child in control.GetChildren())
-        {
-            if (child is Control childControl)
-            {
-                DisableInteraction(childControl);
-            }
-        }
-    }
-
-    protected readonly record struct RowView(Panel Root, StyleBoxFlat Style, Label Label, TextureRect? Icon, float TextLeft);
+    protected readonly record struct RowView(CouchButton Root, Label Label, TextureRect? Icon, float TextLeft);
 }

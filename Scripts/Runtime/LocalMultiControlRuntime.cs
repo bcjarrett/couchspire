@@ -184,6 +184,13 @@ internal static class LocalMultiControlRuntime
             return;
         }
 
+        // Couch simultaneous mode: the driver keeps the screen after events.
+        if (Couch.CouchConfig.SimultaneousEnabled)
+        {
+            Couch.CouchLog.Info($"Skipped the fork's event auto-switch ({source}); the driver keeps the screen.");
+            return;
+        }
+
         SwitchNextControlledPlayer(source);
     }
 

@@ -21,47 +21,27 @@ namespace LocalMultiControl.Scripts.Runtime.Couch;
 /// event (<see cref="EventSynchronizer"/>); the teammate reads theirs here and picks options with their own controls,
 /// sent as that teammate's <see cref="OptionIndexChosenMessage"/>. In shared events the teammate votes with a
 /// <see cref="VotedForSharedEventOptionMessage"/> instead, and the game resolves once everyone has voted. The driver
-/// can't leave the room until the teammate is done.
+/// can't leave the room until the teammate is done. Options are drawn and animated like the game's event option buttons.
 /// </summary>
-internal sealed partial class CouchTeammateEvent : Control
+internal sealed partial class CouchTeammateEvent : CouchPanel
 {
     public const string PanelNodeName = "CouchTeammateEvent";
-
-    private const float PanelWidth = 470f;
 
     private const float SideMargin = 36f;
 
     private const float PanelTop = 130f;
 
-    private const float RowGap = 6f;
-
-    private const double FlashSeconds = 3.0;
-
     private static readonly AccessTools.FieldRef<EventSynchronizer, uint> PageIndexRef =
         AccessTools.FieldRefAccess<EventSynchronizer, uint>("_pageIndex");
-
-    private static readonly Color RowColor = new(0.1f, 0.14f, 0.18f, 0.92f);
-
-    private static readonly Color RowCursorColor = new(0.28f, 0.34f, 0.4f, 0.97f);
-
-    private static readonly Color CursorBorder = new(1f, 0.78f, 0.25f);
-
-    private static readonly Color VotedColor = new(0.36f, 0.3f, 0.12f, 0.97f);
 
     private static CouchTeammateEvent? _instance;
 
     /// <summary>The teammate event the teammate has said they're done with.</summary>
     private static EventModel? _doneEvent;
 
-    private readonly List<OptionRow> _rows = new();
-
-    private Panel? _background;
-
-    private Label? _title;
+    private readonly List<RowView> _rows = new();
 
     private Label? _description;
-
-    private Label? _hint;
 
     private Player? _teammate;
 
@@ -75,17 +55,15 @@ internal sealed partial class CouchTeammateEvent : Control
 
     private int _cursor;
 
-    private bool _lastInputFromController;
-
-    private string _flash = "";
-
-    private double _flashUntil;
-
     /// <summary>True while the teammate's event panel is up.</summary>
     public static bool IsActive => _instance != null && IsInstanceValid(_instance) && _instance.Visible;
 
     /// <summary>True while the teammate still has their event open; the driver can't leave the room.</summary>
     public static bool BlocksProceed => IsActive;
+
+    protected override float PanelWidth => 480f;
+
+    protected override int RowFontSize => 19;
 
     public static void Attach(NEventRoom room)
     {
@@ -114,37 +92,18 @@ internal sealed partial class CouchTeammateEvent : Control
             return false;
         }
 
-        _instance!._lastInputFromController = playerId.HasValue;
+        _instance!.LastInputFromController = playerId.HasValue;
         _instance.OnCommand(command);
         return true;
     }
 
     public override void _Ready()
     {
+        base._Ready();
         _instance = this;
         TopLevel = true;
         ZIndex = 50;
-        MouseFilter = MouseFilterEnum.Ignore;
-        Visible = false;
-        _background = new Panel { MouseFilter = MouseFilterEnum.Ignore };
-        _background.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = new Color(0.03f, 0.05f, 0.07f, 0.9f),
-            BorderColor = new Color(0.55f, 0.48f, 0.32f),
-            BorderWidthLeft = 2,
-            BorderWidthRight = 2,
-            BorderWidthTop = 2,
-            BorderWidthBottom = 2,
-            CornerRadiusTopLeft = 8,
-            CornerRadiusTopRight = 8,
-            CornerRadiusBottomLeft = 8,
-            CornerRadiusBottomRight = 8
-        });
-        AddChild(_background);
-        _title = CreateLabel(24, new Color("f3efe6"), wrap: false);
-        _description = CreateLabel(17, new Color("e6e0d2"), wrap: true);
-        _hint = CreateLabel(16, new Color("d8d2c4"), wrap: true);
-        SetProcess(true);
+        _description = CouchStyle.CreateLabel(this, 20, wrapWidth: PanelWidth - CouchFrame.PadLeft - CouchFrame.PadRight);
     }
 
     public override void _ExitTree()
@@ -177,9 +136,7 @@ internal sealed partial class CouchTeammateEvent : Control
 
         Track(teammateEvent);
         Visible = true;
-        Vector2 viewport = GetViewportRect().Size;
-        float left = CouchConfig.EventPanelOnLeft ? SideMargin : viewport.X - PanelWidth - SideMargin;
-        Position = new Vector2(left, CouchConfig.EventPanelOnLeft ? PanelTop : CouchTeammateRelicBar.TopBelowBar(PanelTop));
+        PlaceOnSide(CouchConfig.EventPanelOnLeft, PanelTop, SideMargin);
 
         IReadOnlyList<EventOption> options = teammateEvent.IsFinished ? new List<EventOption>() : teammateEvent.CurrentOptions;
         int rowCount = options.Count + (teammateEvent.IsFinished ? 1 : 0);
@@ -191,8 +148,7 @@ internal sealed partial class CouchTeammateEvent : Control
         }
 
         _cursor = rowCount == 0 ? 0 : Mathf.Clamp(_cursor, 0, rowCount - 1);
-        float height = Layout(teammateEvent, options, shared, synchronizer);
-        _background!.Size = new Vector2(PanelWidth, height);
+        Layout(options, shared, synchronizer);
     }
 
     /// <summary>Follows the event's state changes so text is only rebuilt when a page changes.</summary>
@@ -226,66 +182,50 @@ internal sealed partial class CouchTeammateEvent : Control
 
     private void Render(EventModel eventModel, IReadOnlyList<EventOption> options)
     {
-        string seat = CouchSeats.FindByPlayer(eventModel.Owner!.NetId)?.Label ?? "P2";
-        _title!.Text = $"{seat} · {CouchText.Plain(eventModel.Title.GetFormattedText())}";
+        SetTitle($"{SeatLabel(eventModel.Owner!)} · {CouchText.Plain(eventModel.Title.GetFormattedText())}");
         _description!.Text = DescriptionText(eventModel);
-
-        foreach (OptionRow row in _rows)
-        {
-            row.Root.QueueFree();
-        }
-
-        _rows.Clear();
+        FreeRows(_rows);
         foreach (EventOption option in options)
         {
-            _rows.Add(CreateRow(OptionText(eventModel, option.Title), OptionText(eventModel, option.Description)));
+            _rows.Add(CreateOptionRow(OptionText(eventModel, option.Title), OptionText(eventModel, option.Description)));
         }
 
         if (eventModel.IsFinished)
         {
-            _rows.Add(CreateRow("Done", "Finished with this event"));
+            _rows.Add(CreateOptionRow("Done", "Finished with this event"));
         }
     }
 
-    private float Layout(EventModel eventModel, IReadOnlyList<EventOption> options, bool shared, EventSynchronizer synchronizer)
+    private RowView CreateOptionRow(string title, string description)
     {
-        _title!.Position = new Vector2(16f, 12f);
-        _description!.Position = new Vector2(16f, 48f);
-        float y = _description.Position.Y + _description.GetMinimumSize().Y + 12f;
+        RowView row = CreateRow(null);
+        row.Label.Text = description.Length > 0 ? $"{title}\n{description}" : title;
+        return row;
+    }
+
+    private void Layout(IReadOnlyList<EventOption> options, bool shared, EventSynchronizer synchronizer)
+    {
+        _description!.Position = new Vector2(CouchFrame.PadLeft, ContentTop);
+        _description.Visible = _description.Text.Length > 0;
+        float y = _description.Visible ? _description.Position.Y + _description.GetMinimumSize().Y + 12f : ContentTop;
 
         uint? teammateVote = shared ? synchronizer.GetPlayerVote(_teammate!) : null;
         bool waiting = _waitingForStateVersion == _stateVersion;
         for (int i = 0; i < _rows.Count; i++)
         {
-            OptionRow row = _rows[i];
             bool locked = i < options.Count && options[i].IsLocked;
             bool voted = teammateVote.HasValue && teammateVote.Value == i;
-            row.Style.BgColor = voted ? VotedColor : i == _cursor ? RowCursorColor : RowColor;
-            int border = i == _cursor ? 2 : 0;
-            row.Style.BorderColor = CursorBorder;
-            row.Style.BorderWidthLeft = border;
-            row.Style.BorderWidthRight = border;
-            row.Style.BorderWidthTop = border;
-            row.Style.BorderWidthBottom = border;
-            row.Root.Modulate = new Color(1f, 1f, 1f, locked || waiting ? 0.45f : 1f);
-            row.Root.Position = new Vector2(12f, y);
-            float height = Mathf.Max(48f, row.Label.GetMinimumSize().Y + 14f);
-            row.Root.Size = new Vector2(PanelWidth - 24f, height);
-            row.Label.Size = new Vector2(PanelWidth - 48f, height);
-            y += height + RowGap;
+            StyleRow(_rows[i], i == _cursor, dimmed: locked || waiting, picked: voted);
         }
 
-        string keys = _lastInputFromController ? "D-pad move · A choose" : "J/L move · I choose";
+        y = LayoutRows(_rows, y);
         string status = waiting ? "Waiting for the event..." : "";
         if (shared)
         {
             status = $"Shared event: everyone votes. {VoteSummary(synchronizer, options)}";
         }
 
-        string hint = string.Join("\n", new[] { Time.GetTicksMsec() / 1000.0 < _flashUntil ? _flash : "", status, keys }.Where((string s) => s.Length > 0));
-        _hint!.Text = hint;
-        _hint.Position = new Vector2(16f, y + 4f);
-        return _hint.Position.Y + _hint.GetMinimumSize().Y + 14f;
+        FinishLayout(y, status, $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} choose");
     }
 
     private string VoteSummary(EventSynchronizer synchronizer, IReadOnlyList<EventOption> options)
@@ -421,58 +361,4 @@ internal sealed partial class CouchTeammateEvent : Control
         return CouchText.Plain(text.GetFormattedText());
     }
 
-    private OptionRow CreateRow(string title, string description)
-    {
-        StyleBoxFlat style = new()
-        {
-            BgColor = RowColor,
-            CornerRadiusTopLeft = 6,
-            CornerRadiusTopRight = 6,
-            CornerRadiusBottomLeft = 6,
-            CornerRadiusBottomRight = 6
-        };
-        Panel root = new() { MouseFilter = MouseFilterEnum.Ignore, ZIndex = 1 };
-        root.AddThemeStyleboxOverride("panel", style);
-        Label label = new()
-        {
-            MouseFilter = MouseFilterEnum.Ignore,
-            Position = new Vector2(12f, 0f),
-            VerticalAlignment = VerticalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            Text = description.Length > 0 ? $"{title}\n{description}" : title,
-            CustomMinimumSize = new Vector2(PanelWidth - 48f, 0f)
-        };
-        label.AddThemeFontSizeOverride("font_size", 17);
-        label.AddThemeColorOverride("font_color", new Color("f3efe6"));
-        root.AddChild(label);
-        AddChild(root);
-        return new OptionRow(root, style, label);
-    }
-
-    private Label CreateLabel(int fontSize, Color color, bool wrap)
-    {
-        Label label = new() { MouseFilter = MouseFilterEnum.Ignore, ZIndex = 1 };
-        if (wrap)
-        {
-            label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-            label.CustomMinimumSize = new Vector2(PanelWidth - 32f, 0f);
-        }
-
-        label.AddThemeFontSizeOverride("font_size", fontSize);
-        label.AddThemeColorOverride("font_color", color);
-        label.AddThemeColorOverride("font_outline_color", new Color("111111"));
-        label.AddThemeConstantOverride("outline_size", 4);
-        AddChild(label);
-        return label;
-    }
-
-    /// <summary>Shows a refusal or a "still waiting" note, with the "no" sound.</summary>
-    private void Flash(string message)
-    {
-        _flash = message;
-        _flashUntil = Time.GetTicksMsec() / 1000.0 + FlashSeconds;
-        CouchSfx.Deny();
-    }
-
-    private readonly record struct OptionRow(Panel Root, StyleBoxFlat Style, Label Label);
 }

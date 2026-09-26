@@ -137,14 +137,13 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
                 bool isCursor = i == _cursor;
                 bool picked = _picked.Contains(i);
                 float lift = (isCursor ? 10f : 0f) + (picked ? 14f : 0f);
-                node.Position = new Vector2(16f + cardSize.X * 0.5f + (i - windowStart) * spacing, y + 10f + cardSize.Y * 0.5f - lift);
-                float scale = CardScale * (isCursor ? 1.08f : 1f);
-                node.Scale = new Vector2(scale, scale);
+                Vector2 spot = new(CouchFrame.PadLeft + cardSize.X * 0.5f + (i - windowStart) * spacing, y + 14f + cardSize.Y * 0.5f - lift);
+                CouchCards.Glide(node, spot, CardScale * (isCursor ? 1.1f : 1f));
                 node.ZIndex = isCursor ? 3 : 2;
-                node.Modulate = picked ? new Color(1f, 0.86f, 0.45f) : isCursor ? Colors.White : new Color(0.78f, 0.78f, 0.78f);
+                CouchCards.SetGlow(node, picked ? NCardHighlight.gold : isCursor ? NCardHighlight.playableColor : null);
             }
 
-            y += cardSize.Y + 34f;
+            y += cardSize.Y + 40f;
         }
 
         for (int i = 0; i < _extraRows.Count; i++)
@@ -183,7 +182,11 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
                 _cursor = (_cursor + 1) % optionCount;
                 break;
             case CouchHudCommand.Accept:
-                if (choice.Kind is CouchChoiceAnswerKind.Index or CouchChoiceAnswerKind.PlayerId)
+                if (_cursor >= _cards.Count && choice.ExtraOptionsSkip)
+                {
+                    Skip(choice);
+                }
+                else if (choice.Kind is CouchChoiceAnswerKind.Index or CouchChoiceAnswerKind.PlayerId)
                 {
                     CouchTeammateChoices.AnswerIndex(choice, _cursor);
                 }
@@ -226,17 +229,23 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
                 }
                 else if (choice.CanClose || choice.MinSelect == 0)
                 {
-                    if (choice.Kind is CouchChoiceAnswerKind.Index or CouchChoiceAnswerKind.PlayerId)
-                    {
-                        CouchTeammateChoices.AnswerIndex(choice, null);
-                    }
-                    else
-                    {
-                        CouchTeammateChoices.Answer(choice, new List<int>());
-                    }
+                    Skip(choice);
                 }
 
                 break;
+        }
+    }
+
+    /// <summary>Answers with no card (skip / cancel).</summary>
+    private static void Skip(CouchTeammateChoice choice)
+    {
+        if (choice.Kind is CouchChoiceAnswerKind.Index or CouchChoiceAnswerKind.PlayerId)
+        {
+            CouchTeammateChoices.AnswerIndex(choice, null);
+        }
+        else
+        {
+            CouchTeammateChoices.Answer(choice, new List<int>());
         }
     }
 }

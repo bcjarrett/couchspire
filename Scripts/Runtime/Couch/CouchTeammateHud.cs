@@ -1,11 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Pooling;
@@ -58,9 +61,21 @@ internal sealed partial class CouchTeammateHud : Control
 
     private const float CursorDrop = 0.1f;
 
-    private const float CardsTopOffset = 64f;
+    /// <summary>The focused card grows like the driver's focused hand card (from hand scale to full size).</summary>
+    private const float FocusScale = 1.25f;
 
-    private const float PotionSlotSize = 44f;
+    /// <summary>Neighbors of the focused card make room for it (<c>NPlayerHand.RefreshLayout</c>: up to 100px).</summary>
+    private const float FocusSpread = 100f;
+
+    private const float CardsTopOffset = 80f;
+
+    /// <summary>Header line, below the potion slots' top edge.</summary>
+    private const float HeaderOffset = 12f;
+
+    /// <summary>Band top when the players list isn't there to line up with.</summary>
+    private const float DefaultBandTop = 170f;
+
+    private const float PotionSlotSize = 56f;
 
     private const float RightMargin = 40f;
 
@@ -70,16 +85,11 @@ internal sealed partial class CouchTeammateHud : Control
 
     private const double DiscardArmSeconds = 2.5;
 
-    /// <summary>Scale of the big card shown next to the creature being targeted.</summary>
-    private const float TargetPreviewScale = 0.62f;
+    /// <summary>The card being aimed is held up large, as the driver's is while targeting.</summary>
+    private const float TargetingScale = 0.7f;
 
-    private static readonly Color CursorTint = Colors.White;
-
-    private static readonly Color IdleTint = new(0.82f, 0.82f, 0.82f);
-
-    private static readonly Color UnplayableTint = new(0.45f, 0.45f, 0.45f, 0.9f);
-
-    private static readonly Color PickedTint = new(1f, 0.86f, 0.45f);
+    private static readonly AccessTools.FieldRef<NCreature, NSelectionReticle> CreatureReticleRef =
+        AccessTools.FieldRefAccess<NCreature, NSelectionReticle>("_selectionReticle");
 
     private static CouchTeammateHud? _instance;
 
@@ -91,14 +101,24 @@ internal sealed partial class CouchTeammateHud : Control
 
     private List<CardModel> _shownCards = new();
 
-    private Label? _header;
+    private RichTextLabel? _header;
 
     private Label? _hint;
 
-    private CouchTargetMarker? _marker;
+    /// <summary>The game's targeting arrow (smaller), drawn from the aimed card or potion to the target.</summary>
+    private CouchTargetingArrow? _arrow;
 
-    /// <summary>The card being aimed, shown big beside the target with the damage it would deal to that target.</summary>
-    private NCard? _targetPreview;
+    /// <summary>What the arrow comes out of: the aimed card or potion slot.</summary>
+    private Control? _arrowFrom;
+
+    /// <summary>
+    /// Where the arrow starts: the bottom edge of the aimed card (or potion), drawn behind it, so the arrow never
+    /// covers the card's text and the numbers it shows against the target.
+    /// </summary>
+    private Control? _arrowAnchor;
+
+    /// <summary>The creature whose selection reticle the teammate's aim has lit.</summary>
+    private NCreature? _aimedCreature;
 
     /// <summary>The hand card whose numbers currently include a target (vulnerable, etc.).</summary>
     private NCard? _handPreviewNode;
@@ -161,6 +181,25 @@ internal sealed partial class CouchTeammateHud : Control
         parent.MoveChild(hud, hand.GetIndex() + 1);
     }
 
+    /// <summary>
+    /// Top of the teammate's band (potion slots and status line, then cards): level with the top of the players list
+    /// (health bars) on the left, which is below the driver's relic row, so the driver's relics can run the full width.
+    /// Also used by the relic bar outside combat. <c>hud_y</c> overrides it.
+    /// </summary>
+    public static float BandTop()
+    {
+        if (CouchConfig.HudY >= 0f)
+        {
+            return CouchConfig.HudY;
+        }
+
+        Control? list = NRun.Instance?.GlobalUi?.MultiplayerPlayerContainer;
+        return list != null && IsInstanceValid(list) && list.IsVisibleInTree() ? list.GlobalPosition.Y : DefaultBandTop;
+    }
+
+    /// <summary>The HUD's mode (hand, potions, targeting, choice) while it's up, for screenshots.</summary>
+    public static string? ModeName => IsActive ? _instance!._mode.ToString() : null;
+
     /// <summary>Where the HUD's top line (header text, then potion slots) ends, while the HUD is up.</summary>
     public static float? HeaderRight => IsActive ? _instance!._headerRight : null;
 
@@ -192,10 +231,14 @@ internal sealed partial class CouchTeammateHud : Control
         _instance = this;
         MouseFilter = MouseFilterEnum.Ignore;
         SetAnchorsPreset(LayoutPreset.FullRect);
-        _header = CreateLabel(22, new Color("f3efe6"));
-        _hint = CreateLabel(17, new Color("d8d2c4"));
-        _marker = new CouchTargetMarker { Visible = false, ZIndex = 20 };
-        AddChild(_marker);
+        _header = CouchStyle.CreateRichLabel(this, 24, outline: 8);
+        _header.ZIndex = 10;
+        _hint = CouchStyle.CreateLabel(this, 19, outline: 7);
+        _hint.ZIndex = 10;
+        _arrowAnchor = new Control { MouseFilter = MouseFilterEnum.Ignore, ZIndex = 0 };
+        AddChild(_arrowAnchor);
+        _arrow = new CouchTargetingArrow();
+        AddChild(_arrow);
         Visible = false;
         SetProcess(true);
         CombatManager.Instance.StateTracker.CombatStateChanged += OnCombatStateChanged;
@@ -240,8 +283,7 @@ internal sealed partial class CouchTeammateHud : Control
         SyncPotionSlots();
         UpdateTexts();
         Layout();
-        UpdateMarker();
-        UpdateTargetPreview();
+        UpdateTargeting();
         ListenForPlayedCards();
         Modulate = new Color(1f, 1f, 1f, DriverIsBusy() ? BusyAlpha : 1f);
     }
@@ -695,7 +737,7 @@ internal sealed partial class CouchTeammateHud : Control
 
     private void ClearCards()
     {
-        ClearTargetPreview();
+        StopTargetingVisuals();
         _handPreviewNode = null;
         _cardsInPlay = new List<CardModel>();
         foreach (NCard node in _cardNodes)
@@ -737,20 +779,21 @@ internal sealed partial class CouchTeammateHud : Control
         Vector2 viewport = GetViewportRect().Size;
         float scale = CouchConfig.HudScale;
         Vector2 cardSize = NCard.defaultSize * scale;
-        float left = CouchConfig.HudX;
-        float top = CouchConfig.HudY;
+        float left = CouchLayout.RightOfPlayersList(CouchConfig.HudX);
+        float top = BandTop();
 
-        _header!.Position = new Vector2(left, top);
-        _hint!.Position = new Vector2(left, top + 30f);
+        _header!.Position = new Vector2(left, top + HeaderOffset);
+        _hint!.Position = new Vector2(left, top + HeaderOffset + 32f);
 
-        // Potion slots sit right after the header text.
-        float potionX = left + _header.GetMinimumSize().X + 20f;
+        // Potion slots sit right after the header, their top edge on the band's top.
+        _header.Size = new Vector2(Mathf.Max(_header.GetContentWidth(), 10f), 40f);
+        float potionX = left + _header.GetContentWidth() + 20f;
         for (int i = 0; i < _potionSlots.Count; i++)
         {
-            _potionSlots[i].Position = new Vector2(potionX + i * (PotionSlotSize + 6f), top - 8f);
+            _potionSlots[i].Position = new Vector2(potionX + i * (PotionSlotSize + 4f), top);
         }
 
-        _headerRight = potionX + _potionSlots.Count * (PotionSlotSize + 6f);
+        _headerRight = potionX + _potionSlots.Count * (PotionSlotSize + 4f);
 
         // Cards: left-aligned under the text; overlap more when the hand is too wide for the space.
         float availableWidth = Mathf.Max(cardSize.X, viewport.X - RightMargin - left - cardSize.X);
@@ -760,30 +803,54 @@ internal sealed partial class CouchTeammateHud : Control
             spacing = Mathf.Min(spacing, availableWidth / (_cardNodes.Count - 1));
         }
 
+        // Like the driver's hand: the focused card snaps to full size, clear of the others, and its neighbors move
+        // aside; everything else glides into place.
+        int focus = FocusIndex();
+        float spread = FocusSpread * scale / 0.75f;
+        float cardsTop = top + CardsTopOffset;
         float firstCenterX = left + cardSize.X * 0.5f;
-        float centerY = top + CardsTopOffset + cardSize.Y * 0.5f;
+        bool canAct = CouchRemotePlay.CanActNow(out _);
         for (int i = 0; i < _cardNodes.Count; i++)
         {
             NCard node = _cardNodes[i];
             CardModel card = _shownCards[i];
-            bool isCursor = _mode switch
-            {
-                HudMode.Targeting => card == _targetingCard,
-                HudMode.Potions => false,
-                _ => i == _cursor
-            };
+            bool focused = i == focus;
             bool picked = _mode == HudMode.Choice && _picked.Contains(i);
-            float drop = (isCursor ? CursorDrop : 0f) + (picked ? CursorDrop * 0.6f : 0f);
-            node.Position = new Vector2(firstCenterX + i * spacing, centerY + drop * cardSize.Y);
-            float nodeScale = scale * (isCursor ? 1.12f : 1f);
-            node.Scale = new Vector2(nodeScale, nodeScale);
-            node.ZIndex = isCursor ? 2 : picked ? 1 : 0;
-            bool showPlayability = _mode is HudMode.Hand or HudMode.Potions;
-            node.Modulate = picked ? PickedTint
-                : showPlayability && !card.CanPlay() ? UnplayableTint
-                : isCursor ? CursorTint
-                : IdleTint;
+            float x = firstCenterX + i * spacing;
+            if (focus >= 0 && !focused)
+            {
+                x -= Mathf.Sign(focus - i) * Mathf.Lerp(spread, 0f, Mathf.Min(1f, Mathf.Abs(focus - i) / 4f));
+            }
+
+            float nodeScale = focused ? (_mode == HudMode.Targeting ? TargetingScale : scale * FocusScale) : scale;
+            float y = cardsTop + NCard.defaultSize.Y * nodeScale * 0.5f + (focused ? CursorDrop * cardSize.Y : 0f) + (picked ? CursorDrop * 0.6f * cardSize.Y : 0f);
+            if (focused)
+            {
+                node.Scale = new Vector2(nodeScale, nodeScale);
+                node.Position = new Vector2(node.Position.X, y);
+            }
+
+            CouchCards.Glide(node, new Vector2(x, Mathf.Min(y, viewport.Y - NCard.defaultSize.Y * nodeScale * 0.5f)), nodeScale);
+            node.ZIndex = focused ? 2 : picked ? 1 : 0;
+            node.Modulate = Colors.White;
+            CouchCards.SetGlow(node, _mode switch
+            {
+                HudMode.Choice => picked ? NCardHighlight.gold : NCardHighlight.playableColor,
+                HudMode.Targeting when focused => NCardHighlight.playableColor,
+                _ => CouchCards.HandGlow(card, canAct)
+            });
         }
+    }
+
+    /// <summary>The card that is up front: the cursor card, or the card being aimed; none in the potion row.</summary>
+    private int FocusIndex()
+    {
+        return _mode switch
+        {
+            HudMode.Targeting => _targetingCard != null ? _shownCards.IndexOf(_targetingCard) : -1,
+            HudMode.Potions => -1,
+            _ => _shownCards.Count > 0 ? _cursor : -1
+        };
     }
 
     private void UpdateTexts()
@@ -797,11 +864,21 @@ internal sealed partial class CouchTeammateHud : Control
         bool usesStars = teammate.Character.ShouldAlwaysShowStarCounter || state.Stars > 0;
         bool ended = CombatManager.Instance.IsPlayerReadyToEndTurn(teammate);
         bool canAct = CouchRemotePlay.CanActNow(out _);
-        _header!.Text = $"{seat} · {character}    Energy {state.Energy}/{state.MaxEnergy}    Gold {teammate.Gold}"
-            + (usesStars ? $"    Stars {state.Stars}" : "")
-            + $"    Draw {draw} · Discard {discard}"
-            + (ended ? "    TURN ENDED" : "")
-            + (canAct ? "" : "    (enemy turn)");
+
+        // Like the driver's combat UI: the character's energy icon, gold, stars, and the draw and discard piles.
+        string energyColor = state.Energy > 0 ? CouchStyle.Cream.ToHtml(false) : StsColors.red.ToHtml(false);
+        string header = $"[b][color=#{CouchStyle.Gold.ToHtml(false)}]{seat}[/color] · {character}[/b]"
+            + $"   {CouchStyle.Icon(EnergyIconHelper.GetPath(teammate.Character.CardPool), 34)} [b][color=#{energyColor}]{state.Energy}/{state.MaxEnergy}[/color][/b]"
+            + $"   {CouchStyle.Icon(CouchStyle.GoldIconPath, 30)} [b][color=#{CouchStyle.Gold.ToHtml(false)}]{teammate.Gold}[/color][/b]"
+            + (usesStars ? $"   {CouchStyle.Icon(CouchStyle.StarIconPath, 30)} [b]{state.Stars}[/b]" : "")
+            + $"   {CouchStyle.Icon(CouchStyle.DrawPileIconPath, 34)} [b]{draw}[/b]"
+            + $"   {CouchStyle.Icon(CouchStyle.DiscardPileIconPath, 34)} [b]{discard}[/b]"
+            + (ended ? $"   [b][color=#{StsColors.gold.ToHtml(false)}]Turn ended[/color][/b]" : "")
+            + (canAct ? "" : $"   [color=#{CouchStyle.Muted.ToHtml(false)}]Enemy turn[/color]");
+        if (_header!.Text != header)
+        {
+            _header.Text = header;
+        }
 
         string hint = _mode switch
         {
@@ -841,23 +918,7 @@ internal sealed partial class CouchTeammateHud : Control
         return CouchText.Plain(potion.Title.GetFormattedText());
     }
 
-    private void UpdateMarker()
-    {
-        IReadOnlyList<Creature> targets = _mode == HudMode.Targeting ? Targets() : new List<Creature>();
-        NCreature? node = targets.Count > 0
-            ? NCombatRoom.Instance?.GetCreatureNode(targets[Mathf.Clamp(_targetIndex, 0, targets.Count - 1)])
-            : null;
-        if (node?.Hitbox == null)
-        {
-            _marker!.Visible = false;
-            return;
-        }
-
-        _marker!.Visible = true;
-        _marker.GlobalPosition = node.Hitbox.GlobalPosition + new Vector2(node.Hitbox.Size.X * 0.5f, -12f);
-    }
-
-    /// <summary>The creature under the target marker, if the teammate is aiming something.</summary>
+    /// <summary>The creature being aimed at, if the teammate is aiming something.</summary>
     private Creature? CurrentTarget()
     {
         IReadOnlyList<Creature> targets = _mode == HudMode.Targeting ? Targets() : new List<Creature>();
@@ -865,56 +926,84 @@ internal sealed partial class CouchTeammateHud : Control
     }
 
     /// <summary>
-    /// While a card is aimed: the card's numbers against that target (vulnerable, weak, etc.), on the hand card and on
-    /// a big copy beside the target, as the game does when the driver drags a card over an enemy.
+    /// While aiming, what the driver sees when aiming with a controller (<c>NTargetManager</c>): the game's targeting
+    /// arrow from the card or potion to the creature, tinted for enemies or allies, the creature's selection reticle,
+    /// and the card's numbers against that creature (vulnerable, weak, ...).
     /// </summary>
-    private void UpdateTargetPreview()
+    private void UpdateTargeting()
     {
-        Creature? target = _targetingCard != null ? CurrentTarget() : null;
-        NCreature? creatureNode = target != null ? NCombatRoom.Instance?.GetCreatureNode(target) : null;
-        int handIndex = target != null ? _shownCards.IndexOf(_targetingCard!) : -1;
-        NCard? handNode = handIndex >= 0 ? _cardNodes[handIndex] : null;
-        if (_handPreviewNode != handNode)
+        Creature? target = CurrentTarget();
+        Control? from = null;
+        if (target != null && _targetingCard != null)
         {
-            SetPreviewTargetSafe(_handPreviewNode, null);
-            _handPreviewNode = handNode;
+            int index = _shownCards.IndexOf(_targetingCard);
+            from = index >= 0 ? _cardNodes[index] : null;
+        }
+        else if (target != null && _targetingPotion != null && _potionCursor < _potionSlots.Count)
+        {
+            from = _potionSlots[_potionCursor];
         }
 
-        SetPreviewTargetSafe(handNode, target);
-        if (target == null || creatureNode?.Hitbox == null)
+        NCard? cardNode = from as NCard;
+        if (_handPreviewNode != cardNode)
         {
-            ClearTargetPreview();
+            SetPreviewTargetSafe(_handPreviewNode, null);
+            _handPreviewNode = cardNode;
+        }
+
+        SetPreviewTargetSafe(cardNode, target);
+        NCreature? creatureNode = target != null ? NCombatRoom.Instance?.GetCreatureNode(target) : null;
+        if (from == null || creatureNode == null || _arrow == null || _arrowAnchor == null)
+        {
+            StopTargetingVisuals();
             return;
         }
 
-        if (_targetPreview == null || _targetPreview.Model != _targetingCard)
+        float halfHeight = from is NCard ? NCard.defaultSize.Y * from.Scale.Y * 0.5f : from.Size.Y * 0.5f;
+        Vector2 center = from is NCard ? from.GlobalPosition : from.GlobalPosition + from.Size * 0.5f;
+        _arrowAnchor.GlobalPosition = center + new Vector2(0f, halfHeight - 12f);
+        if (_arrowFrom != from)
         {
-            ClearTargetPreview();
-            _targetPreview = CouchCards.Create(_targetingCard!, this);
-            _targetPreview.Scale = new Vector2(TargetPreviewScale, TargetPreviewScale);
-            _targetPreview.ZIndex = 15;
+            _arrow.StartDrawingFrom(_arrowAnchor);
+            _arrowFrom = from;
+            _aimedCreature = null;
         }
 
-        _targetPreview.SetPreviewTarget(target);
-
-        // Beside the target (left of it, or right when there's no room), clamped to the screen.
-        Vector2 viewport = GetViewportRect().Size;
-        Vector2 size = NCard.defaultSize * TargetPreviewScale;
-        Rect2 hitbox = new(creatureNode.Hitbox.GlobalPosition, creatureNode.Hitbox.Size);
-        float x = hitbox.Position.X - size.X * 0.5f - 36f;
-        if (x - size.X * 0.5f < 16f)
+        if (_aimedCreature != creatureNode)
         {
-            x = hitbox.End.X + size.X * 0.5f + 36f;
+            HideAimReticle();
+            _arrow.SetHighlightingOn(target!.IsEnemy);
+            creatureNode.ShowSingleSelectReticle();
+            _aimedCreature = creatureNode;
+        }
+        else if (!CreatureReticleRef(creatureNode).IsSelected)
+        {
+            // The driver's own aiming turned it off.
+            creatureNode.ShowSingleSelectReticle();
         }
 
-        float y = Mathf.Clamp(hitbox.GetCenter().Y, size.Y * 0.5f + 16f, viewport.Y - size.Y * 0.5f - 16f);
-        _targetPreview.GlobalPosition = new Vector2(Mathf.Clamp(x, size.X * 0.5f + 16f, viewport.X - size.X * 0.5f - 16f), y);
+        _arrow.UpdateDrawingTo(creatureNode.VfxSpawnPosition);
     }
 
-    private void ClearTargetPreview()
+    private void StopTargetingVisuals()
     {
-        CouchCards.Free(_targetPreview);
-        _targetPreview = null;
+        if (_arrowFrom != null)
+        {
+            _arrow?.StopDrawing();
+            _arrowFrom = null;
+        }
+
+        HideAimReticle();
+    }
+
+    private void HideAimReticle()
+    {
+        if (_aimedCreature != null && IsInstanceValid(_aimedCreature))
+        {
+            _aimedCreature.HideSingleSelectReticle();
+        }
+
+        _aimedCreature = null;
     }
 
     private static void SetPreviewTargetSafe(NCard? node, Creature? target)
@@ -928,7 +1017,7 @@ internal sealed partial class CouchTeammateHud : Control
     /// <summary>Keeps the teammate's card numbers current (strength, weak, ...), as the driver's hand does.</summary>
     private void OnCombatStateChanged(CombatState _)
     {
-        foreach (NCard? node in _cardNodes.Append(_targetPreview))
+        foreach (NCard node in _cardNodes)
         {
             if (node != null && IsInstanceValid(node) && node.Model != null)
             {
@@ -953,17 +1042,6 @@ internal sealed partial class CouchTeammateHud : Control
         _cardsInPlay = PileType.Play.GetPile(teammate).Cards.ToList();
     }
 
-    private Label CreateLabel(int fontSize, Color color)
-    {
-        Label label = new() { MouseFilter = MouseFilterEnum.Ignore, ZIndex = 10 };
-        label.AddThemeFontSizeOverride("font_size", fontSize);
-        label.AddThemeColorOverride("font_color", color);
-        label.AddThemeColorOverride("font_outline_color", new Color("111111"));
-        label.AddThemeConstantOverride("outline_size", 5);
-        AddChild(label);
-        return label;
-    }
-
     private static void DisableInteraction(Control control)
     {
         control.MouseFilter = MouseFilterEnum.Ignore;
@@ -979,19 +1057,20 @@ internal sealed partial class CouchTeammateHud : Control
 }
 
 /// <summary>
-/// One potion slot in the teammate HUD: the potion's art on a dark tile, outlined when the cursor is on it.
+/// One potion slot in the teammate HUD, like the driver's top bar potion holders: the potion, or the empty-slot
+/// placeholder, with the controller selection reticle when the cursor is on it.
 /// </summary>
 internal sealed partial class CouchPotionSlot : Control
 {
-    private static readonly Color Tile = new(0f, 0f, 0f, 0.55f);
-
-    private static readonly Color EmptyOutline = new(1f, 1f, 1f, 0.25f);
-
-    private static readonly Color CursorOutline = new(1f, 0.78f, 0.25f);
-
     private PotionModel? _potion;
 
-    private Texture2D? _texture;
+    private TextureRect? _empty;
+
+    private TextureRect? _image;
+
+    private NSelectionReticle? _reticle;
+
+    private Tween? _tween;
 
     private bool _highlighted;
 
@@ -1000,14 +1079,13 @@ internal sealed partial class CouchPotionSlot : Control
         get => _potion;
         set
         {
-            if (_potion == value)
+            if (_potion == value && _image?.Texture != null == (value != null))
             {
                 return;
             }
 
             _potion = value;
-            _texture = value?.Image;
-            QueueRedraw();
+            Refresh();
         }
     }
 
@@ -1022,58 +1100,69 @@ internal sealed partial class CouchPotionSlot : Control
             }
 
             _highlighted = value;
-            QueueRedraw();
+            if (value)
+            {
+                _reticle?.OnSelect();
+            }
+            else
+            {
+                _reticle?.OnDeselect();
+            }
+
+            _tween?.Kill();
+            _tween = CreateTween();
+            _tween.TweenProperty(_image!, "scale", Vector2.One * (value ? 1.15f : 1f), value ? 0.05 : 0.3).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Expo);
         }
     }
 
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Ignore;
-    }
-
-    public override void _Draw()
-    {
-        Rect2 rect = new(Vector2.Zero, Size);
-        DrawRect(rect, Tile);
-        if (_texture != null)
+        _empty = new TextureRect
         {
-            DrawTextureRect(_texture, rect.Grow(-3f), false);
-        }
-
-        DrawRect(rect, _highlighted ? CursorOutline : EmptyOutline, false, _highlighted ? 3f : 1f);
-    }
-}
-
-/// <summary>
-/// A bobbing downward arrow drawn over the teammate's chosen target. Its position is the arrow's tip.
-/// </summary>
-internal sealed partial class CouchTargetMarker : Control
-{
-    private static readonly Color Fill = new(1f, 0.78f, 0.25f);
-
-    private static readonly Color Outline = new(0.1f, 0.08f, 0.05f);
-
-    public override void _Ready()
-    {
-        MouseFilter = MouseFilterEnum.Ignore;
-        SetProcess(true);
-    }
-
-    public override void _Process(double delta)
-    {
-        QueueRedraw();
-    }
-
-    public override void _Draw()
-    {
-        float bob = Mathf.Sin((float)Time.GetTicksMsec() / 180f) * 6f;
-        Vector2[] arrow =
-        {
-            new(0f, bob),
-            new(-22f, -34f + bob),
-            new(22f, -34f + bob)
+            Texture = CouchStyle.Load<Texture2D>(CouchStyle.PotionPlaceholderPath),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = MouseFilterEnum.Ignore
         };
-        DrawColoredPolygon(arrow, Fill);
-        DrawPolyline(new[] { arrow[0], arrow[1], arrow[2], arrow[0] }, Outline, 3f);
+        AddChild(_empty);
+        _image = new TextureRect
+        {
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = MouseFilterEnum.Ignore
+        };
+        AddChild(_image);
+        _reticle = CouchStyle.CreateReticle(this);
+        Resized += OnResized;
+        OnResized();
+        Refresh();
+    }
+
+    private void OnResized()
+    {
+        if (_empty == null || _image == null)
+        {
+            return;
+        }
+
+        _empty.Position = new Vector2(4f, 4f);
+        _empty.Size = Size - new Vector2(8f, 8f);
+        _image.Position = Vector2.Zero;
+        _image.Size = Size;
+        _image.PivotOffset = Size * 0.5f;
+        CouchStyle.PlaceReticle(_reticle, Vector2.Zero, Size);
+    }
+
+    private void Refresh()
+    {
+        if (_image == null || _empty == null)
+        {
+            return;
+        }
+
+        _image.Texture = _potion?.Image;
+        _image.Visible = _potion != null;
+        _empty.Visible = _potion == null;
     }
 }

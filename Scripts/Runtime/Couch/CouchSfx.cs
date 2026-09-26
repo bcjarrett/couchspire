@@ -38,12 +38,6 @@ internal static class CouchSfx
 
     public static void RelicGained() => PlayTemp("relic_get.mp3");
 
-    public static void Transform() => Play("event:/sfx/ui/cards/card_transform");
-
-    public static void Upgrade() => PlayTemp("card_smith.mp3");
-
-    public static void CardAdded() => Play("event:/sfx/ui/cards/card_movement_B_into_deck");
-
     public static void MerchantThanks() => Play("event:/sfx/npcs/merchant/merchant_thank_yous");
 
     public static void MerchantNo() => Play("event:/sfx/npcs/merchant/merchant_dissapointment");

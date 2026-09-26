@@ -50,7 +50,11 @@ internal static class CouchConfig
     /// <summary>Teammate HUD position (top-left of its header, in the game's UI coordinates) and card scale.</summary>
     public static readonly float HudX = Number("hud_x", 300f);
 
-    public static readonly float HudY = Number("hud_y", 112f);
+    /// <summary>Saves a screenshot each time a teammate screen or HUD mode opens (<see cref="CouchScreenshots"/>).</summary>
+    public static readonly bool ShotsEnabled = Flag("shots", "COUCHSPIRE_SHOTS", defaultValue: false);
+
+    /// <summary>Negative (the default) lines the HUD up with the players list on the left; see <see cref="CouchTeammateHud.BandTop"/>.</summary>
+    public static readonly float HudY = Number("hud_y", -1f);
 
     public static readonly float HudScale = Number("hud_scale", 0.45f);
 

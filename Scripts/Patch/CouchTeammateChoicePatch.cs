@@ -64,24 +64,54 @@ internal static class CouchTeammateChoicePatch
     [HarmonyPrefix]
     private static void PrefixFromChooseACardScreen(IReadOnlyList<CardModel> cards, Player player, bool canSkip)
     {
-        if (!CouchTeammate.IsTeammate(player))
+        if (CouchTeammate.IsTeammate(player))
         {
+            CouchTeammateChoices.Request(player, CouchChoiceAnswerKind.Index, cards, canSkip ? 0 : 1, 1, "Choose a card", "choose-a-card screen");
             return;
         }
 
-        CouchTeammateChoices.Request(player, CouchChoiceAnswerKind.Index, cards, canSkip ? 0 : 1, 1, "Choose a card", "choose-a-card screen");
+        // Outside combat (e.g. Neow's Massive Scroll): the teammate's card picker.
+        RequestOutOfCombat(player, CouchChoiceAnswerKind.Index, cards, canSkip ? 0 : 1, 1, canSkip, "Choose a card", "choose-a-card screen");
     }
 
     [HarmonyPatch(typeof(CardSelectCmd), nameof(CardSelectCmd.FromSimpleGrid))]
     [HarmonyPrefix]
     private static void PrefixFromSimpleGrid(IReadOnlyList<CardModel> cardsIn, Player player, CardSelectorPrefs prefs)
     {
-        if (!CouchTeammate.IsTeammate(player))
+        if (CouchTeammate.IsTeammate(player))
+        {
+            CouchTeammateChoices.Request(player, CouchChoiceAnswerKind.Indexes, cardsIn, prefs.MinSelect, prefs.MaxSelect, prefs.Prompt.GetFormattedText(), "grid");
+            return;
+        }
+
+        RequestOutOfCombat(player, CouchChoiceAnswerKind.Indexes, cardsIn, prefs.MinSelect, prefs.MaxSelect, prefs.Cancelable, prefs.Prompt.GetFormattedText(), "grid");
+    }
+
+    /// <summary>
+    /// A teammate's pick outside combat goes to their card picker. Single picks that may be skipped get a Skip row.
+    /// </summary>
+    private static void RequestOutOfCombat(Player player, CouchChoiceAnswerKind kind, IReadOnlyList<CardModel> cards, int minSelect, int maxSelect, bool canClose, string prompt, string source)
+    {
+        if (!CouchTeammate.IsSimultaneousTeammate(player) || CombatManager.Instance.IsInProgress)
         {
             return;
         }
 
-        CouchTeammateChoices.Request(player, CouchChoiceAnswerKind.Indexes, cardsIn, prefs.MinSelect, prefs.MaxSelect, prefs.Prompt.GetFormattedText(), "grid");
+        bool skipRow = maxSelect == 1 && (minSelect == 0 || canClose);
+        CouchTeammateChoices.Request(new CouchTeammateChoice
+        {
+            Player = player,
+            Kind = kind,
+            Options = cards.ToList(),
+            MinSelect = minSelect,
+            MaxSelect = maxSelect,
+            CanClose = canClose,
+            IsCombatChoice = false,
+            ExtraOptions = skipRow ? new[] { "Skip" } : Array.Empty<string>(),
+            ExtraOptionsSkip = skipRow,
+            Prompt = CouchText.Plain(prompt),
+            Source = source
+        });
     }
 
     [HarmonyPatch(typeof(CardSelectCmd), nameof(CardSelectCmd.FromDeckForUpgrade))]

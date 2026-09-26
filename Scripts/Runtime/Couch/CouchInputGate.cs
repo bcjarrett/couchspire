@@ -31,6 +31,8 @@ internal sealed partial class CouchInputGate : Node
         {
             parent.MoveChild(this, -1);
         }
+
+        CouchScreenshots.Tick();
     }
 
     public override void _Input(InputEvent inputEvent)
@@ -44,6 +46,10 @@ internal sealed partial class CouchInputGate : Node
             else if (key.Keycode == Key.F9)
             {
                 CouchSeats.UnbindAll("F9");
+            }
+            else if (key.Keycode == Key.F11)
+            {
+                CouchScreenshots.Take("f11");
             }
             else if (key.Keycode == Key.F7)
             {

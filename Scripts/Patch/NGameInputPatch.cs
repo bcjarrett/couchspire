@@ -27,19 +27,22 @@ internal static class NGameInputPatch
         // Tab cycles forward, Shift+Tab cycles backward; legacy keys kept as aliases.
         bool isTab = keycode == Key.Tab || physicalKeycode == Key.Tab;
 
+        // Couch simultaneous mode: during a run only Tab swaps (break glass). The letter and bracket aliases sit next to
+        // the teammate's keyboard block (J L I K O P U V) and are easy to hit by accident.
+        bool aliases = !(Runtime.Couch.CouchConfig.SimultaneousEnabled && RunManager.Instance.IsInProgress);
         bool isPrevious = (isTab && keyEvent.ShiftPressed) ||
-                          keycode == Key.Bracketleft ||
-                          physicalKeycode == Key.Bracketleft ||
-                          keycode == Key.T ||
-                          physicalKeycode == Key.T;
+                          (aliases && (keycode == Key.Bracketleft ||
+                                       physicalKeycode == Key.Bracketleft ||
+                                       keycode == Key.T ||
+                                       physicalKeycode == Key.T));
 
         bool isNext = (isTab && !keyEvent.ShiftPressed) ||
-                      keycode == Key.Bracketright ||
-                      physicalKeycode == Key.Bracketright ||
-                      keycode == Key.R ||
-                      physicalKeycode == Key.R ||
-                      keycode == Key.Slash ||
-                      physicalKeycode == Key.Slash;
+                      (aliases && (keycode == Key.Bracketright ||
+                                   physicalKeycode == Key.Bracketright ||
+                                   keycode == Key.R ||
+                                   physicalKeycode == Key.R ||
+                                   keycode == Key.Slash ||
+                                   physicalKeycode == Key.Slash));
 
         bool isDecreasePlayerCount = keycode == Key.Minus || physicalKeycode == Key.Minus;
         bool isIncreasePlayerCount = keycode == Key.Equal ||

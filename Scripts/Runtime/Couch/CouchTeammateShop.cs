@@ -28,7 +28,7 @@ namespace LocalMultiControl.Scripts.Runtime.Couch;
 /// </summary>
 internal sealed partial class CouchTeammateShop : CouchPanel
 {
-    private const float CardScale = 0.36f;
+    private const float CardScale = 0.32f;
 
     private static readonly MethodInfo? DoMerchantCardRemovalMethod =
         AccessTools.Method(typeof(OneOffSynchronizer), "DoMerchantCardRemoval", new[] { typeof(Player), typeof(int), typeof(bool) });
@@ -66,7 +66,12 @@ internal sealed partial class CouchTeammateShop : CouchPanel
 
     protected override float RowIconSize => 26f;
 
-    protected override int RowFontSize => 15;
+    protected override int RowFontSize => 16;
+
+    /// <summary>The shop lists a lot; rows are tight so it fits under the relic bar.</summary>
+    protected override float RowPadding => 6f;
+
+    protected override float RowSpacing => 3f;
 
     public static void NotifyProceedBlocked()
     {
@@ -130,7 +135,7 @@ internal sealed partial class CouchTeammateShop : CouchPanel
         if (_preview != null)
         {
             Vector2 cardSize = NCard.defaultSize * CardScale;
-            _preview.Position = new Vector2(PanelWidth * 0.5f, y + cardSize.Y * 0.5f + 4f);
+            _preview.Position = new Vector2(PanelWidth * 0.5f - 10f, y + cardSize.Y * 0.5f + 4f);
             y += cardSize.Y + 14f;
         }
 

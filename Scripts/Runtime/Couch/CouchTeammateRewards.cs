@@ -31,34 +31,19 @@ namespace LocalMultiControl.Scripts.Runtime.Couch;
 /// </list>
 /// A card reward runs the game's remote-player path and waits for the teammate's pick, which this panel answers through
 /// <see cref="CouchTeammateChoices"/>.
+/// Drawn like the driver's reward screen: the reward item buttons, gold text on focus, the selection reticle.
 /// </summary>
-internal sealed partial class CouchTeammateRewards : Control
+internal sealed partial class CouchTeammateRewards : CouchPanel
 {
     public const string PanelNodeName = "CouchTeammateRewards";
 
     public const string CardRewardSource = "card reward";
 
-    private const float PanelWidth = 440f;
-
     private const float RightMargin = 36f;
 
     private const float PanelTop = 150f;
 
-    private const float RowHeight = 54f;
-
-    private const float RowGap = 6f;
-
-    private const float IconSize = 40f;
-
     private const float CardScale = 0.4f;
-
-    private const double FlashSeconds = 3.0;
-
-    private static readonly Color RowColor = new(0.1f, 0.14f, 0.18f, 0.92f);
-
-    private static readonly Color RowCursorColor = new(0.28f, 0.34f, 0.4f, 0.97f);
-
-    private static readonly Color CursorBorder = new(1f, 0.78f, 0.25f);
 
     private static readonly System.Reflection.MethodInfo? SelectRewardForPlayerMethod =
         AccessTools.Method(typeof(RewardsSetSynchronizer), "SelectRewardForPlayer", new[] { typeof(Player), typeof(int) });
@@ -84,12 +69,6 @@ internal sealed partial class CouchTeammateRewards : Control
 
     private bool _synchronized;
 
-    private Panel? _background;
-
-    private Label? _title;
-
-    private Label? _hint;
-
     private int _cursor;
 
     private int _choiceCursor;
@@ -100,14 +79,15 @@ internal sealed partial class CouchTeammateRewards : Control
 
     private CardReward? _activeCardReward;
 
-    private bool _lastInputFromController;
-
-    private string _flash = "";
-
-    private double _flashUntil;
-
     /// <summary>True while the teammate still has their rewards panel open.</summary>
     public static bool IsActive => _instance != null && IsInstanceValid(_instance) && !_instance._done;
+
+    protected override float PanelWidth => 460f;
+
+    protected override float RowIconSize => 52f;
+
+    /// <summary>True while the teammate is picking from a card reward.</summary>
+    public static bool IsChoosingCard => IsActive && _instance!._shownChoice != null;
 
     public static bool OwnsReward(Reward reward)
     {
@@ -206,44 +186,23 @@ internal sealed partial class CouchTeammateRewards : Control
             return false;
         }
 
-        _instance!._lastInputFromController = playerId.HasValue;
+        _instance!.LastInputFromController = playerId.HasValue;
         _instance.OnCommand(command);
         return true;
     }
 
     public override void _Ready()
     {
+        base._Ready();
         _instance = this;
         TopLevel = true;
-        MouseFilter = MouseFilterEnum.Ignore;
         ZIndex = 50;
-        _background = new Panel { MouseFilter = MouseFilterEnum.Ignore };
-        _background.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = new Color(0.03f, 0.05f, 0.07f, 0.88f),
-            BorderColor = new Color(0.55f, 0.48f, 0.32f),
-            BorderWidthLeft = 2,
-            BorderWidthRight = 2,
-            BorderWidthTop = 2,
-            BorderWidthBottom = 2,
-            CornerRadiusTopLeft = 8,
-            CornerRadiusTopRight = 8,
-            CornerRadiusBottomLeft = 8,
-            CornerRadiusBottomRight = 8
-        });
-        AddChild(_background);
-        _title = CreateLabel(24, new Color("f3efe6"));
-        _hint = CreateLabel(16, new Color("d8d2c4"));
-        _hint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        _hint.Size = new Vector2(PanelWidth - 32f, 0f);
-
         foreach (Reward reward in _set.Rewards)
         {
-            _rows.Add(CreateRow(IconFor(reward)));
+            _rows.Add(CreateRow(IconFor(reward), CouchButtonKind.Reward));
         }
 
-        _rows.Add(CreateRow(null));
-        SetProcess(true);
+        _rows.Add(CreateRow(null, CouchButtonKind.Reward));
     }
 
     public override void _ExitTree()
@@ -274,10 +233,16 @@ internal sealed partial class CouchTeammateRewards : Control
             ShowChoice(choice);
         }
 
-        Vector2 viewport = GetViewportRect().Size;
-        Position = new Vector2(viewport.X - PanelWidth - RightMargin, CouchTeammateRelicBar.TopBelowBar(PanelTop));
-        float height = choice == null ? LayoutRows() : LayoutChoice(choice);
-        _background!.Size = new Vector2(PanelWidth, height);
+        Visible = true;
+        PlaceOnSide(left: false, PanelTop, RightMargin);
+        if (choice == null)
+        {
+            LayoutRewards();
+        }
+        else
+        {
+            LayoutChoice(choice);
+        }
     }
 
     private CouchTeammateChoice? PendingCardChoice()
@@ -294,20 +259,19 @@ internal sealed partial class CouchTeammateRewards : Control
             return;
         }
 
-        int rowCount = _rows.Count;
         switch (command)
         {
             case CouchHudCommand.Left:
             case CouchHudCommand.Up:
-                _cursor = (_cursor - 1 + rowCount) % rowCount;
+                MoveCursor(-1);
                 break;
             case CouchHudCommand.Right:
             case CouchHudCommand.Down:
             case CouchHudCommand.ToggleRow:
-                _cursor = (_cursor + 1) % rowCount;
+                MoveCursor(1);
                 break;
             case CouchHudCommand.Accept:
-                if (_cursor == rowCount - 1)
+                if (_cursor == _rows.Count - 1)
                 {
                     Finish(allTaken: false);
                 }
@@ -320,8 +284,29 @@ internal sealed partial class CouchTeammateRewards : Control
             case CouchHudCommand.EndTurn:
             case CouchHudCommand.SubmitOrEndTurn:
             case CouchHudCommand.Submit:
-                _cursor = rowCount - 1;
+                _cursor = _rows.Count - 1;
                 break;
+        }
+    }
+
+    /// <summary>Taken rewards leave the list, as they do on the driver's reward screen; the Done row always stays.</summary>
+    private bool IsRowShown(int index)
+    {
+        return index >= _set.Rewards.Count || !_set.Rewards[index].SuccessfullySelected;
+    }
+
+    /// <summary>Moves to the next row still in the list.</summary>
+    private void MoveCursor(int step)
+    {
+        int count = _rows.Count;
+        for (int i = 1; i <= count; i++)
+        {
+            int index = ((_cursor + step * i) % count + count) % count;
+            if (IsRowShown(index))
+            {
+                _cursor = index;
+                return;
+            }
         }
     }
 
@@ -456,9 +441,11 @@ internal sealed partial class CouchTeammateRewards : Control
             _choiceCards.Add(node);
         }
 
-        foreach (string _ in choice.ExtraOptions)
+        foreach (string extra in choice.ExtraOptions)
         {
-            _choiceExtras.Add(CreateRow(null));
+            RowView row = CreateRow(null, CouchButtonKind.Reward);
+            row.Label.Text = extra;
+            _choiceExtras.Add(row);
         }
     }
 
@@ -470,157 +457,62 @@ internal sealed partial class CouchTeammateRewards : Control
         }
 
         _choiceCards.Clear();
-        foreach (RowView extra in _choiceExtras)
-        {
-            extra.Root.QueueFree();
-        }
-
-        _choiceExtras.Clear();
+        FreeRows(_choiceExtras);
         _shownChoiceCards = new List<CardModel>();
     }
 
-    private float LayoutRows()
+    private void LayoutRewards()
     {
-        _title!.Text = $"{SeatLabel()} · {_set.Player.Character.Title.GetFormattedText()} rewards    Gold {_set.Player.Gold}";
-        _title.Position = new Vector2(16f, 12f);
-        float y = 56f;
+        SetTitle($"{SeatLabel()} · {_set.Player.Character.Title.GetFormattedText()} rewards    Gold {_set.Player.Gold}");
+        if (!IsRowShown(_cursor))
+        {
+            MoveCursor(1);
+        }
+
+        List<RowView> shown = new();
         for (int i = 0; i < _rows.Count; i++)
         {
             RowView row = _rows[i];
+            row.Root.Visible = IsRowShown(i);
+            if (!row.Root.Visible)
+            {
+                continue;
+            }
+
             bool isDoneRow = i == _rows.Count - 1;
-            Reward? reward = isDoneRow ? null : _set.Rewards[i];
-            bool taken = reward?.SuccessfullySelected ?? false;
-            row.Label.Text = isDoneRow
-                ? "Done — skip anything left"
-                : (taken ? "Taken: " : "") + Describe(reward!);
-            StyleRow(row, i == _cursor, dimmed: taken);
-            row.Root.Position = new Vector2(12f, y);
-            y += RowHeight + RowGap;
+            row.Label.Text = isDoneRow ? "Done — skip anything left" : Describe(_set.Rewards[i]);
+            StyleRow(row, i == _cursor, dimmed: false);
+            shown.Add(row);
         }
 
-        string keys = _lastInputFromController
-            ? "D-pad move · A take · Y jump to Done"
-            : "J/L move · I take · O jump to Done";
-        SetHint(y + 4f, _busy ? "…" : keys);
-        return _hint!.Position.Y + _hint.GetMinimumSize().Y + 14f;
+        float y = LayoutRows(shown, ContentTop);
+        FinishLayout(y, _busy ? "…" : $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} take · {Keys("O", "Y")} jump to Done");
     }
 
-    private float LayoutChoice(CouchTeammateChoice choice)
+    private void LayoutChoice(CouchTeammateChoice choice)
     {
-        _title!.Text = $"{SeatLabel()} · Choose a card";
-        _title.Position = new Vector2(16f, 12f);
+        SetTitle($"{SeatLabel()} · Choose a card");
         Vector2 cardSize = NCard.defaultSize * CardScale;
         float spacing = cardSize.X + 10f;
         float rowWidth = spacing * Math.Max(0, _choiceCards.Count - 1);
-        float firstCenterX = PanelWidth * 0.5f - rowWidth * 0.5f;
-        float centerY = 60f + cardSize.Y * 0.5f + 8f;
+        float firstCenterX = PanelWidth * 0.5f - rowWidth * 0.5f - 8f;
+        float centerY = ContentTop + cardSize.Y * 0.5f + 8f;
         for (int i = 0; i < _choiceCards.Count; i++)
         {
             bool isCursor = i == _choiceCursor;
             NCard node = _choiceCards[i];
-            node.Position = new Vector2(firstCenterX + i * spacing, centerY + (isCursor ? 10f : 0f));
-            float scale = CardScale * (isCursor ? 1.1f : 1f);
-            node.Scale = new Vector2(scale, scale);
+            CouchCards.Glide(node, new Vector2(firstCenterX + i * spacing, centerY + (isCursor ? 10f : 0f)), CardScale * (isCursor ? 1.12f : 1f));
             node.ZIndex = isCursor ? 2 : 0;
-            node.Modulate = isCursor ? Colors.White : new Color(0.75f, 0.75f, 0.75f);
+            CouchCards.SetGlow(node, isCursor ? NCardHighlight.playableColor : null);
         }
 
-        float y = centerY + cardSize.Y * 0.5f + 26f;
         for (int i = 0; i < _choiceExtras.Count; i++)
         {
-            RowView row = _choiceExtras[i];
-            row.Label.Text = choice.ExtraOptions[i];
-            StyleRow(row, _choiceCursor == _choiceCards.Count + i, dimmed: false);
-            row.Root.Position = new Vector2(12f, y);
-            y += RowHeight + RowGap;
+            StyleRow(_choiceExtras[i], _choiceCursor == _choiceCards.Count + i, dimmed: false);
         }
 
-        string keys = _lastInputFromController
-            ? "D-pad move · A pick · B back"
-            : "J/L move · I pick · K back";
-        SetHint(y + 4f, keys);
-        return _hint!.Position.Y + _hint.GetMinimumSize().Y + 14f;
-    }
-
-    private void SetHint(float y, string keys)
-    {
-        _hint!.Position = new Vector2(16f, y);
-        _hint.Text = Time.GetTicksMsec() / 1000.0 < _flashUntil ? $"{_flash}\n{keys}" : keys;
-    }
-
-    private void StyleRow(RowView row, bool isCursor, bool dimmed)
-    {
-        row.Style.BgColor = isCursor ? RowCursorColor : RowColor;
-        int border = isCursor ? 2 : 0;
-        row.Style.BorderColor = CursorBorder;
-        row.Style.BorderWidthLeft = border;
-        row.Style.BorderWidthRight = border;
-        row.Style.BorderWidthTop = border;
-        row.Style.BorderWidthBottom = border;
-        row.Root.Modulate = new Color(1f, 1f, 1f, dimmed ? 0.45f : 1f);
-    }
-
-    private RowView CreateRow(Texture2D? icon)
-    {
-        StyleBoxFlat style = new()
-        {
-            BgColor = RowColor,
-            CornerRadiusTopLeft = 6,
-            CornerRadiusTopRight = 6,
-            CornerRadiusBottomLeft = 6,
-            CornerRadiusBottomRight = 6
-        };
-        Panel root = new() { MouseFilter = MouseFilterEnum.Ignore, Size = new Vector2(PanelWidth - 24f, RowHeight), ZIndex = 1 };
-        root.AddThemeStyleboxOverride("panel", style);
-        float textLeft = 14f;
-        if (icon != null)
-        {
-            TextureRect iconRect = new()
-            {
-                Texture = icon,
-                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-                Size = new Vector2(IconSize, IconSize),
-                Position = new Vector2(8f, (RowHeight - IconSize) * 0.5f),
-                MouseFilter = MouseFilterEnum.Ignore
-            };
-            root.AddChild(iconRect);
-            textLeft = IconSize + 18f;
-        }
-
-        Label label = new()
-        {
-            MouseFilter = MouseFilterEnum.Ignore,
-            Position = new Vector2(textLeft, 0f),
-            Size = new Vector2(PanelWidth - 24f - textLeft - 8f, RowHeight),
-            VerticalAlignment = VerticalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            ClipText = true
-        };
-        label.AddThemeFontSizeOverride("font_size", 19);
-        label.AddThemeColorOverride("font_color", new Color("f3efe6"));
-        root.AddChild(label);
-        AddChild(root);
-        return new RowView(root, style, label);
-    }
-
-    private Label CreateLabel(int fontSize, Color color)
-    {
-        Label label = new() { MouseFilter = MouseFilterEnum.Ignore, ZIndex = 1 };
-        label.AddThemeFontSizeOverride("font_size", fontSize);
-        label.AddThemeColorOverride("font_color", color);
-        label.AddThemeColorOverride("font_outline_color", new Color("111111"));
-        label.AddThemeConstantOverride("outline_size", 4);
-        AddChild(label);
-        return label;
-    }
-
-    /// <summary>Shows a refusal or a "still waiting" note, with the "no" sound.</summary>
-    private void Flash(string message)
-    {
-        _flash = message;
-        _flashUntil = Time.GetTicksMsec() / 1000.0 + FlashSeconds;
-        CouchSfx.Deny();
+        float y = LayoutRows(_choiceExtras, centerY + cardSize.Y * 0.5f + 26f);
+        FinishLayout(y, $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} pick · {Keys("K", "B")} back");
     }
 
     private string SeatLabel()
@@ -663,18 +555,4 @@ internal sealed partial class CouchTeammateRewards : Control
         }
     }
 
-    private static void DisableInteraction(Control control)
-    {
-        control.MouseFilter = MouseFilterEnum.Ignore;
-        control.FocusMode = FocusModeEnum.None;
-        foreach (Node child in control.GetChildren())
-        {
-            if (child is Control childControl)
-            {
-                DisableInteraction(childControl);
-            }
-        }
-    }
-
-    private readonly record struct RowView(Panel Root, StyleBoxFlat Style, Label Label);
 }

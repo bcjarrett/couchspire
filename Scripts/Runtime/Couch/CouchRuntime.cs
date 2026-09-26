@@ -52,7 +52,7 @@ internal static class CouchRuntime
         panels.AddChild(new CouchTeammateRestSite { Name = "CouchTeammateRestSite" });
         panels.AddChild(new CouchTeammateTreasure { Name = "CouchTeammateTreasure" });
         panels.AddChild(new CouchTeammateShop { Name = "CouchTeammateShop" });
-        panels.AddChild(new CouchTeammateFeed { Name = "CouchTeammateFeed" });
+        panels.AddChild(new CouchTeammateDeckChanges { Name = "CouchTeammateDeckChanges" });
         panels.AddChild(new CouchTeammateInfo { Name = "CouchTeammateInfo" });
         gate.AddChild(panels);
         tree.Root.CallDeferred(Node.MethodName.AddChild, gate);

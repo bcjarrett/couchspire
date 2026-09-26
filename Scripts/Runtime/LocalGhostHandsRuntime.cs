@@ -357,9 +357,10 @@ internal sealed partial class LocalGhostHandsOverlay : Control
             return;
         }
 
-        // Skip whoever the couch teammate HUD is already showing.
+        // Skip whoever the couch teammate HUD is already showing, and in simultaneous mode every local teammate (their
+        // HUD and panels show them, in and out of combat).
         List<Player> others = runState.Players
-            .Where((player) => player.NetId != localNetId.Value && !CouchTeammateHud.IsShowing(player.NetId))
+            .Where((player) => player.NetId != localNetId.Value && !CouchTeammateHud.IsShowing(player.NetId) && !CouchTeammate.IsSimultaneousTeammate(player))
             .ToList();
         if (others.Count == 0)
         {

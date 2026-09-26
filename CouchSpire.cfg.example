@@ -16,6 +16,11 @@ overlay = 0
 simultaneous = 1
 
 # Teammate HUD placement (game UI coordinates of its top-left corner) and card scale.
+# By default the HUD's top lines up with the players list on the left, below P1's relic row; set hud_y to pin it.
 hud_x = 300
-hud_y = 112
+# hud_y = 170
 hud_scale = 0.45
+
+# Screenshots for UI work: F11 saves one any time. shots = 1 also saves one each time a P2 screen or HUD mode opens.
+# They go to the game's user folder, under couch_shots/.
+shots = 0

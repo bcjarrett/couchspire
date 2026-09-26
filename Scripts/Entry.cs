@@ -8,7 +8,7 @@ namespace LocalMultiControl.Scripts;
 [ModInitializer(nameof(Init))]
 public partial class Entry
 {
-    private const string BuildMarker = "CouchSpire 0.1.0 on Revival v1.33 loaded (game v0.111.0, marker=2026-09-26-couch1)";
+    private const string BuildMarker = "CouchSpire 0.1.0 on Revival v1.33 loaded (game v0.111.0, marker=2026-09-26-couch2)";
 
     private static Harmony? _harmony;
 

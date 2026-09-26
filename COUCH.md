@@ -91,7 +91,7 @@ Question: can P2 act while P1 keeps the screen? F7 sends P2's card play through 
 **E. Teammate HUD** (P2 plays with their own cursor while P1 keeps the screen)
 
 In a combat, P2's controls sit in a band across the top of the screen, above the characters:
-- a status line (energy, stars for the Regent, draw/discard, turn ended) with P2's potion slots after it;
+- a status line with the game's icons (P2's energy, gold, stars for the Regent, draw and discard piles, turn ended) with P2's potion slots after it;
 - a key hint, which follows whether P2 last used keys or a pad;
 - P2's hand, or the options of a choice.
 
@@ -125,7 +125,7 @@ P1's "Loot!" screen now shows only P1's rewards. P2's rewards are in a panel on 
 | Close the card choice without taking a card | K | B |
 | Jump to "Done" | O | Y |
 
-1. Take P2's gold and potion. Each row shows "Taken", and P2's gold and potions go up.
+1. Take P2's gold and potion. Each taken reward leaves the list, as on P1's screen, and P2's gold and potions go up.
 2. Take P2's card reward. The panel shows P2's three cards plus Skip (and Reroll if a relic allows it). Pick one with I; it goes into P2's deck. Skip or K leaves the reward untaken.
 3. While P2 is still choosing, P1 presses Proceed. It shows "Waiting for P2 to finish their rewards" and stays put. After P2 takes everything or picks Done, P1's Proceed works.
 4. A potion reward with full slots says so; P2 can leave it and pick Done.
@@ -143,10 +143,12 @@ All of these use the same keys: J/L to move and I to choose (D-pad and A on a pa
 - **Treasure:** once the chest is open, P2's panel lists the relics plus Skip. Both players pick; relics are handed out once both have picked, as in online co-op. P2 now also gets their own chest gold.
 - **Shop:** a narrow column on the right edge: P2's own stock (cards, colorless, relics, potions, card removal) with prices and P2's gold. The highlighted card is previewed. I buys. "Remove a card" opens P2's card picker. "Done shopping" lets P1 leave; until then P1's leave button waits.
 
-**P2's info and notices**
+**P2's info and deck changes**
 - **V** (keyboard) or **View/Back** (P2's pad) opens P2's deck and relics, with HP, gold and potions. J/L scrolls, U switches between deck and relics, and V or K closes it.
-- When P2's deck or relics change outside combat (card added, removed, transformed, upgraded, or a relic gained), a short notice appears with the new card, e.g. "Strike → Anger (transformed)".
-- **Break glass:** clicking a stick in on P2's pad (L3/R3) hands P2 the main screen; Tab does the same on the keyboard. There are no on-screen swap arrows or buttons in simultaneous mode.
+- When P2's deck changes outside combat, the game's own animations play as they do for P1: a transformed card morphs into its replacement, an upgraded card flashes, and a new card pops up and flies into the deck. New relics pop into P2's relic row.
+- **Break glass:** clicking a stick in on P2's pad (L3/R3) hands P2 the main screen; Tab (or Shift+Tab) does the same on the keyboard. During a run, the fork's other swap keys (R, T, [, ], /) are off, because they sit next to P2's keys. There are no on-screen swap arrows or buttons in simultaneous mode.
+- **Layout:** P2's combat band and the relic row line up with the top of the players list (names and health bars) on the left, leaving P1's relic row clear; the band starts to the right of that list. Panels on the left start below the list, panels on the right below P2's relic row.
+- **Screenshots:** F11 saves one to `couch_shots/` in the game's user folder; `shots = 1` also saves one each time a P2 screen opens.
 - **Mend** (rest site): P2 picks who to heal in their card picker.
 - **Relic choices** (events, "choose a relic"): open in P2's card picker.
 - **P2's relics on the main screen:** a row on the right, across from P1's relics. In combat it sits at the end of the HUD's top line. It uses the game's own relic icons, so counters, greyed-out relics and the flash when a relic triggers all show. Mouse over one for its tooltip, or click to inspect. New relics pop in with the game's animation and sound. Panels on the right start below the row.

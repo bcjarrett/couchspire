@@ -155,14 +155,12 @@ internal sealed partial class CouchTeammateInfo : CouchPanel
             }
 
             bool isCursor = i == _cursor;
-            node.Position = new Vector2(16f + cardSize.X * 0.5f + (i - windowStart) * (cardSize.X + 12f), y + 10f + cardSize.Y * 0.5f - (isCursor ? 10f : 0f));
-            float scale = CardScale * (isCursor ? 1.08f : 1f);
-            node.Scale = new Vector2(scale, scale);
+            Vector2 spot = new(CouchFrame.PadLeft + cardSize.X * 0.5f + (i - windowStart) * (cardSize.X + 12f), y + 14f + cardSize.Y * 0.5f - (isCursor ? 10f : 0f));
+            CouchCards.Glide(node, spot, CardScale * (isCursor ? 1.1f : 1f));
             node.ZIndex = isCursor ? 3 : 2;
-            node.Modulate = isCursor ? Colors.White : new Color(0.8f, 0.8f, 0.8f);
         }
 
-        return _cards.Count > 0 ? y + cardSize.Y + 34f : y;
+        return _cards.Count > 0 ? y + cardSize.Y + 40f : y;
     }
 
     private float LayoutRelics(float y)

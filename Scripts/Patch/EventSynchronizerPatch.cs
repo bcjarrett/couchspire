@@ -95,6 +95,13 @@ internal static class EventSynchronizerPatch
 
         if (!synchronizer.IsShared)
         {
+            // Couch simultaneous mode: every player plays their own event (the teammate in their panel), so the
+            // driver keeps the screen even after the teammate has finished theirs.
+            if (CouchConfig.SimultaneousEnabled)
+            {
+                return;
+            }
+
             ulong currentPlayerId =
                 AccessTools.Field(typeof(EventSynchronizer), "_localPlayerId")?.GetValue(synchronizer) as ulong?
                 ?? LocalMultiControlRuntime.SessionState.CurrentControlledPlayerId

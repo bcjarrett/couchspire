@@ -43,8 +43,6 @@ internal sealed partial class CouchTeammateRelicBar : Control
     /// <summary>False until the current teammate's relics are first shown (those don't animate in).</summary>
     private bool _filled;
 
-    private Panel? _background;
-
     private Label? _label;
 
     private float _bottom;
@@ -62,22 +60,8 @@ internal sealed partial class CouchTeammateRelicBar : Control
         _instance = this;
         MouseFilter = MouseFilterEnum.Ignore;
         Visible = false;
-        _background = new Panel { MouseFilter = MouseFilterEnum.Ignore };
-        _background.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = new Color(0.03f, 0.05f, 0.07f, 0.55f),
-            CornerRadiusTopLeft = 8,
-            CornerRadiusTopRight = 8,
-            CornerRadiusBottomLeft = 8,
-            CornerRadiusBottomRight = 8
-        });
-        AddChild(_background);
-        _label = new Label { MouseFilter = MouseFilterEnum.Ignore };
-        _label.AddThemeFontSizeOverride("font_size", 18);
-        _label.AddThemeColorOverride("font_color", new Color("f3efe6"));
-        _label.AddThemeColorOverride("font_outline_color", new Color("111111"));
-        _label.AddThemeConstantOverride("outline_size", 4);
-        AddChild(_label);
+        // Like the driver's relic row: just the relics, plus the seat label.
+        _label = CouchStyle.CreateLabel(this, 22, bold: true, outline: 8);
         SetProcess(true);
     }
 
@@ -123,7 +107,7 @@ internal sealed partial class CouchTeammateRelicBar : Control
         if (Visible != wasVisible)
         {
             CouchLog.Info(Visible
-                ? $"Relic bar shown for {teammate.NetId}: {_holders.Count} relics, top {CouchConfig.HudY - 8f}, bottom {_bottom}, in combat: {CouchTeammateHud.HeaderRight.HasValue}."
+                ? $"Relic bar shown for {teammate.NetId}: {_holders.Count} relics, top {CouchTeammateHud.BandTop()}, bottom {_bottom}, in combat: {CouchTeammateHud.HeaderRight.HasValue}."
                 : "Relic bar hidden.");
         }
     }
@@ -205,7 +189,8 @@ internal sealed partial class CouchTeammateRelicBar : Control
     private void Layout(Player teammate)
     {
         Vector2 viewport = GetViewportRect().Size;
-        float top = CouchConfig.HudY - 8f;
+        // Level with the teammate HUD's potion slots (and the players list on the left), below the driver's relic row.
+        float top = CouchTeammateHud.BandTop() + 4f;
         float right = viewport.X - EdgeMargin;
         float left = CouchTeammateHud.HeaderRight is float headerRight
             ? headerRight + 24f
@@ -233,8 +218,6 @@ internal sealed partial class CouchTeammateRelicBar : Control
         float iconsLeft = right - Mathf.Min(perRow, count) * size;
         _label.Position = new Vector2(iconsLeft - labelSize.X - 8f, top + (size - labelSize.Y) * 0.5f);
         _bottom = top + rows * size + Padding;
-        _background!.Position = new Vector2(_label.Position.X - Padding - 4f, top - Padding);
-        _background.Size = new Vector2(right + Padding - _background.Position.X, _bottom - _background.Position.Y);
     }
 
     /// <summary>Right edge of the driver's relic row, so the two rows don't run into each other.</summary>
