@@ -487,7 +487,6 @@ internal static class RestSiteUiRefreshUtil
 
         try
         {
-            AccessTools.Method(typeof(NRestSiteRoom), "UpdateNavigation")?.Invoke(room, null);
             Control? focusTarget = FindFirstFocusableRestSiteButton(room) ?? FindFirstFocusableControl(room);
             if (focusTarget == null)
             {
