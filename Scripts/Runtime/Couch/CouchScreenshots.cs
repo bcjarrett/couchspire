@@ -69,6 +69,51 @@ internal static class CouchScreenshots
         RenderingServer.FramePostDraw += Capture;
     }
 
+    /// <summary>
+    /// Saves what's on screen at the end of this frame to an exact path, as a PNG. For the in-game test runner's
+    /// failure/timeout screenshots (docs/design/testing-plan.md §6.7), which need a known file name in the run's
+    /// output directory rather than the auto-named files under <see cref="Folder"/>. Independent of the automatic
+    /// <see cref="Tick"/>/<see cref="Take"/> state, so it can't collide with them.
+    /// </summary>
+    public static Task TakeToAsync(string absolutePath)
+    {
+        TaskCompletionSource<bool> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        void Capture()
+        {
+            RenderingServer.FramePostDraw -= Capture;
+            SaveTo(absolutePath);
+            tcs.TrySetResult(true);
+        }
+
+        RenderingServer.FramePostDraw += Capture;
+        return tcs.Task;
+    }
+
+    private static void SaveTo(string absolutePath)
+    {
+        try
+        {
+            if (Engine.GetMainLoop() is not SceneTree tree)
+            {
+                return;
+            }
+
+            Image image = tree.Root.GetTexture().GetImage();
+            string? directory = Path.GetDirectoryName(absolutePath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            Error error = image.SavePng(absolutePath);
+            CouchLog.Info(error == Error.Ok ? $"Screenshot saved: {absolutePath}" : $"Screenshot failed ({error}): {absolutePath}");
+        }
+        catch (Exception ex)
+        {
+            CouchLog.Warn($"Screenshot failed: {ex.Message}");
+        }
+    }
+
     private static void Save(string tag)
     {
         try

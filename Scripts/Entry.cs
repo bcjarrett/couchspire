@@ -1,6 +1,9 @@
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
 using LocalMultiControl.Scripts.Runtime.Couch;
+#if COUCHSPIRE_TESTS
+using LocalMultiControl.Scripts.Testing;
+#endif
 using MegaCrit.Sts2.Core.Modding;
 
 namespace LocalMultiControl.Scripts;
@@ -20,5 +23,8 @@ public partial class Entry
         _harmony.PatchAll();
         CouchRuntime.Initialize();
         LocalMultiControlLogger.Info("Mod initialized.");
+#if COUCHSPIRE_TESTS
+        CouchTestRunner.StartIfRequested();
+#endif
     }
 }
