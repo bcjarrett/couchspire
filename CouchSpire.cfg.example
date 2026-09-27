@@ -29,3 +29,7 @@ p1_hand_offset = -200
 # Screenshots for UI work: F11 saves one any time. shots = 1 also saves one each time a P2 screen or HUD mode opens.
 # They go to the game's user folder, under couch_shots/.
 shots = 0
+
+# Steam Deck / Bazzite Game Mode (gamescope): treat the game window as focused unless the Steam overlay is open,
+# so the controller works from launch. Does nothing outside gamescope. 0 = the game's own focus check.
+gamescope_focus = 1

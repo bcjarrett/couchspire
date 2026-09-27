@@ -231,6 +231,12 @@ internal sealed partial class CouchTeammateRelicBar : Control
         float size = Mathf.Clamp(available / count, MinIconSize, inCombat ? 36f : MaxIconSize);
         int perRow = Mathf.Max(1, Mathf.FloorToInt(available / size));
         int rows = (count + perRow - 1) / perRow;
+        if (inCombat && CouchTeammateHud.HeaderMiddle is float headerMiddle)
+        {
+            // Centered on the HUD's status line (energy, draw and discard), which is taller than the icons.
+            top = headerMiddle - size * 0.5f;
+        }
+
         for (int i = 0; i < count; i++)
         {
             NRelicInventoryHolder holder = _holders[i];
@@ -241,7 +247,8 @@ internal sealed partial class CouchTeammateRelicBar : Control
             float scale = size / Mathf.Max(native.X, native.Y);
             holder.Scale = new Vector2(scale, scale);
             float x = inCombat ? left + column * size : right - (inRow - column) * size;
-            holder.Position = new Vector2(x, top + row * size);
+            // The holder scales around its center (pivot 34,34), so shift it back to keep the icon's top-left here.
+            holder.Position = new Vector2(x, top + row * size) - holder.PivotOffset * (1f - scale);
         }
 
         float iconsLeft = right - Mathf.Min(perRow, count) * size;
@@ -291,7 +298,7 @@ internal sealed partial class CouchTeammateRelicBar : Control
         _focusTween?.Kill();
         _focusTween = holder.CreateTween();
         _focusTween.TweenProperty(holder.Relic.Icon, "scale", Vector2.One * 1.25f, 0.05);
-        _tipAnchor.Position = holder.Position;
+        _tipAnchor.Position = holder.Position + holder.PivotOffset * (Vector2.One - holder.Scale);
         _tipAnchor.Size = holder.Size * holder.Scale;
         NHoverTipSet.CreateAndShow(_tipAnchor, holder.Relic.Model.HoverTips)?.SetAlignmentForRelic(holder.Relic);
     }

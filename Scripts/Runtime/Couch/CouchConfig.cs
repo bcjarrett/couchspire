@@ -43,6 +43,12 @@ internal static class CouchConfig
     /// </summary>
     public static readonly bool EventPanelOnLeft = Flag("event_panel_left", "COUCHSPIRE_EVENT_PANEL_LEFT", defaultValue: true);
 
+    /// <summary>
+    /// Under gamescope (Steam Deck / Bazzite Game Mode), treat the game window as focused unless the Steam overlay is
+    /// open (<see cref="GamescopeFocus"/>). Has no effect outside gamescope; <c>gamescope_focus = 0</c> turns it off.
+    /// </summary>
+    public static readonly bool GamescopeFocusFix = Flag("gamescope_focus", "COUCHSPIRE_GAMESCOPE_FOCUS", defaultValue: true);
+
     /// <summary>Teammate HUD position (top-left of its header, in the game's UI coordinates) and card scale.</summary>
     public static readonly float HudX = Number("hud_x", 300f);
 
