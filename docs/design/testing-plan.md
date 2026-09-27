@@ -1,6 +1,6 @@
 # Automated testing plan
 
-Status: **planned, not started.** The game facts below were checked against decompiled game source v0.111.0 (`src/`). Nothing has been run in the game yet; work package WP0 does that first. Update this doc as packages land.
+Status: **in progress.** Done: WP0 (see §8.1), WP1, WP2, WP7 fix; `deploy.sh test` (WP3 host half). The game facts below were checked against decompiled game source v0.111.0 (`src/`). Update this doc as packages land.
 
 ## 1. Why
 
@@ -245,7 +245,7 @@ Rules for every package:
   4. Start a couch run by hand. Confirm P1 = 1 and P2 = 2, and that the run starts and a combat plays.
   5. Confirm the window size and aspect ratio can be set from code, and that `GetGlobalRect()` of `CouchTeammateHud` is identical across two launches.
 - Fallback if direct launch fails: launch through `steam://run/<appid>//<args>`, and have the test mode pin save profile 3 with a prefix on `SaveManager.InitProfileId`. Update §4 and §6.8 to match.
-- Done when: a short "Spike results" section is added to this doc.
+- Done when: a short "Spike results" section is added to this doc. Done: see §8.1.
 
 **WP1: Layer A (§5)**
 - Done when:
@@ -291,6 +291,16 @@ Rules for every package:
   1. Write a failing unit test in `Tests/CouchSpire.Tests` (needs `InternalsVisibleTo`), or an in-game scenario: obtain a relic, then gain gold in the same flow, in a context where gold mirrors (post-combat or Crystal Sphere).
   2. Fix it so enter and exit happen in the same flow.
   3. Add a CHANGELOG entry.
+
+### 8.1 Spike results (WP0, 2026-09-27, game v0.111.0, macOS)
+
+- **Direct launch works.** `STS2_DEV_WINDOWED=1 STS2_DEV_SKIP=1 "<app>/Contents/MacOS/Slay the Spire 2" --force-steam off` reaches the main menu in about 7 s, with no Steam relaunch. The log shows `Applying Harmony patches.` → build marker → `Mod initialized.` and no Harmony errors. The `steam://` fallback isn't needed.
+- **Mod consent.** `settings.save` is plain JSON. Consent is `"mods_enabled": true` (`ModSettings.PlayerAgreedToModLoading`) plus a `mod_list` entry for `CouchSpire`. Copying the real `steam/<id>/settings.save` into `default/1/` is enough.
+- **Save location.** Modded sessions write to `default/1/modded/profile1/saves/` (`prefs.save`, `progress.save`, `history`). The §6.6 rule 1 reset (everything under `default/1/` except `settings.save`) covers it. The file mtimes under `steam/` were identical before and after the run.
+- **Pinning the display.** Set `SettingsSave.AspectRatioSetting` and `SettingsSave.WindowSize`, then call `NGame.Instance.ApplyDisplaySettings()` (`NGame.cs:783`). This also sets the UI scale target (`ContentScaleSize`: 16:9 → 1920×1080, 16:10 → 1920×1200). A raw `DisplayServer.WindowSetSize` leaves the UI scaled for the old aspect. The game doesn't re-apply its saved settings during play; it writes them back only on quit. `STS2_DEV_WINDOWED` only forces windowed mode and doesn't change size or aspect. Observed: requested 1600×900 gave window (1600, 900) and viewport (1920, 1080).
+- **Quit, don't kill.** SIGTERM makes .NET abort during shutdown (SIGABRT in `SafeExitProcess`), which leaves a macOS crash report. The runner must end with `GetTree().Quit(code)`. The host script's SIGTERM/SIGKILL is only for hangs.
+- **Mod UI roots.** `CouchTeammateHud` and `CouchTeammateRelicBar` are plain `Control`s, not `CanvasLayer`s, so `GetGlobalRect()` works on them directly. At the main menu the relic bar exists at zero size, and the HUD doesn't exist yet.
+- **Not verified by hand:** the manual couch run (P1 = 1 and P2 = 2 with Steam off) and identical HUD rects across launches. These are left to automation: the `start` scenario asserts the player ids, and WP4's `--repeat` / two-launch check asserts rect stability.
 
 ## 9. Later (not in this milestone)
 - Two-player soak bot: AutoSlay's screen handlers for P1, panel input for P2, and real `PlayCardAction`s, playing whole seeded runs.
