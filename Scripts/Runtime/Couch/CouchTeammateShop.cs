@@ -127,6 +127,20 @@ internal sealed partial class CouchTeammateShop : CouchPanel
         }
 
         PlaceOnSide(left: false, top: 110f, margin: 10f);
+        UpdatePotionDiscard();
+        foreach (RowView row in _rows)
+        {
+            row.Root.Visible = !IsDiscardingPotion;
+        }
+
+        if (IsDiscardingPotion)
+        {
+            SetPreview(null);
+            SetTitle($"{SeatLabel(_teammate!)} · Potion belt full");
+            FinishLayout(LayoutPotionDiscard(ContentTop), "Discard one to make room", $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} choose · {Keys("K", "B")} back");
+            return;
+        }
+
         SetTitle($"{SeatLabel(_teammate!)} · Shop    Gold {_teammate!.Gold}");
         float y = ContentTop;
 
@@ -196,6 +210,12 @@ internal sealed partial class CouchTeammateShop : CouchPanel
 
     private void OnCommand(CouchHudCommand command)
     {
+        if (IsDiscardingPotion)
+        {
+            OnPotionDiscardCommand(command);
+            return;
+        }
+
         switch (command)
         {
             case CouchHudCommand.Left:
@@ -237,6 +257,13 @@ internal sealed partial class CouchTeammateShop : CouchPanel
         {
             CouchSfx.MerchantNo();
             Flash("Not enough gold", denied: false);
+            return;
+        }
+
+        // Belt full: let the teammate throw out a potion first, then buy.
+        if (entry is MerchantPotionEntry && _teammate != null && !_teammate.HasOpenPotionSlots)
+        {
+            OpenPotionDiscard(_teammate, () => TaskHelper.RunSafely(BuyAsync(entry)));
             return;
         }
 

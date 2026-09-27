@@ -129,7 +129,7 @@ P1's "Loot!" screen now shows only P1's rewards. P2's rewards are in a panel on 
 1. Take P2's gold and potion. Each taken reward leaves the list, as on P1's screen, and P2's gold and potions go up.
 2. Take P2's card reward. The panel shows P2's three cards plus Skip (and Reroll if a relic allows it). Pick one with I; it goes into P2's deck. Skip or K leaves the reward untaken.
 3. While P2 is still choosing, P1 presses Proceed. It shows "Waiting for P2 to finish their rewards" and stays put. After P2 takes everything or picks Done, P1's Proceed works.
-4. A potion reward with full slots says so; P2 can leave it and pick Done.
+4. A potion reward with a full belt lists P2's potions to discard one (or "Keep my potions"); once one is discarded, the reward is taken. The same happens when P2 buys a potion in the shop with a full belt.
 5. Known gaps: a relic that asks to pick cards from the deck still opens on P1's screen. Treasure rooms, shops, events and rest sites still take turns.
 
 **H. Rest sites, treasure, shops, and P2's card picker**

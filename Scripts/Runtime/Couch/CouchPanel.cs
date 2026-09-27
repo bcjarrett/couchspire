@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Helpers;
+using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 
@@ -36,6 +38,18 @@ internal abstract partial class CouchPanel : Control
     private bool _onLeft;
 
     private Tween? _appearTween;
+
+    private readonly List<RowView> _discardRows = new();
+
+    private List<PotionModel> _discardPotions = new();
+
+    private Player? _discardOwner;
+
+    private Action? _afterDiscard;
+
+    private int _discardCursor;
+
+    private bool _discardSent;
 
     protected CouchFrame? Background { get; private set; }
 
@@ -225,6 +239,115 @@ internal abstract partial class CouchPanel : Control
     protected static void AnnounceWaiting(Player teammate, string what)
     {
         NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create($"Waiting for {SeatLabel(teammate)} to finish {what}"));
+    }
+
+    /// <summary>True while the teammate is picking a potion to throw out to make room.</summary>
+    protected bool IsDiscardingPotion => _discardOwner != null;
+
+    /// <summary>
+    /// The teammate's belt is full and they want another potion: list their potions to discard one (as the driver can
+    /// from the top bar), plus "Keep my potions". Once a slot is free, <paramref name="afterRoomMade"/> runs (take the
+    /// reward, buy the potion).
+    /// </summary>
+    protected void OpenPotionDiscard(Player owner, Action afterRoomMade)
+    {
+        ClosePotionDiscard();
+        _discardOwner = owner;
+        _afterDiscard = afterRoomMade;
+        _discardPotions = owner.PotionSlots.OfType<PotionModel>().ToList();
+        foreach (PotionModel potion in _discardPotions)
+        {
+            RowView row = CreateRow(SafePotionImage(potion));
+            string description = CouchText.Plain(potion.DynamicDescription.GetFormattedText());
+            row.Label.Text = $"Discard {CouchText.Plain(potion.Title.GetFormattedText())}{(description.Length > 0 ? "\n" + description : "")}";
+            _discardRows.Add(row);
+        }
+
+        RowView keep = CreateRow(null);
+        keep.Label.Text = "Keep my potions";
+        _discardRows.Add(keep);
+        _discardCursor = 0;
+        _discardSent = false;
+    }
+
+    protected void ClosePotionDiscard()
+    {
+        FreeRows(_discardRows);
+        _discardPotions = new List<PotionModel>();
+        _discardOwner = null;
+        _afterDiscard = null;
+        _discardSent = false;
+    }
+
+    /// <summary>Call every frame: once the discard has freed a slot, closes the list and runs the follow-up.</summary>
+    protected void UpdatePotionDiscard()
+    {
+        if (_discardOwner != null && _discardSent && _discardOwner.HasOpenPotionSlots)
+        {
+            Action? next = _afterDiscard;
+            ClosePotionDiscard();
+            next?.Invoke();
+        }
+    }
+
+    protected float LayoutPotionDiscard(float y)
+    {
+        for (int i = 0; i < _discardRows.Count; i++)
+        {
+            StyleRow(_discardRows[i], i == _discardCursor, dimmed: _discardSent);
+        }
+
+        return LayoutRows(_discardRows, y);
+    }
+
+    protected void OnPotionDiscardCommand(CouchHudCommand command)
+    {
+        int count = _discardRows.Count;
+        switch (command)
+        {
+            case CouchHudCommand.Left:
+            case CouchHudCommand.Up:
+                _discardCursor = (_discardCursor - 1 + count) % count;
+                break;
+            case CouchHudCommand.Right:
+            case CouchHudCommand.Down:
+            case CouchHudCommand.ToggleRow:
+                _discardCursor = (_discardCursor + 1) % count;
+                break;
+            case CouchHudCommand.Accept:
+                if (_discardCursor >= _discardPotions.Count)
+                {
+                    ClosePotionDiscard();
+                }
+                else if (!_discardSent)
+                {
+                    if (CouchRemotePlay.TryDiscardPotion(_discardOwner!, _discardPotions[_discardCursor], out string reason))
+                    {
+                        _discardSent = true;
+                    }
+                    else
+                    {
+                        Flash(reason);
+                    }
+                }
+
+                break;
+            case CouchHudCommand.Back:
+                ClosePotionDiscard();
+                break;
+        }
+    }
+
+    private static Texture2D? SafePotionImage(PotionModel potion)
+    {
+        try
+        {
+            return potion.Image;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     protected readonly record struct RowView(CouchButton Root, Label Label, TextureRect? Icon, float TextLeft);

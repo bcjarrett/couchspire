@@ -79,6 +79,9 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
 
     private CardReward? _activeCardReward;
 
+    /// <summary>The potion reward waiting on the teammate to make room in their belt.</summary>
+    private Reward? _waitingForRoom;
+
     /// <summary>True while the teammate still has their rewards panel open.</summary>
     public static bool IsActive => _instance != null && IsInstanceValid(_instance) && !_instance._done;
 
@@ -235,7 +238,12 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
 
         Visible = true;
         PlaceOnSide(left: false, PanelTop, RightMargin);
-        if (choice == null)
+        UpdatePotionDiscard();
+        if (IsDiscardingPotion)
+        {
+            LayoutDiscard();
+        }
+        else if (choice == null)
         {
             LayoutRewards();
         }
@@ -252,6 +260,12 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
 
     private void OnCommand(CouchHudCommand command)
     {
+        if (IsDiscardingPotion)
+        {
+            OnPotionDiscardCommand(command);
+            return;
+        }
+
         CouchTeammateChoice? choice = PendingCardChoice();
         if (choice != null)
         {
@@ -345,6 +359,14 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
         if (reward.SuccessfullySelected)
         {
             Flash("Already taken");
+            return;
+        }
+
+        // Belt full: let the teammate throw out a potion first, as the driver can from the top bar.
+        if (reward is PotionReward && !_set.Player.HasOpenPotionSlots)
+        {
+            _waitingForRoom = reward;
+            OpenPotionDiscard(_set.Player, () => Claim(reward));
             return;
         }
 
@@ -459,6 +481,18 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
         _choiceCards.Clear();
         FreeRows(_choiceExtras);
         _shownChoiceCards = new List<CardModel>();
+    }
+
+    private void LayoutDiscard()
+    {
+        foreach (RowView row in _rows)
+        {
+            row.Root.Visible = false;
+        }
+
+        SetTitle($"{SeatLabel()} · Potion belt full");
+        float y = LayoutPotionDiscard(ContentTop);
+        FinishLayout(y, _waitingForRoom != null ? $"Discard one to take {Describe(_waitingForRoom)}" : "", $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} choose · {Keys("K", "B")} back");
     }
 
     private void LayoutRewards()
