@@ -28,10 +28,11 @@ internal sealed class CouchTestExpectationFailedException : System.Exception
 
 /// <summary>
 /// The small API a scenario drives the game through (docs/design/testing-plan.md §6.4). Deliberately minimal: only
-/// what the "start" scenario (§6.9) needs. Combat helpers (P2Play/P2EndTurn/... wrapping
-/// <see cref="CouchRemotePlay"/>) are a seam for WP5, not added here.
+/// what every scenario needs. Area-specific helpers (e.g. combat's P2Play/P2EndTurn wrapping
+/// <see cref="CouchRemotePlay"/>) go in their own partial file, <c>CouchTestContext.&lt;Area&gt;.cs</c>, and must
+/// call <see cref="ThrowIfCancelled"/> before touching the game.
 /// </summary>
-internal sealed class CouchTestContext
+internal sealed partial class CouchTestContext
 {
     private static readonly string[] BannedConsoleCommands = { "fight", "godmode" };
     private static readonly TimeSpan DefaultWaitTimeout = TimeSpan.FromSeconds(15);
@@ -51,6 +52,12 @@ internal sealed class CouchTestContext
         _tree = tree;
         _cancellationToken = cancellationToken;
     }
+
+    /// <summary>Cancelled when the scenario times out; pass it to anything that waits.</summary>
+    public CancellationToken CancellationToken => _cancellationToken;
+
+    /// <summary>Call first in every helper that touches the game (see the constructor's cancellation note).</summary>
+    public void ThrowIfCancelled() => _cancellationToken.ThrowIfCancellationRequested();
 
     /// <summary>The driver's id (platform id; 1 under <c>--force-steam off</c>, see docs/design/testing-plan.md §4).</summary>
     public ulong P1Id => LocalSelfCoopContext.LocalPlayerIds[0];

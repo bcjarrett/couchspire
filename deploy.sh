@@ -11,7 +11,7 @@
 #
 # Mod settings: CouchSpire.cfg in the repo root is installed next to the mod (see CouchSpire.cfg.example).
 # Env overrides: CONFIG (Release|Debug), STS2_REMOTE_DIR (remote game dir), COUCHSPIRE_TEST_TIMEOUT (test mode's
-# outer timeout in seconds, default 1200).
+# outer timeout in seconds, default 1200), COUCHSPIRE_TEST_LOCK_WAIT (seconds to queue for the test lock, default 0).
 set -euo pipefail
 
 MOD_ID="CouchSpire"
@@ -164,17 +164,27 @@ release_test_lock() {
 
 acquire_test_lock() {
   local lock_dir="$1"
-  if mkdir "$lock_dir" 2>/dev/null; then
-    COUCHSPIRE_LOCK_DIR="$lock_dir"
-    echo "$$" > "$lock_dir/pid" 2>/dev/null || true
-    trap release_test_lock EXIT
-    return 0
-  fi
-
-  local holder_pid=""
-  if [ -f "$lock_dir/pid" ]; then
+  # COUCHSPIRE_TEST_LOCK_WAIT=<seconds>: queue behind a live holder instead of failing (parallel agents).
+  local wait_s="${COUCHSPIRE_TEST_LOCK_WAIT:-0}" waited=0 holder_pid=""
+  while true; do
+    if mkdir "$lock_dir" 2>/dev/null; then
+      COUCHSPIRE_LOCK_DIR="$lock_dir"
+      echo "$$" > "$lock_dir/pid" 2>/dev/null || true
+      trap release_test_lock EXIT
+      return 0
+    fi
     holder_pid="$(cat "$lock_dir/pid" 2>/dev/null || true)"
-  fi
+    # An empty pid is a holder between its mkdir and pid write: keep waiting. A dead pid is a stale lock: stop.
+    if [ "$waited" -ge "$wait_s" ] || { [ -n "$holder_pid" ] && ! kill -0 "$holder_pid" 2>/dev/null; }; then
+      break
+    fi
+    if [ "$waited" -eq 0 ]; then
+      echo "==> Waiting up to ${wait_s}s for the test lock (held by PID $holder_pid)..."
+    fi
+    sleep 5
+    waited=$((waited + 5))
+  done
+
   if [ -n "$holder_pid" ] && kill -0 "$holder_pid" 2>/dev/null; then
     echo "Another test run holds the lock: PID $holder_pid ($lock_dir). Wait for it to finish." >&2
   else
@@ -375,8 +385,14 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       fi
 
       if [ -f "$out_dir/godot.log" ]; then
-        echo "==> Failing log lines (capped at 50):"
-        grep -E "ERROR|Exception|\\[CouchTest\\].*(FAIL|TIMEOUT)" "$out_dir/godot.log" | head -n 50 || true
+        # On failure only, and only game-logger errors and runner verdicts: bare "ERROR:" lines are Godot engine noise
+        # (leaks at exit, preloads cut short by the quick quit), and a passing run still logs the game's own error
+        # for deleting a never-written multiplayer save when the runner abandons at floor 0.
+        failing="$(grep -E "^\\[ERROR\\]|\\[CouchTest\\].*(FAIL|TIMEOUT)" "$out_dir/godot.log" | head -n 50 || true)"
+        if [ -n "$failing" ] && [ "$game_exit" -ne 0 ]; then
+          echo "==> Failing log lines (capped at 50):"
+          echo "$failing"
+        fi
       fi
 
       final_exit="$game_exit"
