@@ -51,6 +51,10 @@ cp -r /tmp/sts2-src/MegaCrit/Sts2/. src/
 - [docs/console-commands.md](docs/console-commands.md): dev-console commands for testing
 - [docs/design/](docs/design/): design documents
 
+## License
+
+MIT — see [LICENSE](LICENSE).
+
 ## Credits
 
-Based on Local Multi-Control (DualRoleAdventure) by liwenhao0427 and GuyGinat.
+Based on Local Multi-Control (DualRoleAdventure) by liwenhao0427 and GuyGinat. Thanks to them for the loopback-networking foundation this mod builds on, and for kindly agreeing to let it be published as a separate, MIT-licensed project.
