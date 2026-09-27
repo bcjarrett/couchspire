@@ -1,4 +1,6 @@
 <Project Sdk="Godot.NET.Sdk/4.5.1">
+  <Import Project="Sts2Paths.props" />
+
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>true</ImplicitUsings>
@@ -7,23 +9,30 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>CouchSpire</AssemblyName>
     <RootNamespace>DualRoleAdventure</RootNamespace>
+  </PropertyGroup>
 
-    <!-- 改成你的杀戮尖塔2目录 -->
-    <!-- Game install dir; override with -p:Sts2Dir=... . Windows, WSL (C: drive mount), macOS, native Linux. -->
-    <WslSts2Dir>/mnt/c/Program Files (x86)/Steam/steamapps/common/Slay the Spire 2</WslSts2Dir>
-    <Sts2Dir Condition="'$(Sts2Dir)' == '' and '$(OS)' == 'Windows_NT'">C:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2</Sts2Dir>
-    <Sts2Dir Condition="'$(Sts2Dir)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">$(HOME)/Library/Application Support/Steam/steamapps/common/Slay the Spire 2</Sts2Dir>
-    <Sts2Dir Condition="'$(Sts2Dir)' == '' and Exists('$(WslSts2Dir)')">$(WslSts2Dir)</Sts2Dir>
-    <Sts2Dir Condition="'$(Sts2Dir)' == ''">$(HOME)/.local/share/Steam/steamapps/common/Slay the Spire 2</Sts2Dir>
-    <Sts2DataDir Condition="'$(Sts2DataDir)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">$(Sts2Dir)/SlayTheSpire2.app/Contents/Resources/data_sts2_macos_arm64</Sts2DataDir>
-    <Sts2DataDir Condition="'$(Sts2DataDir)' == '' and Exists('$(Sts2Dir)/data_sts2_linux_x86_64')">$(Sts2Dir)/data_sts2_linux_x86_64</Sts2DataDir>
-    <Sts2DataDir Condition="'$(Sts2DataDir)' == ''">$(Sts2Dir)\data_sts2_windows_x86_64</Sts2DataDir>
+  <!-- Test gating (see docs/design/testing-plan.md §6.1): Scripts/Testing/ compiles only in Debug. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DefineConstants>$(DefineConstants);COUCHSPIRE_TESTS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- Decompiled game source lives in src/ as read-only reference; never compile it -->
     <Compile Remove="src/**" />
     <None Remove="src/**" />
+
+    <!-- Layer A tests live in their own plain-SDK project (Tests/CouchSpire.Tests); the Godot SDK must not glob them -->
+    <Compile Remove="Tests/**" />
+    <None Remove="Tests/**" />
+
+    <!-- Test run output (gitignored); never glob it into the mod build -->
+    <Compile Remove="test-results/**" />
+    <None Remove="test-results/**" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+    <!-- Shipped (non-Debug) builds must contain no test types -->
+    <Compile Remove="Scripts/Testing/**" />
   </ItemGroup>
 
   <ItemGroup>

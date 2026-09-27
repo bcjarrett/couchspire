@@ -19,6 +19,9 @@ CouchSpire.dll
 # Decompiled game source (read-only reference, never commit)
 src/
 
+# Layer B test run output (docs/design/testing-plan.md §6.7)
+test-results/
+
 # Keep repository code-focused
 *.uid
 *.sln
