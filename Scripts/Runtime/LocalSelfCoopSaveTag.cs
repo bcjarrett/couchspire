@@ -1,53 +1,36 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using MegaCrit.Sts2.Core.Saves;
 
 namespace LocalMultiControl.Scripts.Runtime;
 
+/// <summary>
+/// A marker file next to the multiplayer save that says the run belongs to local co-op, and which two player ids it
+/// uses. Format: <c>v3:players=id1,id2</c>. Older tags may carry extra sections or more players; those are ignored or
+/// rejected.
+/// </summary>
 internal static class LocalSelfCoopSaveTag
 {
     private const string SaveTagFileName = "local_self_coop_mp.tag";
-    private const string V2Prefix = "v2:";
     private const string V3Prefix = "v3:";
-    private const int MaxSupportedPlayerCount = 16;
-
-    public static void MarkCurrentProfile(ulong primaryPlayerId, ulong secondaryPlayerId)
-    {
-        MarkCurrentProfile(new List<ulong> { primaryPlayerId, secondaryPlayerId }, Array.Empty<ulong>());
-    }
+    private const string V2Prefix = "v2:";
 
     public static void MarkCurrentProfile(IReadOnlyList<ulong> playerIds)
     {
-        MarkCurrentProfile(playerIds, Array.Empty<ulong>());
-    }
-
-    public static void MarkCurrentProfile(IReadOnlyList<ulong> playerIds, IReadOnlyList<ulong> wakuuPlayerIds)
-    {
         try
         {
-            List<ulong> normalizedPlayers = NormalizeIds(playerIds, maxCount: MaxSupportedPlayerCount);
-            if (normalizedPlayers.Count < 2)
+            List<ulong> ids = playerIds.Where((id) => id != 0).Distinct().ToList();
+            if (ids.Count != LocalSelfCoopContext.PlayerCount)
             {
-                LocalMultiControlLogger.Warn("写入本地多控存档标记失败：有效玩家ID不足2个。");
+                LocalMultiControlLogger.Warn($"Save tag not written: expected {LocalSelfCoopContext.PlayerCount} player ids, got [{string.Join(",", ids)}].");
                 return;
             }
 
-            HashSet<ulong> allowed = normalizedPlayers.ToHashSet();
-            List<ulong> normalizedWakuuIds = NormalizeIds(wakuuPlayerIds, maxCount: MaxSupportedPlayerCount)
-                .Where((playerId) => allowed.Contains(playerId))
-                .ToList();
-
-            string serialized =
-                $"{V3Prefix}players={string.Join(",", normalizedPlayers)};wakuu={string.Join(",", normalizedWakuuIds)}";
-            GodotFileIo fileIo = new(
-                UserDataPathProvider.GetProfileScopedPath(SaveManager.Instance.CurrentProfileId, UserDataPathProvider.SavesDir));
-            fileIo.WriteFile(SaveTagFileName, serialized);
-            LocalMultiControlLogger.Info($"已写入本地多控存档标记: {serialized}");
+            string serialized = $"{V3Prefix}players={string.Join(",", ids)}";
+            CreateFileIo().WriteFile(SaveTagFileName, serialized);
+            LocalMultiControlLogger.Info($"Save tag written: {serialized}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"写入本地多控存档标记失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Save tag write failed: {exception.Message}");
         }
     }
 
@@ -55,153 +38,78 @@ internal static class LocalSelfCoopSaveTag
     {
         try
         {
-            GodotFileIo fileIo = new(
-                UserDataPathProvider.GetProfileScopedPath(SaveManager.Instance.CurrentProfileId, UserDataPathProvider.SavesDir));
+            GodotFileIo fileIo = CreateFileIo();
             if (fileIo.FileExists(SaveTagFileName))
             {
                 fileIo.DeleteFile(SaveTagFileName);
-                LocalMultiControlLogger.Info("已清理本地多控存档标记。");
+                LocalMultiControlLogger.Info("Save tag cleared.");
             }
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"清理本地多控存档标记失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Save tag clear failed: {exception.Message}");
         }
     }
 
-    public static bool TryReadCurrentProfile(out ulong primaryPlayerId, out ulong secondaryPlayerId)
-    {
-        primaryPlayerId = 0;
-        secondaryPlayerId = 0;
-        if (!TryReadCurrentProfile(out List<ulong> playerIds, out _) || playerIds.Count < 2)
-        {
-            return false;
-        }
-
-        primaryPlayerId = playerIds[0];
-        secondaryPlayerId = playerIds[1];
-        return true;
-    }
-
+    /// <summary>Reads the tag's player ids. False when there is no tag, or it isn't a two-player local co-op run.</summary>
     public static bool TryReadCurrentProfile(out List<ulong> playerIds)
     {
-        return TryReadCurrentProfile(out playerIds, out _);
-    }
-
-    public static bool TryReadCurrentProfile(out List<ulong> playerIds, out List<ulong> wakuuPlayerIds)
-    {
         playerIds = new List<ulong>();
-        wakuuPlayerIds = new List<ulong>();
-
         try
         {
-            GodotFileIo fileIo = new(
-                UserDataPathProvider.GetProfileScopedPath(SaveManager.Instance.CurrentProfileId, UserDataPathProvider.SavesDir));
+            GodotFileIo fileIo = CreateFileIo();
             if (!fileIo.FileExists(SaveTagFileName))
             {
                 return false;
             }
 
-            string? content = fileIo.ReadFile(SaveTagFileName);
-            if (string.IsNullOrWhiteSpace(content))
+            string content = fileIo.ReadFile(SaveTagFileName)?.Trim() ?? string.Empty;
+            playerIds = ParseIds(ExtractPlayersSection(content));
+            if (playerIds.Count != LocalSelfCoopContext.PlayerCount)
             {
+                LocalMultiControlLogger.Warn($"Save tag ignored: CouchSpire runs have {LocalSelfCoopContext.PlayerCount} players (tag: {content}).");
+                playerIds.Clear();
                 return false;
             }
 
-            if (content.StartsWith(V3Prefix, StringComparison.OrdinalIgnoreCase))
-            {
-                if (!TryParseV3(content.Substring(V3Prefix.Length), out playerIds, out wakuuPlayerIds))
-                {
-                    LocalMultiControlLogger.Warn($"本地多控存档标记格式无效: {content}");
-                    return false;
-                }
-
-                return true;
-            }
-
-            if (content.StartsWith(V2Prefix, StringComparison.OrdinalIgnoreCase))
-            {
-                string payload = content.Substring(V2Prefix.Length);
-                List<ulong> parsedV2 = NormalizeIds(payload.Split(','), maxCount: MaxSupportedPlayerCount);
-                if (parsedV2.Count < 2)
-                {
-                    LocalMultiControlLogger.Warn($"本地多控存档标记格式无效: {content}");
-                    return false;
-                }
-
-                playerIds = parsedV2;
-                return true;
-            }
-
-            // 向后兼容旧双人格式: "id1,id2"
-            List<ulong> parsedLegacy = NormalizeIds(content.Split(','), maxCount: MaxSupportedPlayerCount);
-            if (parsedLegacy.Count == 2)
-            {
-                playerIds = parsedLegacy;
-                return true;
-            }
-
-            LocalMultiControlLogger.Warn($"本地多控存档标记格式无效: {content}");
-            return false;
+            return true;
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"读取本地多控存档标记失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Save tag read failed: {exception.Message}");
             return false;
         }
     }
 
-    private static bool TryParseV3(string payload, out List<ulong> playerIds, out List<ulong> wakuuPlayerIds)
+    private static string ExtractPlayersSection(string content)
     {
-        playerIds = new List<ulong>();
-        wakuuPlayerIds = new List<ulong>();
-
-        Dictionary<string, string> sections = payload
-            .Split(';', StringSplitOptions.RemoveEmptyEntries)
-            .Select((segment) => segment.Split('=', 2, StringSplitOptions.TrimEntries))
-            .Where((parts) => parts.Length == 2)
-            .ToDictionary((parts) => parts[0], (parts) => parts[1], StringComparer.OrdinalIgnoreCase);
-
-        if (!sections.TryGetValue("players", out string? playersSection))
+        if (content.StartsWith(V3Prefix, StringComparison.OrdinalIgnoreCase))
         {
-            return false;
+            // "players=1,2" plus optional sections from older versions (e.g. ";wakuu=...").
+            return content.Substring(V3Prefix.Length)
+                .Split(';', StringSplitOptions.RemoveEmptyEntries)
+                .Select((segment) => segment.Split('=', 2, StringSplitOptions.TrimEntries))
+                .FirstOrDefault((parts) => parts.Length == 2 && parts[0].Equals("players", StringComparison.OrdinalIgnoreCase))
+                ?[1] ?? string.Empty;
         }
 
-        playerIds = NormalizeIds(playersSection.Split(','), maxCount: MaxSupportedPlayerCount);
-        if (playerIds.Count < 2)
-        {
-            return false;
-        }
-
-        if (sections.TryGetValue("wakuu", out string? wakuuSection))
-        {
-            HashSet<ulong> allowed = playerIds.ToHashSet();
-            wakuuPlayerIds = NormalizeIds(wakuuSection.Split(','), maxCount: MaxSupportedPlayerCount)
-                .Where((playerId) => allowed.Contains(playerId))
-                .ToList();
-        }
-
-        return true;
+        return content.StartsWith(V2Prefix, StringComparison.OrdinalIgnoreCase)
+            ? content.Substring(V2Prefix.Length)
+            : content;
     }
 
-    private static List<ulong> NormalizeIds(IEnumerable<string> parts, int maxCount)
+    private static List<ulong> ParseIds(string csv)
     {
-        return parts
-            .Select((part) => part.Trim())
-            .Where((part) => ulong.TryParse(part, out _))
-            .Select(ulong.Parse)
+        return csv.Split(',')
+            .Select((part) => ulong.TryParse(part.Trim(), out ulong id) ? id : 0UL)
             .Where((id) => id != 0)
             .Distinct()
-            .Take(maxCount)
             .ToList();
     }
 
-    private static List<ulong> NormalizeIds(IReadOnlyList<ulong> ids, int maxCount)
+    private static GodotFileIo CreateFileIo()
     {
-        return ids
-            .Where((id) => id != 0)
-            .Distinct()
-            .Take(maxCount)
-            .ToList();
+        return new GodotFileIo(
+            UserDataPathProvider.GetProfileScopedPath(SaveManager.Instance.CurrentProfileId, UserDataPathProvider.SavesDir));
     }
 }

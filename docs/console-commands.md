@@ -16,7 +16,6 @@ Useful commands for jumping around the run flow while reproducing and verifying 
 
 - `event <ID>` takes the uppercase-underscore event ID (e.g. `WELCOME_TO_WONGOS`), not a display name.
 - `act <n>` is the fastest regression-test entry point.
-- A full ID reference table (all `card` and `event` codes, extracted from `Core/Models`) is archived in Chinese at `docs/archive/console-id-reference.zh.md`; the IDs themselves are English and can be used directly.
 
 ## Typical mod-test sequence
 

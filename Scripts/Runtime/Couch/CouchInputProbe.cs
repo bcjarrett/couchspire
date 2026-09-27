@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using Godot;
 using MegaCrit.Sts2.Core.Platform.Steam;
 using Steamworks;

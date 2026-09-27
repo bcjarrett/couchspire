@@ -1,4 +1,3 @@
-using System;
 using MegaCrit.Sts2.Core.Audio.Debug;
 using MegaCrit.Sts2.Core.Commands;
 

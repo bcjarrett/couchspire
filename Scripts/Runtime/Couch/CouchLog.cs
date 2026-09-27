@@ -1,10 +1,9 @@
-using System.Collections.Generic;
 using Godot;
 
 namespace LocalMultiControl.Scripts.Runtime.Couch;
 
 /// <summary>
-/// Logging for couch co-op code: the fork's <c>[LocalMultiControl]</c> prefix plus <c>[Couch]</c>,
+/// Logging for couch co-op code: the base mod's <c>[LocalMultiControl]</c> prefix plus <c>[Couch]</c>,
 /// throttling for per-frame paths, and a short in-memory history for the debug overlay.
 /// </summary>
 internal static class CouchLog

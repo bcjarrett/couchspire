@@ -1,13 +1,9 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Godot;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Rewards;
 using LocalMultiControl.Scripts.Runtime;
 using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Entities.Players;
-using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Screens;

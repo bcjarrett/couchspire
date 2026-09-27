@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Combat;
@@ -51,14 +48,12 @@ internal static class ToolboxPatch
             return false;
         }
 
-        bool isWakuuPlayer = LocalSelfCoopContext.IsWakuuEnabled(player.NetId);
-        bool isBackgroundPlayer = !LocalContext.IsMe(player);
-        if (!isWakuuPlayer && !isBackgroundPlayer)
+        if (LocalContext.IsMe(player))
         {
             return false;
         }
 
-        reason = isWakuuPlayer ? "wakuu-player" : "background-player";
+        reason = "background-player";
         return true;
     }
 

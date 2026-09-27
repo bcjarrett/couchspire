@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Godot;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Nodes.Combat;

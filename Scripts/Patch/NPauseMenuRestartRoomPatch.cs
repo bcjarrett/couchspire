@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Godot;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
@@ -123,9 +119,7 @@ internal static class NPauseMenuRestartRoomPatch
         try
         {
             DisablePauseMenuButtons(pauseMenu);
-            LocalSelfCoopSaveTag.MarkCurrentProfile(
-                LocalSelfCoopContext.LocalPlayerIds.Take(LocalSelfCoopContext.DesiredLocalPlayerCount).ToList(),
-                LocalSelfCoopContext.GetWakuuPlayerIdsSnapshot());
+            LocalSelfCoopSaveTag.MarkCurrentProfile(LocalSelfCoopContext.LocalPlayerIds);
             LocalSelfCoopContext.Disable("pause-restart-room");
 
             LocalMultiControlLogger.Info("收到 ESC 重启房间请求，准备回到主菜单并快速读档。");

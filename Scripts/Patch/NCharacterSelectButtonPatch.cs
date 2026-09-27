@@ -1,4 +1,3 @@
-using System;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect;

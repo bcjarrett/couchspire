@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Localization;

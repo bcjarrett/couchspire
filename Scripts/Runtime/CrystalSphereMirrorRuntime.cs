@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Rooms;

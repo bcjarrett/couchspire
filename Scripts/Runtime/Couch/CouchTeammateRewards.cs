@@ -1,18 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Entities.CardRewardAlternatives;
-using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
-using MegaCrit.Sts2.Core.Nodes.Pooling;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 using MegaCrit.Sts2.Core.Rewards;
 using MegaCrit.Sts2.Core.Runs;
@@ -23,8 +18,8 @@ namespace LocalMultiControl.Scripts.Runtime.Couch;
 /// The teammate's own rewards, in a panel beside the driver's screen, claimed with the teammate's own controls.
 /// Two sources:
 /// <list type="bullet">
-/// <item>Post-combat rewards (the fork's merged offer, untracked): claimed with <see cref="Reward.SelectUnsynchronized"/>
-/// as the fork's merged screen does; the driver can't proceed until the teammate is done.</item>
+/// <item>Post-combat rewards (the base mod's merged offer, untracked): claimed with <see cref="Reward.SelectUnsynchronized"/>
+/// as the base mod's merged screen does; the driver can't proceed until the teammate is done.</item>
 /// <item>Rewards offered to the teammate by events or relics (tracked by <see cref="RewardsSetSynchronizer"/>, "synchronized"):
 /// claimed and skipped through the synchronizer, exactly as when a remote player's reward messages arrive, so whatever
 /// offered them continues once the teammate is done.</item>

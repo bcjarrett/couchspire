@@ -1,6 +1,6 @@
 # CouchSpire: couch co-op on one screen
 
-CouchSpire is a fork of [Local Multi-Control / DualRoleAdventure](https://github.com/GuyGinat/STS2_DualRoleAdventure), which already runs several characters in one game. CouchSpire adds **per-controller routing**: each controller drives its own character. To take over, press a button on your controller; if your teammate is in the middle of something (playing or targeting a card, picking cards) or it's the enemy turn, the press is ignored and you try again.
+CouchSpire builds on Local Multi-Control (DualRoleAdventure), which already runs several characters in one game. CouchSpire adds **per-controller routing**: each controller drives its own character. To take over, press a button on your controller; if your teammate is in the middle of something (playing or targeting a card, picking cards) or it's the enemy turn, the press is ignored and you try again.
 
 Status: **Phase 1 MVP, not yet playtested.** The steps below are the Phase 0 tests plus the first playtest.
 

@@ -1,11 +1,9 @@
-using System.Linq;
 using Godot;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
 using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Models;
-using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Runs;

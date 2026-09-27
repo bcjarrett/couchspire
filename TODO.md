@@ -1,7 +1,7 @@
 # Known Issues & Requests
 
 Status as of 2026-08-31 (post-v1.32, unreleased work in the repo). The four issues
-carried over from the original author's notes were re-audited against the current
+carried over from the pre-v1.31 notes were re-audited against the current
 code; two were already resolved by earlier redesigns.
 
 ## Open — needs reporter logs / repro

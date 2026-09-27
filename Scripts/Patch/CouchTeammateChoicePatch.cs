@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.CardSelection;

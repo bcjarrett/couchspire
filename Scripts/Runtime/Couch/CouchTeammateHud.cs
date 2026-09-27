@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
@@ -16,7 +14,6 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Combat;
-using MegaCrit.Sts2.Core.Nodes.Pooling;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Screens.Capstones;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;

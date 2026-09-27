@@ -1,13 +1,13 @@
-# AGENTS.md — LocalMultiControl Collaboration Rules
+# AGENTS.md — CouchSpire Collaboration Rules
 
 Rules for automated coding agents (and humans) working in this repository. Goal: changes that are stable, verifiable, and easy to roll back.
 
 ## 1. Scope & hard constraints
 
-- Modify only mod code and mod metadata: `Scripts/`, `*.csproj`, `*.json`, docs, `workshop/`.
+- Modify only mod code and mod metadata: `Scripts/`, `*.csproj`, `*.json`, `*.cfg.example`, `deploy.sh`, docs.
 - `src/` is decompiled game source — **read-only reference, never committed** (gitignored). Regenerate it after each game patch (see §5).
-- No destructive git operations (`reset --hard`, force-push, `checkout --` over user changes). Never push to `origin` (the original author's repo); pushes go to `fork`.
-- Language: **English** for all new code comments, commits, logs, and documentation. Original Chinese documents are preserved under `docs/archive/`.
+- No destructive git operations (`reset --hard`, force-push, `checkout --` over user changes).
+- Language: **English** for all new code comments, commits, logs, and documentation.
 - Commit after each logical change with a clear message.
 
 ## 2. Build, format, deploy
@@ -20,13 +20,13 @@ dotnet build LocalMultiControl.csproj -c Debug     # or -c Release for shipping
 dotnet format LocalMultiControl.csproj --verify-no-changes
 ```
 
-- The build copies the DLL to the repo root: `DualRoleAdventure.dll`. **Always deploy/ship the root artifact**, not `.godot/mono/temp/...`.
-- Deploy = copy `DualRoleAdventure.dll` + `DualRoleAdventure.json` to `<game>\mods\DualRoleAdventure\` (`copy_pck_to_game.ps1`, or plain copy). No pck export — this is a dll-only mod.
+- The build copies the DLL to the repo root: `CouchSpire.dll`. **Always deploy/ship the root artifact**, not `.godot/mono/temp/...`.
+- Deploy with `./deploy.sh mac` or `./deploy.sh bazzite [user@host]`: it builds, then installs `CouchSpire.dll` + `CouchSpire.json` (+ `CouchSpire.cfg` if present) into `<game>/mods/CouchSpire/`. No pck export — this is a dll-only mod.
 - If the copy fails with *permission denied*, the game is running and holds the DLL lock; retry after it closes.
 
 ## 3. Runtime verification
 
-- Log file: `%APPDATA%\SlayTheSpire2\logs\godot.log`.
+- Log file: `%APPDATA%\SlayTheSpire2\logs\godot.log` (Windows), `~/.local/share/SlayTheSpire2/logs/godot.log` (Linux); `./deploy.sh logs` follows the remote log.
 - Log via `Log.Info` with the unified prefix `[LocalMultiControl]` (`Log.Debug` is invisible by default). Add logs for anything you fix.
 - On startup the mod logs `开始初始化 Harmony 补丁` → build marker → `Mod 初始化完成`; any Harmony exception between those lines means a patch target broke.
 - There are no automated tests; the maintainer playtests. Provide focused, step-by-step test scripts and read the log after each round.
@@ -64,15 +64,12 @@ When the game updates and the mod breaks:
 
 ## 7. Release flow
 
-1. Bump the version: `DualRoleAdventure.json` (`x.y.z` semver — the game warns on non-semver), `mod_manifest.json`, Workshop title `Vx.xx`, `Entry.cs` build marker.
-2. Update `CHANGELOG.md` (cut a dated release section) and `PLAYER_GUIDE.md` if player-facing behavior changed.
-3. `dotnet build -c Release`; copy `DualRoleAdventure.dll` + `DualRoleAdventure.json` into `workshop/content/`.
-4. Update `workshop/steamcmd_item_fork.vdf` (`changenote`; `publishedfileid` stays once assigned). The **maintainer** runs the SteamCMD upload — it needs their Steam login.
-5. Commit, push to `fork`, optionally create a GitHub release (zip via `Scripts/Tools/BuildRelease.ps1`).
-6. Never touch the original author's Workshop item (3747538947).
+1. Bump the version: `CouchSpire.json` (`x.y.z` semver — the game warns on non-semver) and the `Entry.cs` build marker.
+2. Update `CHANGELOG.md` (cut a dated release section), and `COUCH.md` / `PLAYER_GUIDE.md` if player-facing behavior changed.
+3. `CONFIG=Release ./deploy.sh ...` (Release is the default) and playtest the installed build.
+4. Commit.
 
 ## 8. Documentation map
 
-- `README.md` — project front door; `PLAYER_GUIDE.md` — player-facing usage; `CHANGELOG.md` — history; `TODO.md` — open issues.
+- `README.md` — project front door; `COUCH.md` — couch co-op setup, settings, tests; `PLAYER_GUIDE.md` — multi-character usage; `CHANGELOG.md` — history; `TODO.md` — open issues.
 - `docs/architecture.md`, `docs/console-commands.md`, `docs/design/*` — developer docs.
-- `docs/archive/*.zh.md` — original Chinese documents, preserved verbatim; do not edit them.

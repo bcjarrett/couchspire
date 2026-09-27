@@ -8,9 +8,6 @@ obj/
 
 # Local export artifacts
 CouchSpire.dll
-DualRoleAdventure.dll
-DualRoleAdventure.pck
-LocalMultiControl.pck
 
 # IDE/user files
 .vs/
@@ -26,7 +23,5 @@ src/
 *.uid
 *.sln
 .dotnet
-/DualRoleAdventure.pck
-/DualRoleAdventure.dll
 release/
 CouchSpire.cfg

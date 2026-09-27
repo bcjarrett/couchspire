@@ -1,12 +1,8 @@
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Rewards;
 using LocalMultiControl.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Commands;
-using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.Potions;
 using MegaCrit.Sts2.Core.Helpers;

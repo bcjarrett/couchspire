@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Runs;
 
@@ -6,7 +5,7 @@ namespace LocalMultiControl.Scripts.Runtime.Couch;
 
 /// <summary>
 /// Names for the local characters, e.g. "P1 · The Ironclad": the seat and the character. The platform name would be the
-/// same Steam account for every local character, or the made-up id the fork gives the extra ones.
+/// same Steam account for every local character, or the made-up id the mod gives P2.
 /// </summary>
 internal static class CouchPlayerNames
 {

@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Models.Relics;
 using LocalMultiControl.Scripts.Patch;
 using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Combat;
@@ -29,7 +24,6 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Rooms;
-using MegaCrit.Sts2.Core.Saves;
 using Godot;
 
 namespace LocalMultiControl.Scripts.Runtime;
@@ -39,22 +33,13 @@ internal static class LocalMultiControlRuntime
     private static readonly LocalMultiSessionState Session = new LocalMultiSessionState();
 
     private static readonly HashSet<string> _fieldSyncFailures = new HashSet<string>();
-    private static readonly HashSet<string> _wakuuAutoEndIssued = new HashSet<string>();
+    private static readonly HashSet<string> _autoEndIssued = new HashSet<string>();
     private static readonly HashSet<int> _allPlayersAutoEndedRounds = new HashSet<int>();
-    private static readonly HashSet<string> _wakuuToNonWakuuSwitchedRounds = new HashSet<string>();
-    private static readonly Dictionary<string, int> _watchdogScheduleRejectCounts = new Dictionary<string, int>();
     private static readonly Dictionary<string, int> _flowBlockSignalCounts = new Dictionary<string, int>();
     private static readonly HashSet<string> _flowBlockSignalDedupeRoundPlayer = new HashSet<string>();
     private static int _lastAutoEndCombatIdentity = -1;
     private static Vector2? _combatEnergyContainerDefaultPosition;
     private static long _flowBlockSignalWindowStartMs;
-    private static long _watchdogScheduleWindowStartMs;
-    private static int _watchdogScheduleSuccessCount;
-    private static ulong _watchdogScheduleLastPlayerId;
-    private static int _watchdogScheduleLastRound = -1;
-    private static string _watchdogScheduleLastSource = "none";
-    private static string? _pendingWakuuAutoSwitchRoundKey;
-    private static string? _pendingWakuuAutoSwitchSource;
     private static ulong? _pendingManualEndTurnPlayerId;
     private static int _pendingManualEndTurnRound = -1;
 
@@ -62,7 +47,6 @@ internal static class LocalMultiControlRuntime
 
     public static void OnRunLaunched(RunState runState)
     {
-        LocalWakuuRelicLocalization.Initialize();
         LocalMultiControlLogger.Info("检测到 RunManager.Launch，开始初始化本地多控会话。");
         if (LocalSelfCoopContext.IsEnabled)
         {
@@ -79,32 +63,20 @@ internal static class LocalMultiControlRuntime
         {
             LocalMultiControlLogger.Info("当前运行未启用本地多控会话。");
         }
-
-        TaskHelper.RunSafely(GrantWakuuRelicsAsync(runState));
     }
 
     public static void OnRunCleanup()
     {
         Session.Reset("RunManager.CleanUp");
-        _wakuuAutoEndIssued.Clear();
+        _autoEndIssued.Clear();
         _allPlayersAutoEndedRounds.Clear();
-        _wakuuToNonWakuuSwitchedRounds.Clear();
         _lastAutoEndCombatIdentity = -1;
-        _pendingWakuuAutoSwitchRoundKey = null;
-        _pendingWakuuAutoSwitchSource = null;
         _pendingManualEndTurnPlayerId = null;
         _pendingManualEndTurnRound = -1;
-        _watchdogScheduleRejectCounts.Clear();
         _flowBlockSignalCounts.Clear();
         _flowBlockSignalDedupeRoundPlayer.Clear();
         _flowBlockSignalWindowStartMs = 0L;
-        _watchdogScheduleWindowStartMs = 0L;
-        _watchdogScheduleSuccessCount = 0;
-        _watchdogScheduleLastPlayerId = 0UL;
-        _watchdogScheduleLastRound = -1;
-        _watchdogScheduleLastSource = "run-cleanup";
         LocalMerchantInventoryRuntime.Clear();
-        LocalWakuuRelicRuntime.ProbeAndRecoverSelectorStack("run-cleanup", allowRecover: true);
         LocalSelfCoopContext.Disable("RunManager.CleanUp");
         LocalMultiControlLogger.Info("RunManager.CleanUp 后已完成本地多控会话清理。");
     }
@@ -137,33 +109,6 @@ internal static class LocalMultiControlRuntime
         }
     }
 
-    public static void SwitchPreviousControlledPlayer(string source)
-    {
-        if (!RunManager.Instance.IsInProgress)
-        {
-            return;
-        }
-
-        if (CombatManager.Instance.IsInProgress)
-        {
-            // 风险点同上；战斗内必须按当前 CombatState 的双角色互切。
-            if (!CanSwitchDuringCombat(source))
-            {
-                return;
-            }
-
-            if (TrySwitchCombatPlayer(next: false, source))
-            {
-                return;
-            }
-        }
-
-        if (Session.SwitchPreviousPlayer())
-        {
-            ApplyControlContext(source);
-        }
-    }
-
     public static void SwitchControlledPlayerTo(ulong playerId, string source)
     {
         if (!RunManager.Instance.IsInProgress)
@@ -187,74 +132,11 @@ internal static class LocalMultiControlRuntime
         // Couch simultaneous mode: the driver keeps the screen after events.
         if (Couch.CouchConfig.SimultaneousEnabled)
         {
-            Couch.CouchLog.Info($"Skipped the fork's event auto-switch ({source}); the driver keeps the screen.");
+            Couch.CouchLog.Info($"Skipped the base mod's event auto-switch ({source}); the driver keeps the screen.");
             return;
         }
 
         SwitchNextControlledPlayer(source);
-    }
-
-    public static void TryAutoEndTurnForRelicControlledPlayer()
-    {
-        if (!LocalSelfCoopContext.IsEnabled || !RunManager.Instance.IsInProgress || !CombatManager.Instance.IsInProgress)
-        {
-            return;
-        }
-
-        NCombatUi? combatUi = NCombatRoom.Instance?.Ui;
-        if (combatUi == null)
-        {
-            return;
-        }
-
-        NPlayerHand hand = combatUi.Hand;
-        if (hand.InCardPlay || hand.IsInCardSelection || (NTargetManager.Instance?.IsInSelection ?? false))
-        {
-            return;
-        }
-
-        CombatState? combatState = TryGetCombatState(combatUi);
-        if (combatState == null || combatState.CurrentSide != CombatSide.Player)
-        {
-            return;
-        }
-
-        if (RunManager.Instance.ActionQueueSynchronizer.CombatState != ActionSynchronizerCombatState.PlayPhase)
-        {
-            return;
-        }
-
-        RefreshAutoEndTrackingForCombat(combatState);
-        TryConsumePendingWakuuAutoSwitch(combatState);
-        if (LocalManualPlayGuard.IsActive)
-        {
-            return;
-        }
-
-        TryAutoSwitchFromWakuuWhenAllWakuuNoPlayableCards(combatState, "wakuu-no-playable-cards-tick");
-
-        bool anyWakuuPlayerHasPlayableCards = false;
-        foreach (Player player in combatState.Players)
-        {
-            if (player?.Creature == null || !player.Creature.IsAlive)
-            {
-                continue;
-            }
-
-            bool hasPlayableCards = PileType.Hand.GetPile(player).Cards.Any((card) => card.CanPlay());
-
-            if (LocalWakuuRelicRuntime.HasWakuuRelic(player) && hasPlayableCards)
-            {
-                anyWakuuPlayerHasPlayableCards = true;
-                bool scheduled = LocalWakuuRelicRuntime.TryScheduleWatchdog(player, "combat-watchdog", out string reason);
-                RecordWatchdogScheduleResult(scheduled, reason, player.NetId, combatState.RoundNumber, "combat-watchdog");
-            }
-        }
-
-        if (anyWakuuPlayerHasPlayableCards)
-        {
-            _allPlayersAutoEndedRounds.Remove(combatState.RoundNumber);
-        }
     }
 
     public static bool TryManualEndTurnAutoCloseAllPlayers()
@@ -328,7 +210,7 @@ internal static class LocalMultiControlRuntime
             }
 
             string key = $"{_lastAutoEndCombatIdentity}:{combatState.RoundNumber}:{player.NetId}";
-            if (!_wakuuAutoEndIssued.Add(key))
+            if (!_autoEndIssued.Add(key))
             {
                 continue;
             }
@@ -355,15 +237,11 @@ internal static class LocalMultiControlRuntime
         }
 
         _lastAutoEndCombatIdentity = combatIdentity;
-        _wakuuAutoEndIssued.Clear();
+        _autoEndIssued.Clear();
         _allPlayersAutoEndedRounds.Clear();
-        _wakuuToNonWakuuSwitchedRounds.Clear();
-        _pendingWakuuAutoSwitchRoundKey = null;
-        _pendingWakuuAutoSwitchSource = null;
         _pendingManualEndTurnPlayerId = null;
         _pendingManualEndTurnRound = -1;
-        LocalMultiControlLogger.Info($"检测到战斗场次切换，重置瓦库自动结束回合状态: combat={combatIdentity}");
-        LocalWakuuRelicRuntime.ProbeAndRecoverSelectorStack($"combat-switch-{combatIdentity}", allowRecover: true);
+        LocalMultiControlLogger.Info($"New combat; auto end-turn tracking reset: combat={combatIdentity}");
     }
 
     public static void RecordManualEndTurnIntent(ulong playerId, string source)
@@ -375,41 +253,6 @@ internal static class LocalMultiControlRuntime
         LocalMultiControlLogger.Info($"已记录手动结束回合意图: player={playerId}, round={_pendingManualEndTurnRound}, source={source}");
     }
 
-    private static async Task GrantWakuuRelicsAsync(RunState runState)
-    {
-        if (!LocalSelfCoopContext.IsEnabled)
-        {
-            return;
-        }
-
-        List<ulong> wakuuPlayerIds = LocalSelfCoopContext.GetWakuuPlayerIdsSnapshot();
-        if (wakuuPlayerIds.Count == 0)
-        {
-            return;
-        }
-
-        foreach (ulong playerId in wakuuPlayerIds)
-        {
-            Player? player = runState.GetPlayer(playerId);
-            if (player == null)
-            {
-                continue;
-            }
-
-            if (LocalWakuuRelicRuntime.TryGetWakuuRelic(player) != null)
-            {
-                continue;
-            }
-
-            RelicModel relic = ModelDb.Relic<LocalWakuuStarterRelic>().ToMutable();
-            relic.FloorAddedToDeck = Math.Max(1, runState.TotalFloor);
-            player.AddRelicInternal(relic);
-            SaveManager.Instance.MarkRelicAsSeen(relic);
-            await relic.AfterObtained();
-            LocalMultiControlLogger.Info($"已为瓦库角色自动发放瓦库专用遗物: player={playerId}, relic={relic.Id.Entry}");
-        }
-    }
-
     private static void ApplyControlContext(string source)
     {
         ulong? currentControlledPlayerId = Session.CurrentControlledPlayerId;
@@ -417,8 +260,6 @@ internal static class LocalMultiControlRuntime
         {
             return;
         }
-
-        LocalWakuuRelicRuntime.ProbeAndRecoverSelectorStack($"apply-control-before-{source}", allowRecover: true);
 
         if (CombatManager.Instance.IsInProgress)
         {
@@ -467,9 +308,8 @@ internal static class LocalMultiControlRuntime
         RefreshEventRoomForControlledPlayer(currentControlledPlayerId.Value);
         LocalMerchantInventoryRuntime.RefreshShopRoomForPlayer(currentControlledPlayerId.Value);
         EnsureTreasureCursorVisibleAfterSwitch(source);
-        LocalWakuuRelicRuntime.ProbeAndRecoverSelectorStack($"apply-control-after-{source}", allowRecover: true);
         LocalMultiControlLogger.Info($"控制上下文已更新: {previousNetId?.ToString() ?? "null"} -> {currentControlledPlayerId.Value}, source={source}");
-        if (source != "run-launched" && !source.StartsWith("wakuu-", StringComparison.Ordinal))
+        if (source != "run-launched")
         {
             string slotLabel = LocalSelfCoopContext.GetSlotLabel(currentControlledPlayerId.Value);
             NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(LocalModText.ControlledSlot(slotLabel)));
@@ -567,11 +407,6 @@ internal static class LocalMultiControlRuntime
         LocalMultiControlLogger.Info($"检测到角色 {endedPlayerId} 结束回合，自动切换到下一位。");
         Callable.From(delegate
         {
-            if (TrySwitchToNextOperableNonWakuuPlayerWhenAllWakuuNoPlayableCards(endedPlayerId, "auto-end-turn-all-vakuu-no-cards"))
-            {
-                return;
-            }
-
             if (TrySwitchToNextPlayablePlayer(endedPlayerId, "auto-end-turn-next-playable"))
             {
                 return;
@@ -584,178 +419,6 @@ internal static class LocalMultiControlRuntime
                 TryEndAllPlayersWhenNoCards(combatState, "auto-end-turn-fallback");
             }
         }).CallDeferred();
-    }
-
-    private static bool TrySwitchToNextOperableNonWakuuPlayerWhenAllWakuuNoPlayableCards(ulong currentPlayerId, string source)
-    {
-        NCombatUi? combatUi = NCombatRoom.Instance?.Ui;
-        CombatState? combatState = combatUi != null ? TryGetCombatState(combatUi) : null;
-        if (combatState == null)
-        {
-            return false;
-        }
-
-        bool hasWakuuPlayer = false;
-        foreach (Player player in combatState.Players)
-        {
-            if (player?.Creature == null || !player.Creature.IsAlive)
-            {
-                continue;
-            }
-
-            if (!LocalSelfCoopContext.IsWakuuEnabled(player.NetId))
-            {
-                continue;
-            }
-
-            hasWakuuPlayer = true;
-            bool hasPlayableCards = PileType.Hand.GetPile(player).Cards.Any((card) => card.CanPlay());
-            if (hasPlayableCards)
-            {
-                return false;
-            }
-        }
-
-        if (!hasWakuuPlayer)
-        {
-            return false;
-        }
-
-        return TrySwitchToNextOperableNonWakuuPlayer(currentPlayerId, source);
-    }
-
-    private static bool TryAutoSwitchFromWakuuWhenAllWakuuNoPlayableCards(CombatState combatState, string source)
-    {
-        string roundKey = BuildWakuuSwitchRoundKey(combatState.RoundNumber);
-        if (_wakuuToNonWakuuSwitchedRounds.Contains(roundKey))
-        {
-            return false;
-        }
-
-        ulong currentPlayerId = Session.CurrentControlledPlayerId ?? LocalContext.NetId ?? 0UL;
-        if (currentPlayerId == 0 || !LocalSelfCoopContext.IsWakuuEnabled(currentPlayerId))
-        {
-            return false;
-        }
-
-        bool hasAliveWakuu = false;
-        foreach (Player player in combatState.Players)
-        {
-            if (player?.Creature == null || !player.Creature.IsAlive || !LocalSelfCoopContext.IsWakuuEnabled(player.NetId))
-            {
-                continue;
-            }
-
-            hasAliveWakuu = true;
-            bool hasPlayableCards = PileType.Hand.GetPile(player).Cards.Any((card) => card.CanPlay());
-            if (hasPlayableCards)
-            {
-                return false;
-            }
-        }
-
-        if (!hasAliveWakuu)
-        {
-            return false;
-        }
-
-        bool switched = TrySwitchToNextOperableNonWakuuPlayer(currentPlayerId, source);
-        if (switched)
-        {
-            _wakuuToNonWakuuSwitchedRounds.Add(roundKey);
-            LocalMultiControlLogger.Info($"检测到所有瓦库角色无牌可出，已自动切换到非瓦库角色: from={currentPlayerId}");
-        }
-
-        return switched;
-    }
-
-    public static bool TryAutoSwitchToNonWakuuOncePerRound(string source)
-    {
-        if (!LocalSelfCoopContext.IsEnabled || !RunManager.Instance.IsInProgress || !CombatManager.Instance.IsInProgress)
-        {
-            return false;
-        }
-
-        if (!CanSwitchDuringCombat(source))
-        {
-            return false;
-        }
-
-        NCombatUi? combatUi = NCombatRoom.Instance?.Ui;
-        CombatState? combatState = combatUi != null ? TryGetCombatState(combatUi) : null;
-        if (combatState == null)
-        {
-            return false;
-        }
-
-        RefreshAutoEndTrackingForCombat(combatState);
-        string roundKey = BuildWakuuSwitchRoundKey(combatState.RoundNumber);
-        if (_wakuuToNonWakuuSwitchedRounds.Contains(roundKey))
-        {
-            return false;
-        }
-
-        ulong currentPlayerId = Session.CurrentControlledPlayerId ?? LocalContext.NetId ?? 0UL;
-        if (currentPlayerId == 0 || !LocalSelfCoopContext.IsWakuuEnabled(currentPlayerId))
-        {
-            return false;
-        }
-
-        bool hasAliveWakuu = false;
-        foreach (Player player in combatState.Players)
-        {
-            if (player?.Creature == null || !player.Creature.IsAlive || !LocalSelfCoopContext.IsWakuuEnabled(player.NetId))
-            {
-                continue;
-            }
-
-            hasAliveWakuu = true;
-            if (PileType.Hand.GetPile(player).Cards.Any((card) => card.CanPlay()))
-            {
-                return false;
-            }
-        }
-
-        if (!hasAliveWakuu)
-        {
-            return false;
-        }
-
-        bool switched = TrySwitchToNextOperableNonWakuuPlayer(currentPlayerId, $"{source}-once-per-round");
-        if (!switched)
-        {
-            return false;
-        }
-
-        _wakuuToNonWakuuSwitchedRounds.Add(roundKey);
-        LocalMultiControlLogger.Info($"瓦库自动切非瓦库（每回合一次）已触发: round={combatState.RoundNumber}, from={currentPlayerId}, source={source}");
-        return true;
-    }
-
-    public static void RequestAutoSwitchToNonWakuuOncePerRound(string source)
-    {
-        if (!LocalSelfCoopContext.IsEnabled || !RunManager.Instance.IsInProgress || !CombatManager.Instance.IsInProgress)
-        {
-            return;
-        }
-
-        NCombatUi? combatUi = NCombatRoom.Instance?.Ui;
-        CombatState? combatState = combatUi != null ? TryGetCombatState(combatUi) : null;
-        if (combatState == null || combatState.CurrentSide != CombatSide.Player)
-        {
-            return;
-        }
-
-        RefreshAutoEndTrackingForCombat(combatState);
-        string roundKey = BuildWakuuSwitchRoundKey(combatState.RoundNumber);
-        if (_wakuuToNonWakuuSwitchedRounds.Contains(roundKey))
-        {
-            return;
-        }
-
-        _pendingWakuuAutoSwitchRoundKey = roundKey;
-        _pendingWakuuAutoSwitchSource = source;
-        LocalMultiControlLogger.Info($"已登记瓦库自动切非瓦库请求: round={combatState.RoundNumber}, source={source}");
     }
 
     private static bool CanSwitchDuringCombat(string source)
@@ -839,65 +502,6 @@ internal static class LocalMultiControlRuntime
         return true;
     }
 
-    private static bool TrySwitchToNextOperableNonWakuuPlayer(ulong currentPlayerId, string source)
-    {
-        NCombatUi? combatUi = NCombatRoom.Instance?.Ui;
-        if (combatUi == null)
-        {
-            return false;
-        }
-
-        CombatState? combatState = TryGetCombatState(combatUi);
-        if (combatState == null)
-        {
-            return false;
-        }
-
-        List<ulong> combatPlayerIds = combatState.Players.Select((player) => player.NetId).Distinct().ToList();
-        if (combatPlayerIds.Count < 2)
-        {
-            return false;
-        }
-
-        int currentIndex = combatPlayerIds.IndexOf(currentPlayerId);
-        if (currentIndex < 0)
-        {
-            currentIndex = 0;
-        }
-
-        for (int offset = 1; offset < combatPlayerIds.Count; offset++)
-        {
-            int targetIndex = (currentIndex + offset) % combatPlayerIds.Count;
-            ulong targetPlayerId = combatPlayerIds[targetIndex];
-            Player? targetPlayer = combatState.GetPlayer(targetPlayerId);
-            if (targetPlayer?.Creature == null || !targetPlayer.Creature.IsAlive)
-            {
-                continue;
-            }
-
-            if (CombatManager.Instance.IsPlayerReadyToEndTurn(targetPlayer))
-            {
-                continue;
-            }
-
-            if (LocalSelfCoopContext.IsWakuuEnabled(targetPlayerId))
-            {
-                continue;
-            }
-
-            if (!Session.TrySetCurrentPlayer(targetPlayerId))
-            {
-                return false;
-            }
-
-            ApplyControlContext(source);
-            LocalMultiControlLogger.Info($"结束回合后优先切换到可操作非瓦库角色: {currentPlayerId} -> {targetPlayerId}");
-            return true;
-        }
-
-        return false;
-    }
-
     private static bool TrySwitchToNextPlayablePlayer(ulong currentPlayerId, string source)
     {
         NCombatUi? combatUi = NCombatRoom.Instance?.Ui;
@@ -958,11 +562,6 @@ internal static class LocalMultiControlRuntime
         return false;
     }
 
-    private static string BuildWakuuSwitchRoundKey(int roundNumber)
-    {
-        return $"{_lastAutoEndCombatIdentity}:{roundNumber}";
-    }
-
     private static bool TryConsumeManualEndTurnIntent(ulong endedPlayerId)
     {
         if (!_pendingManualEndTurnPlayerId.HasValue)
@@ -991,44 +590,6 @@ internal static class LocalMultiControlRuntime
         _pendingManualEndTurnPlayerId = null;
         _pendingManualEndTurnRound = -1;
         return true;
-    }
-
-    private static void TryConsumePendingWakuuAutoSwitch(CombatState combatState)
-    {
-        string currentRoundKey = BuildWakuuSwitchRoundKey(combatState.RoundNumber);
-        if (_pendingWakuuAutoSwitchRoundKey == null)
-        {
-            return;
-        }
-
-        if (_pendingWakuuAutoSwitchRoundKey != currentRoundKey)
-        {
-            _pendingWakuuAutoSwitchRoundKey = null;
-            _pendingWakuuAutoSwitchSource = null;
-            return;
-        }
-
-        if (_wakuuToNonWakuuSwitchedRounds.Contains(currentRoundKey))
-        {
-            _pendingWakuuAutoSwitchRoundKey = null;
-            _pendingWakuuAutoSwitchSource = null;
-            return;
-        }
-
-        if (LocalManualPlayGuard.IsActive)
-        {
-            return;
-        }
-
-        string source = _pendingWakuuAutoSwitchSource ?? "wakuu-pending";
-        bool switched = TryAutoSwitchToNonWakuuOncePerRound($"{source}-retry");
-        if (!switched)
-        {
-            return;
-        }
-
-        _pendingWakuuAutoSwitchRoundKey = null;
-        _pendingWakuuAutoSwitchSource = null;
     }
 
     private static CombatState? TryGetCombatState(NCombatUi combatUi)
@@ -1385,8 +946,6 @@ internal static class LocalMultiControlRuntime
             return;
         }
 
-        LocalWakuuRelicRuntime.ProbeAndRecoverSelectorStack($"event-refresh-before-{playerId}", allowRecover: true);
-
         NEventRoom? eventRoom = NEventRoom.Instance;
         EventSynchronizer synchronizer = RunManager.Instance.EventSynchronizer;
         if (eventRoom == null || synchronizer.IsShared)
@@ -1427,7 +986,6 @@ internal static class LocalMultiControlRuntime
             }
 
             NRun.Instance?.SetCurrentRoom(refreshedRoom);
-            LocalWakuuRelicRuntime.ProbeAndRecoverSelectorStack($"event-refresh-after-{playerId}", allowRecover: true);
             LocalMultiControlLogger.Info($"非共享事件房间已按当前角色重建: player={playerId}, event={targetEvent.Id.Entry}");
         }
         catch (Exception exception)
@@ -1440,45 +998,6 @@ internal static class LocalMultiControlRuntime
     {
         AccessTools.PropertySetter(typeof(EventModel), nameof(EventModel.Node))
             ?.Invoke(eventModel, new object?[] { null });
-    }
-
-    private static void RecordWatchdogScheduleResult(bool scheduled, string reason, ulong playerId, int roundNumber, string source)
-    {
-        long nowMs = (long)Time.GetTicksMsec();
-        if (_watchdogScheduleWindowStartMs <= 0L)
-        {
-            _watchdogScheduleWindowStartMs = nowMs;
-        }
-
-        _watchdogScheduleLastPlayerId = playerId;
-        _watchdogScheduleLastRound = roundNumber;
-        _watchdogScheduleLastSource = source;
-
-        if (scheduled)
-        {
-            _watchdogScheduleSuccessCount++;
-        }
-        else
-        {
-            string key = string.IsNullOrEmpty(reason) ? "unknown" : reason;
-            _watchdogScheduleRejectCounts[key] = (_watchdogScheduleRejectCounts.TryGetValue(key, out int count) ? count : 0) + 1;
-        }
-
-        if (nowMs - _watchdogScheduleWindowStartMs < 2000L)
-        {
-            return;
-        }
-
-        string rejectSummary = _watchdogScheduleRejectCounts.Count == 0
-            ? "none"
-            : string.Join(",", _watchdogScheduleRejectCounts.Select((entry) => $"{entry.Key}:{entry.Value}"));
-        LocalWakuuRelicRuntime.SelectorStackSnapshot snapshot = LocalWakuuRelicRuntime.SnapshotSelectorStack();
-        LocalMultiControlLogger.Info(
-            $"瓦库看门狗调度统计: windowMs={nowMs - _watchdogScheduleWindowStartMs}, scheduled={_watchdogScheduleSuccessCount}, rejected={rejectSummary}, lastPlayer={_watchdogScheduleLastPlayerId}, lastRound={_watchdogScheduleLastRound}, lastSource={_watchdogScheduleLastSource}, selectorStackCount={snapshot.Count}, selectorStackTop={snapshot.TopType}");
-
-        _watchdogScheduleWindowStartMs = nowMs;
-        _watchdogScheduleSuccessCount = 0;
-        _watchdogScheduleRejectCounts.Clear();
     }
 
     public static void RecordFlowBlockSignal(
@@ -1520,9 +1039,8 @@ internal static class LocalMultiControlRuntime
         string signalSummary = _flowBlockSignalCounts.Count == 0
             ? "none"
             : string.Join(",", _flowBlockSignalCounts.Select((entry) => $"{entry.Key}:{entry.Value}"));
-        LocalWakuuRelicRuntime.SelectorStackSnapshot snapshot = LocalWakuuRelicRuntime.SnapshotSelectorStack();
         LocalMultiControlLogger.Warn(
-            $"流程阻塞看门狗统计: windowMs={nowMs - _flowBlockSignalWindowStartMs}, signals={signalSummary}, player={playerId}, round={round}, source={source}, selectorStackCount={snapshot.Count}, selectorStackTop={snapshot.TopType}");
+            $"Flow-block watchdog: windowMs={nowMs - _flowBlockSignalWindowStartMs}, signals={signalSummary}, player={playerId}, round={round}, source={source}");
 
         _flowBlockSignalWindowStartMs = nowMs;
         _flowBlockSignalCounts.Clear();

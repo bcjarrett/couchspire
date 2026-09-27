@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Rewards;
 using LocalMultiControl.Scripts.Runtime;

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace LocalMultiControl.Scripts.Runtime.Couch;
 
 /// <summary>
@@ -20,7 +16,7 @@ internal static class CouchConfig
 
     /// <summary>
     /// Per-controller routing: each controller drives its own character. On by default;
-    /// <c>routing = 0</c> restores the fork's single-controller behavior.
+    /// <c>routing = 0</c> restores the base mod's single-controller behavior.
     /// </summary>
     public static readonly bool RoutingEnabled = Flag("routing", "COUCHSPIRE_ROUTING", defaultValue: true);
 
@@ -32,7 +28,7 @@ internal static class CouchConfig
     /// <summary>
     /// Simultaneous combat: the driver keeps the main screen for the whole combat and the other characters act as
     /// remote teammates (their plays and choices go through the loopback network instead of taking over the screen).
-    /// <c>simultaneous = 0</c> restores the fork's hotseat behavior (auto-switch after end turn, choices on the main screen).
+    /// <c>simultaneous = 0</c> restores the base mod's hotseat behavior (auto-switch after end turn, choices on the main screen).
     /// </summary>
     public static readonly bool SimultaneousEnabled = Flag("simultaneous", "COUCHSPIRE_SIMULTANEOUS", defaultValue: true);
 

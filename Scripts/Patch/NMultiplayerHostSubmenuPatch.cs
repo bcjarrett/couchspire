@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Godot;
 using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Nodes;
-using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect;
 using MegaCrit.Sts2.Core.Nodes.Screens.MainMenu;
@@ -148,18 +144,16 @@ internal static class NMultiplayerHostSubmenuPatch
         }
 
         ulong primaryPlayerId = LocalSelfCoopContext.ResolvePrimaryPlayerId();
-        LocalSelfCoopContext.UseSavedWakuuPlayerIds(Array.Empty<ulong>());
-        LocalSelfCoopSaveTag.MarkCurrentProfile(LocalSelfCoopContext.LocalPlayerIds.Take(LocalSelfCoopContext.DesiredLocalPlayerCount).ToList());
+        LocalSelfCoopSaveTag.MarkCurrentProfile(LocalSelfCoopContext.LocalPlayerIds);
         LocalLoopbackHostGameService netService = new LocalLoopbackHostGameService(primaryPlayerId);
         LocalSelfCoopContext.Enable(netService);
 
         NCharacterSelectScreen characterSelectScreen = stack.GetSubmenuType<NCharacterSelectScreen>();
         LocalSelfCoopContext.ActiveCharacterSelectScreen = characterSelectScreen;
-        // 以最大容量初始化大厅，实际活跃人数由 LocalSelfCoopContext 按目标人数裁剪到2~12。
-        characterSelectScreen.InitializeMultiplayerAsHost(netService, LocalSelfCoopContext.LocalPlayerIds.Count);
+        characterSelectScreen.InitializeMultiplayerAsHost(netService, LocalSelfCoopContext.PlayerCount);
         if (!LocalSelfCoopContext.BootstrapLocalPlayers(characterSelectScreen))
         {
-            LocalMultiControlLogger.Warn("初始化本地多角色队伍失败，已回退到默认流程。");
+            LocalMultiControlLogger.Warn("Local co-op lobby setup failed.");
         }
 
         stack.Push(characterSelectScreen);

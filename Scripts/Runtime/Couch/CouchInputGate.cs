@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Godot;
 
 namespace LocalMultiControl.Scripts.Runtime.Couch;

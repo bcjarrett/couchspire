@@ -1,6 +1,6 @@
 # Design Doc: Online Multiplayer → Local Multi-Control (translated)
 
-> Historical document — the original author's confirmed requirements spec (March 2026), translated from Chinese. Kept for background; current behavior is described in `PLAYER_GUIDE.md` and `docs/architecture.md`.
+> Historical document — the confirmed requirements spec for Local Multi-Control (March 2026), translated from Chinese. Kept for background; current behavior is described in `PLAYER_GUIDE.md` and `docs/architecture.md`.
 
 ## 1. Goal & scope
 

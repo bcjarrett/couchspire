@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Context;
@@ -13,39 +10,34 @@ using MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Saves;
-using MegaCrit.Sts2.Core.Saves.Runs;
 using MegaCrit.Sts2.Core.Unlocks;
 
 namespace LocalMultiControl.Scripts.Runtime;
 
+/// <summary>
+/// Session-level state for a two-player local co-op run: the two local player ids, the loopback net service, and the
+/// character select lobby while it is being set up.
+/// </summary>
 internal static class LocalSelfCoopContext
 {
-    private const int MinLocalPlayerCount = 2;
-    private const int MaxLocalPlayerCount = 12;
+    /// <summary>Couch co-op is always exactly two local players.</summary>
+    public const int PlayerCount = 2;
+
     private const int MaxLocalAscensionLevel = 10;
 
-    private static readonly List<ulong> _localPlayerIds = new() { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
-    private static readonly HashSet<ulong> _wakuuPlayerIds = new();
-
-    private static int _desiredLocalPlayerCount = 2;
+    private static readonly List<ulong> _localPlayerIds = new() { 1, 2 };
 
     private static bool _isSyncingCharacterHighlight;
-
     private static ulong? _pendingEventAutoSwitchPlayerId;
-
     private static bool _eventAutoSwitchPending;
+
     public static bool UseSingleAdventureMode => true;
 
     public static bool UseSingleEventFlow => false;
 
-    public static int DesiredLocalPlayerCount => _desiredLocalPlayerCount;
-
     public static IReadOnlyList<ulong> LocalPlayerIds => _localPlayerIds;
-    public static IReadOnlyCollection<ulong> WakuuPlayerIds => _wakuuPlayerIds;
 
-    public static ulong PrimaryPlayerId { get; private set; } = 1;
-    // 保留兼容字段，旧代码仍可读取第二槽位。
-    public static ulong SecondaryPlayerId { get; private set; } = 2;
+    public static ulong PrimaryPlayerId => _localPlayerIds[0];
 
     public static bool IsEnabled { get; private set; }
 
@@ -55,136 +47,41 @@ internal static class LocalSelfCoopContext
 
     public static NCharacterSelectScreen? ActiveCharacterSelectScreen { get; set; }
 
+    /// <summary>Uses the platform (Steam) id for P1 and the next id for P2.</summary>
     public static ulong ResolvePrimaryPlayerId()
     {
-        ulong localPlatformPlayerId = PlatformUtil.GetLocalPlayerId(PlatformUtil.PrimaryPlatform);
-        if (localPlatformPlayerId == 0)
+        ulong primary = PlatformUtil.GetLocalPlayerId(PlatformUtil.PrimaryPlatform);
+        if (primary == 0)
         {
-            localPlatformPlayerId = 1;
+            primary = 1;
         }
 
-        List<ulong> ids = BuildSequentialPlayerIds(localPlatformPlayerId, _desiredLocalPlayerCount);
-        ApplyLocalPlayerIds(ids);
-        LocalMultiControlLogger.Info($"鏈湴澶氭帶鐜╁ID宸茶В鏋? {string.Join(",", _localPlayerIds)}");
+        ulong secondary = primary == ulong.MaxValue ? 1UL : primary + 1UL;
+        ApplyLocalPlayerIds(new List<ulong> { primary, secondary });
+        LocalMultiControlLogger.Info($"Local player ids: {string.Join(",", _localPlayerIds)}");
         return PrimaryPlayerId;
     }
 
-    public static void UseSavedPlayerIds(ulong primaryPlayerId, ulong secondaryPlayerId)
+    /// <summary>Restores the ids of a saved run. False (ids unchanged) unless there are exactly two.</summary>
+    public static bool UseSavedPlayerIds(IReadOnlyList<ulong> playerIds)
     {
-        UseSavedPlayerIds(new List<ulong> { primaryPlayerId, secondaryPlayerId });
-    }
-
-    public static void UseSavedPlayerIds(IReadOnlyList<ulong> playerIds)
-    {
-        List<ulong> normalized = NormalizePlayerIds(playerIds, fallbackPrimaryId: PrimaryPlayerId);
-        if (normalized.Count < MinLocalPlayerCount)
+        List<ulong> ids = playerIds.Where((id) => id != 0).Distinct().ToList();
+        if (ids.Count != PlayerCount)
         {
-            LocalMultiControlLogger.Warn($"蹇界暐鏃犳晥瀛樻。鐜╁ID鍒楄〃: {string.Join(",", playerIds)}");
-            return;
+            LocalMultiControlLogger.Warn($"Ignoring saved player ids [{string.Join(",", playerIds)}]: need exactly {PlayerCount}.");
+            return false;
         }
 
-        _desiredLocalPlayerCount = Math.Clamp(normalized.Count, MinLocalPlayerCount, MaxLocalPlayerCount);
-        ApplyLocalPlayerIds(normalized);
+        ApplyLocalPlayerIds(ids);
         CurrentLobbyEditingPlayerId = PrimaryPlayerId;
-        LocalMultiControlLogger.Info($"宸蹭粠瀛樻。鎭㈠鏈湴澶氭帶鐜╁ID: {string.Join(",", _localPlayerIds)}");
-    }
-
-    public static void UseSavedWakuuPlayerIds(IReadOnlyList<ulong> playerIds)
-    {
-        _wakuuPlayerIds.Clear();
-        foreach (ulong playerId in playerIds.Where((id) => id != 0))
-        {
-            if (_localPlayerIds.Contains(playerId))
-            {
-                _wakuuPlayerIds.Add(playerId);
-            }
-        }
-
-        LocalMultiControlLogger.Info($"已恢复瓦库勾选玩家: {string.Join(",", _wakuuPlayerIds)}");
-    }
-
-    public static bool IsWakuuEnabled(ulong playerId)
-    {
-        return _wakuuPlayerIds.Contains(playerId);
-    }
-
-    public static bool SetWakuuEnabled(ulong playerId, bool enabled, string source)
-    {
-        if (!_localPlayerIds.Contains(playerId))
-        {
-            return false;
-        }
-
-        bool changed = enabled
-            ? _wakuuPlayerIds.Add(playerId)
-            : _wakuuPlayerIds.Remove(playerId);
-        if (!changed)
-        {
-            return false;
-        }
-
-        LocalMultiControlLogger.Info($"瓦库勾选状态变更: player={playerId}, enabled={enabled}, source={source}");
-        string slotLabel = GetSlotLabel(playerId);
-        string tip = enabled
-            ? LocalModText.VakuuControlsPlayer(slotLabel)
-            : LocalModText.VakuuReleasedPlayer(slotLabel);
-        NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(tip));
-        MarkCurrentProfileTag();
+        LocalMultiControlLogger.Info($"Local player ids restored from save: {string.Join(",", _localPlayerIds)}");
         return true;
-    }
-
-    public static bool SetAllWakuuEnabled(bool enabled, string source)
-    {
-        List<ulong> targetPlayerIds = _localPlayerIds
-            .Take(_desiredLocalPlayerCount)
-            .Where((id) => id != 0)
-            .ToList();
-        if (targetPlayerIds.Count == 0)
-        {
-            return false;
-        }
-
-        bool changed = false;
-        foreach (ulong playerId in targetPlayerIds)
-        {
-            changed |= enabled
-                ? _wakuuPlayerIds.Add(playerId)
-                : _wakuuPlayerIds.Remove(playerId);
-        }
-
-        if (!changed)
-        {
-            return false;
-        }
-
-        LocalMultiControlLogger.Info(
-            $"全体瓦库开关变更: enabled={enabled}, count={targetPlayerIds.Count}, source={source}");
-        string tip = enabled
-            ? LocalModText.VakuuControlsAllPlayers()
-            : LocalModText.VakuuReleasedAllPlayers();
-        NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(tip));
-        MarkCurrentProfileTag();
-        return true;
-    }
-
-    public static List<ulong> GetWakuuPlayerIdsSnapshot()
-    {
-        return _wakuuPlayerIds
-            .Where((playerId) => _localPlayerIds.Contains(playerId))
-            .OrderBy((playerId) => _localPlayerIds.IndexOf(playerId))
-            .ToList();
     }
 
     public static bool IsSaveOwnedByLocalSelfCoop(SerializableRun run)
     {
-        if (run.Players.Count < MinLocalPlayerCount)
-        {
-            return false;
-        }
-
-        return _localPlayerIds
-            .Take(_desiredLocalPlayerCount)
-            .All((playerId) => run.Players.Any((player) => player.NetId == playerId));
+        return run.Players.Count == PlayerCount
+            && _localPlayerIds.All((playerId) => run.Players.Any((player) => player.NetId == playerId));
     }
 
     public static void Enable(LocalLoopbackHostGameService netService)
@@ -195,7 +92,7 @@ internal static class LocalSelfCoopContext
         ActiveCharacterSelectScreen = null;
         netService.SetCurrentSenderId(CurrentLobbyEditingPlayerId);
         LocalContext.NetId = CurrentLobbyEditingPlayerId;
-        LocalMultiControlLogger.Info($"鏈湴澶氭帶妯″紡宸插惎鐢紝鐩爣鐜╁鏁?{_desiredLocalPlayerCount}");
+        LocalMultiControlLogger.Info("Local co-op enabled.");
     }
 
     public static void Disable(string reason)
@@ -211,52 +108,19 @@ internal static class LocalSelfCoopContext
         ActiveCharacterSelectScreen = null;
         _pendingEventAutoSwitchPlayerId = null;
         _eventAutoSwitchPending = false;
-        LocalMultiControlLogger.Info($"鏈湴澶氭帶妯″紡宸插叧闂紝鍘熷洜: {reason}");
+        LocalMultiControlLogger.Info($"Local co-op disabled: {reason}");
     }
 
-    public static bool SwitchLobbyEditingPlayer(bool next)
+    /// <summary>On character select, hands the lobby to the other player (Tab).</summary>
+    public static bool SwitchLobbyEditingPlayer()
     {
-        if (!IsEnabled || NetService == null)
-        {
-            return false;
-        }
-
-        List<ulong> activePlayerIds = GetActiveLobbyLocalPlayerIds();
-        if (activePlayerIds.Count < MinLocalPlayerCount)
-        {
-            return false;
-        }
-
-        int currentIndex = activePlayerIds.IndexOf(CurrentLobbyEditingPlayerId);
-        if (currentIndex < 0)
-        {
-            currentIndex = 0;
-        }
-
-        int delta = next ? 1 : -1;
-        int targetIndex = (currentIndex + delta + activePlayerIds.Count) % activePlayerIds.Count;
-        ulong previousPlayerId = CurrentLobbyEditingPlayerId;
-        CurrentLobbyEditingPlayerId = activePlayerIds[targetIndex];
-
-        EnsureLobbySenderContext("switch-lobby-editing-player");
-        SyncCharacterSelectHighlight();
-        TrimWakuuPlayerIdsToConfiguredPlayers();
-
-        string slotLabel = GetSlotLabel(CurrentLobbyEditingPlayerId);
-        LocalMultiControlLogger.Info($"大厅编辑角色切换: {previousPlayerId} -> {CurrentLobbyEditingPlayerId} (槽位{slotLabel})");
-        NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(LocalModText.LobbyEditingSlot(slotLabel)));
-        return true;
+        ulong other = CurrentLobbyEditingPlayerId == _localPlayerIds[0] ? _localPlayerIds[1] : _localPlayerIds[0];
+        return SetLobbyEditingPlayer(other, "switch-lobby-editing-player");
     }
 
     public static bool SetLobbyEditingPlayer(ulong playerId, string source)
     {
-        if (!IsEnabled || NetService == null)
-        {
-            return false;
-        }
-
-        List<ulong> activePlayerIds = GetActiveLobbyLocalPlayerIds();
-        if (activePlayerIds.Count < MinLocalPlayerCount || !activePlayerIds.Contains(playerId))
+        if (!IsEnabled || NetService == null || !GetActiveLobbyLocalPlayerIds().Contains(playerId))
         {
             return false;
         }
@@ -265,39 +129,14 @@ internal static class LocalSelfCoopContext
         CurrentLobbyEditingPlayerId = playerId;
         EnsureLobbySenderContext(source);
         SyncCharacterSelectHighlight();
-        TrimWakuuPlayerIdsToConfiguredPlayers();
 
         if (previousPlayerId != CurrentLobbyEditingPlayerId)
         {
             string slotLabel = GetSlotLabel(CurrentLobbyEditingPlayerId);
-            LocalMultiControlLogger.Info(
-                $"大厅编辑角色定向切换: {previousPlayerId} -> {CurrentLobbyEditingPlayerId} (槽位{slotLabel})");
+            LocalMultiControlLogger.Info($"Lobby editing player: {previousPlayerId} -> {CurrentLobbyEditingPlayerId} (P{slotLabel}, source={source})");
             NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(LocalModText.LobbyEditingSlot(slotLabel)));
         }
 
-        return true;
-    }
-
-    public static bool AdjustDesiredLocalPlayerCount(int delta, string source)
-    {
-        int oldCount = _desiredLocalPlayerCount;
-        int targetCount = Math.Clamp(oldCount + delta, MinLocalPlayerCount, MaxLocalPlayerCount);
-        if (targetCount == oldCount)
-        {
-            return false;
-        }
-
-        _desiredLocalPlayerCount = targetCount;
-        EnsureLocalPlayerIdCapacity(targetCount);
-        TrimWakuuPlayerIdsToConfiguredPlayers();
-
-        bool reconciled = ReconcileLobbyPlayerCount(source);
-        if (!reconciled)
-        {
-            LocalMultiControlLogger.Info($"宸叉洿鏂扮洰鏍囨湰鍦扮帺瀹舵暟: {oldCount} -> {targetCount}");
-        }
-
-        MarkCurrentProfileTag();
         return true;
     }
 
@@ -309,9 +148,7 @@ internal static class LocalSelfCoopContext
 
     public static string GetSlotLabel(ulong playerId)
     {
-        return TryGetSlotIndex(playerId, out int slotIndex)
-            ? (slotIndex + 1).ToString()
-            : "?";
+        return TryGetSlotIndex(playerId, out int slotIndex) ? (slotIndex + 1).ToString() : "?";
     }
 
     public static bool EnsureLobbySenderContext(string source)
@@ -324,21 +161,15 @@ internal static class LocalSelfCoopContext
         EnsureLobbyEditingPlayerIsValid();
         NetService.SetCurrentSenderId(CurrentLobbyEditingPlayerId);
         LocalContext.NetId = CurrentLobbyEditingPlayerId;
-        LocalMultiControlLogger.Info($"澶у巺鎺у埗涓婁笅鏂囧悓姝? player={CurrentLobbyEditingPlayerId}, source={source}");
+        LocalMultiControlLogger.Info($"Lobby sender: player={CurrentLobbyEditingPlayerId}, source={source}");
         return true;
     }
 
     public static void NotifyCharacterSelectPlayerChanged(ulong playerId)
     {
-        if (!IsEnabled)
-        {
-            return;
-        }
-
-        if (playerId == CurrentLobbyEditingPlayerId)
+        if (IsEnabled && playerId == CurrentLobbyEditingPlayerId)
         {
             SyncCharacterSelectHighlight();
-            TrimWakuuPlayerIdsToConfiguredPlayers();
         }
     }
 
@@ -350,7 +181,7 @@ internal static class LocalSelfCoopContext
         }
 
         _pendingEventAutoSwitchPlayerId = playerId;
-        LocalMultiControlLogger.Info($"记录事件自动切换请求: player={playerId}");
+        LocalMultiControlLogger.Info($"Event auto-switch requested: player={playerId}");
     }
 
     public static bool ShouldQueueEventAutoSwitchAfterEventState(EventModel eventModel)
@@ -381,129 +212,67 @@ internal static class LocalSelfCoopContext
         return true;
     }
 
-    public static bool BootstrapSecondPlayer(NCharacterSelectScreen characterSelectScreen)
-    {
-        // 保留旧方法名，兼容已有调用。
-        return BootstrapLocalPlayers(characterSelectScreen);
-    }
-
+    /// <summary>Adds P2 to the host's character select lobby and readies them.</summary>
     public static bool BootstrapLocalPlayers(NCharacterSelectScreen characterSelectScreen)
     {
         ActiveCharacterSelectScreen = characterSelectScreen;
-        return ReconcileLobbyPlayerCount("bootstrap-local-players");
-    }
-
-    public static void EnsureLocalAscensionOptionsUnlocked(NCharacterSelectScreen screen, string source)
-    {
-        if (!IsEnabled)
-        {
-            return;
-        }
-
-        StartRunLobby? lobby = AccessTools.Field(typeof(NCharacterSelectScreen), "_lobby")?.GetValue(screen) as StartRunLobby;
-        if (lobby == null)
-        {
-            return;
-        }
-
-        EnsureLobbyAscensionCapacity(lobby, source);
-    }
-
-    private static bool ReconcileLobbyPlayerCount(string source)
-    {
-        if (!IsEnabled || NetService == null || ActiveCharacterSelectScreen == null)
+        if (!IsEnabled || NetService == null)
         {
             return false;
         }
 
-        NCharacterSelectScreen screen = ActiveCharacterSelectScreen;
-        StartRunLobby? lobby = AccessTools.Field(typeof(NCharacterSelectScreen), "_lobby")?.GetValue(screen) as StartRunLobby;
+        StartRunLobby? lobby = GetLobby(characterSelectScreen);
         if (lobby == null)
         {
-            LocalMultiControlLogger.Warn($"澶у巺鐜╁鍚屾璺宠繃锛歀obby灏氭湭鍒濆鍖栵紝source={source}");
+            LocalMultiControlLogger.Warn("Lobby setup skipped: the lobby isn't initialized yet.");
             return false;
         }
 
-        EnsureLobbyMaxCapacity(lobby);
-
-        int targetCount = Math.Clamp(_desiredLocalPlayerCount, MinLocalPlayerCount, MaxLocalPlayerCount);
-        EnsureLocalPlayerIdCapacity(targetCount);
-
-        UnlockState unlockState = SaveManager.Instance.GenerateUnlockStateFromProgress();
-        SerializableUnlockState serializableUnlockState = unlockState.ToSerializable();
-        int maxAscension = MaxLocalAscensionLevel;
-
-        List<ulong> targetPlayerIds = _localPlayerIds.Take(targetCount).ToList();
-
-        foreach (ulong playerId in targetPlayerIds)
+        SerializableUnlockState unlockState = SaveManager.Instance.GenerateUnlockStateFromProgress().ToSerializable();
+        foreach (ulong playerId in _localPlayerIds)
         {
-            bool exists = lobby.Players.Any((player) => player.id == playerId);
-            if (exists)
+            if (lobby.Players.Any((player) => player.id == playerId))
             {
                 continue;
             }
 
             NetService.SetCurrentSenderId(playerId);
-            _ = lobby.AddLocalHostPlayerInternal(serializableUnlockState, maxAscension);
+            _ = lobby.AddLocalHostPlayerInternal(unlockState, MaxLocalAscensionLevel);
         }
 
-        List<ulong> removablePlayerIds = _localPlayerIds
-            .Skip(targetCount)
-            .Where((playerId) => playerId != PrimaryPlayerId)
-            .ToList();
-        foreach (ulong removableId in removablePlayerIds)
+        int index = lobby.Players.FindIndex((player) => player.id == _localPlayerIds[1]);
+        if (index >= 0 && !lobby.Players[index].isReady)
         {
-            int playerIndex = lobby.Players.FindIndex((player) => player.id == removableId);
-            if (playerIndex < 0)
-            {
-                continue;
-            }
-
-            StartRunLobbyPlayer removedPlayer = lobby.Players[playerIndex];
-            lobby.Players.RemoveAt(playerIndex);
-            lobby.InputSynchronizer.OnPlayerDisconnected(removedPlayer.id);
-            screen.RemotePlayerDisconnected(removedPlayer);
-        }
-
-        foreach (ulong playerId in targetPlayerIds)
-        {
-            if (playerId == PrimaryPlayerId)
-            {
-                continue;
-            }
-
-            int playerIndex = lobby.Players.FindIndex((player) => player.id == playerId);
-            if (playerIndex < 0)
-            {
-                continue;
-            }
-
-            StartRunLobbyPlayer lobbyPlayer = lobby.Players[playerIndex];
-            if (lobbyPlayer.isReady)
-            {
-                continue;
-            }
-
+            StartRunLobbyPlayer lobbyPlayer = lobby.Players[index];
             lobbyPlayer.isReady = true;
-            lobby.Players[playerIndex] = lobbyPlayer;
-            screen.PlayerChanged(lobbyPlayer, false);
+            lobby.Players[index] = lobbyPlayer;
+            characterSelectScreen.PlayerChanged(lobbyPlayer, false);
         }
 
-        EnsureLobbyEditingPlayerIsValid();
-        EnsureLobbySenderContext(source);
+        EnsureLobbySenderContext("bootstrap-local-players");
         SyncCharacterSelectHighlight();
-        TrimWakuuPlayerIdsToConfiguredPlayers();
-        EnsureLobbyAscensionCapacity(lobby, source);
-
-        LocalMultiControlLogger.Info(
-            $"澶у巺鏈湴鐜╁鏁板凡鍚屾: target={targetCount}, actual={GetActiveLobbyLocalPlayerIds().Count}, source={source}");
+        EnsureLobbyAscensionCapacity(lobby, "bootstrap-local-players");
+        LocalMultiControlLogger.Info($"Lobby set up with {lobby.Players.Count} players.");
         return true;
     }
 
+    public static void EnsureLocalAscensionOptionsUnlocked(NCharacterSelectScreen screen, string source)
+    {
+        if (IsEnabled && GetLobby(screen) is { } lobby)
+        {
+            EnsureLobbyAscensionCapacity(lobby, source);
+        }
+    }
+
+    private static StartRunLobby? GetLobby(NCharacterSelectScreen screen)
+    {
+        return AccessTools.Field(typeof(NCharacterSelectScreen), "_lobby")?.GetValue(screen) as StartRunLobby;
+    }
+
+    /// <summary>Opens every ascension level: the lobby otherwise caps it at the multiplayer unlock progress.</summary>
     private static void EnsureLobbyAscensionCapacity(StartRunLobby lobby, string source)
     {
         bool changed = false;
-
         for (int i = 0; i < lobby.Players.Count; i++)
         {
             StartRunLobbyPlayer player = lobby.Players[i];
@@ -518,11 +287,9 @@ internal static class LocalSelfCoopContext
             changed = true;
         }
 
-        int currentMaxAscension = lobby.MaxAscension;
-        if (currentMaxAscension < MaxLocalAscensionLevel)
+        if (lobby.MaxAscension < MaxLocalAscensionLevel)
         {
-            AccessTools.Field(typeof(StartRunLobby), "<MaxAscension>k__BackingField")
-                ?.SetValue(lobby, MaxLocalAscensionLevel);
+            AccessTools.Field(typeof(StartRunLobby), "<MaxAscension>k__BackingField")?.SetValue(lobby, MaxLocalAscensionLevel);
             lobby.LobbyListener.MaxAscensionChanged();
             changed = true;
         }
@@ -536,71 +303,35 @@ internal static class LocalSelfCoopContext
 
         if (changed)
         {
-            LocalMultiControlLogger.Info(
-                $"已为本地多控开放完整进阶难度(0-{MaxLocalAscensionLevel})：players={lobby.Players.Count}, source={source}");
+            LocalMultiControlLogger.Info($"Ascension 0-{MaxLocalAscensionLevel} unlocked for the lobby (source={source}).");
         }
-    }
-
-
-    // v0.111.0: StartRunLobby.MaxPlayers became the private readonly field _maxPlayers.
-    private static int GetLobbyMaxPlayers(StartRunLobby lobby)
-    {
-        return AccessTools.Field(typeof(StartRunLobby), "_maxPlayers")?.GetValue(lobby) as int? ?? 0;
-    }
-
-    private static void EnsureLobbyMaxCapacity(StartRunLobby lobby)
-    {
-        if (GetLobbyMaxPlayers(lobby) >= MaxLocalPlayerCount)
-        {
-            return;
-        }
-
-        int oldMaxPlayers = GetLobbyMaxPlayers(lobby);
-        AccessTools.Field(typeof(StartRunLobby), "_maxPlayers")?.SetValue(lobby, MaxLocalPlayerCount);
-        LocalMultiControlLogger.Info($"宸叉彁鍗囧ぇ鍘呮渶澶у閲? {oldMaxPlayers} -> {MaxLocalPlayerCount}");
     }
 
     private static void EnsureLobbyEditingPlayerIsValid()
     {
         List<ulong> activePlayerIds = GetActiveLobbyLocalPlayerIds();
-        if (activePlayerIds.Count == 0)
-        {
-            activePlayerIds = _localPlayerIds.Take(_desiredLocalPlayerCount).ToList();
-        }
-
-        if (activePlayerIds.Count == 0)
-        {
-            CurrentLobbyEditingPlayerId = PrimaryPlayerId;
-            return;
-        }
-
         if (!activePlayerIds.Contains(CurrentLobbyEditingPlayerId))
         {
-            CurrentLobbyEditingPlayerId = activePlayerIds[0];
+            CurrentLobbyEditingPlayerId = activePlayerIds.Count > 0 ? activePlayerIds[0] : PrimaryPlayerId;
         }
     }
 
     private static List<ulong> GetActiveLobbyLocalPlayerIds()
     {
-        if (ActiveCharacterSelectScreen == null || !GodotObject.IsInstanceValid(ActiveCharacterSelectScreen))
+        if (ActiveCharacterSelectScreen == null
+            || !GodotObject.IsInstanceValid(ActiveCharacterSelectScreen)
+            || GetLobby(ActiveCharacterSelectScreen) is not { } lobby)
         {
-            return _localPlayerIds.Take(_desiredLocalPlayerCount).ToList();
+            return _localPlayerIds.ToList();
         }
 
-        StartRunLobby? lobby = AccessTools.Field(typeof(NCharacterSelectScreen), "_lobby")?.GetValue(ActiveCharacterSelectScreen) as StartRunLobby;
-        if (lobby == null)
-        {
-            return _localPlayerIds.Take(_desiredLocalPlayerCount).ToList();
-        }
-
-        return lobby.Players
-            .Where((player) => _localPlayerIds.Contains(player.id))
-            .Select((player) => player.id)
-            .Distinct()
-            .OrderBy((playerId) => _localPlayerIds.IndexOf(playerId))
-            .ToList();
+        return _localPlayerIds.Where((id) => lobby.Players.Any((player) => player.id == id)).ToList();
     }
 
+    /// <summary>
+    /// Points the character select buttons at the editing player: their pick shows as selected, the other player's
+    /// pick shows as a remote selection.
+    /// </summary>
     private static void SyncCharacterSelectHighlight()
     {
         if (ActiveCharacterSelectScreen == null || _isSyncingCharacterHighlight)
@@ -613,39 +344,29 @@ internal static class LocalSelfCoopContext
             _isSyncingCharacterHighlight = true;
 
             EnsureLobbyEditingPlayerIsValid();
-            StartRunLobby? lobby = AccessTools.Field(typeof(NCharacterSelectScreen), "_lobby")?.GetValue(ActiveCharacterSelectScreen) as StartRunLobby;
-            if (lobby == null)
-            {
-                return;
-            }
-
-            int localPlayerIndex = lobby.Players
-                .FindIndex((player) => player.id == CurrentLobbyEditingPlayerId);
-            if (localPlayerIndex < 0)
+            StartRunLobby? lobby = GetLobby(ActiveCharacterSelectScreen);
+            int localPlayerIndex = lobby?.Players.FindIndex((player) => player.id == CurrentLobbyEditingPlayerId) ?? -1;
+            if (lobby == null || localPlayerIndex < 0)
             {
                 return;
             }
 
             StartRunLobbyPlayer localPlayer = lobby.Players[localPlayerIndex];
-            Control? charButtonContainer = AccessTools.Field(typeof(NCharacterSelectScreen), "_charButtonContainer")
-                ?.GetValue(ActiveCharacterSelectScreen) as Control;
-            if (charButtonContainer == null)
+            if (AccessTools.Field(typeof(NCharacterSelectScreen), "_charButtonContainer")?.GetValue(ActiveCharacterSelectScreen)
+                is not Control charButtonContainer)
             {
                 return;
             }
 
             List<NCharacterSelectButton> buttons = charButtonContainer.GetChildren().OfType<NCharacterSelectButton>().ToList();
+            NCharacterSelectButton? selectedButton = null;
             foreach (NCharacterSelectButton button in buttons)
             {
                 foreach (StartRunLobbyPlayer player in lobby.Players)
                 {
                     button.OnRemotePlayerDeselected(player.id);
                 }
-            }
 
-            NCharacterSelectButton? selectedButton = null;
-            foreach (NCharacterSelectButton button in buttons)
-            {
                 bool isSelected = button.Character == localPlayer.character;
                 AccessTools.Field(typeof(NCharacterSelectButton), "_isSelected")?.SetValue(button, isSelected);
                 if (isSelected)
@@ -654,15 +375,9 @@ internal static class LocalSelfCoopContext
                 }
             }
 
-            foreach (StartRunLobbyPlayer player in lobby.Players)
+            foreach (StartRunLobbyPlayer player in lobby.Players.Where((player) => player.id != localPlayer.id))
             {
-                if (player.id == localPlayer.id)
-                {
-                    continue;
-                }
-
-                NCharacterSelectButton? targetButton = buttons.FirstOrDefault((button) => button.Character == player.character);
-                targetButton?.OnRemotePlayerSelected(player.id);
+                buttons.FirstOrDefault((button) => button.Character == player.character)?.OnRemotePlayerSelected(player.id);
             }
 
             foreach (NCharacterSelectButton button in buttons)
@@ -674,7 +389,7 @@ internal static class LocalSelfCoopContext
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"鍚屾瑙掕壊閫夋嫨楂樹寒澶辫触: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Character select highlight sync failed: {exception.Message}");
         }
         finally
         {
@@ -685,74 +400,6 @@ internal static class LocalSelfCoopContext
     private static void ApplyLocalPlayerIds(IReadOnlyList<ulong> playerIds)
     {
         _localPlayerIds.Clear();
-        _localPlayerIds.AddRange(playerIds.Distinct().Take(MaxLocalPlayerCount));
-        if (_localPlayerIds.Count < MinLocalPlayerCount)
-        {
-            _localPlayerIds.Clear();
-            _localPlayerIds.Add(1);
-            _localPlayerIds.Add(2);
-        }
-
-        PrimaryPlayerId = _localPlayerIds[0];
-        SecondaryPlayerId = _localPlayerIds.Count > 1 ? _localPlayerIds[1] : _localPlayerIds[0];
-        TrimWakuuPlayerIdsToConfiguredPlayers();
-    }
-
-    private static void EnsureLocalPlayerIdCapacity(int targetCount)
-    {
-        int clampedTargetCount = Math.Clamp(targetCount, MinLocalPlayerCount, MaxLocalPlayerCount);
-        if (_localPlayerIds.Count >= clampedTargetCount)
-        {
-            return;
-        }
-
-        List<ulong> expanded = BuildSequentialPlayerIds(PrimaryPlayerId, clampedTargetCount);
-        ApplyLocalPlayerIds(expanded);
-    }
-
-    private static List<ulong> NormalizePlayerIds(IReadOnlyList<ulong> playerIds, ulong fallbackPrimaryId)
-    {
-        List<ulong> normalized = playerIds
-            .Where((id) => id != 0)
-            .Distinct()
-            .Take(MaxLocalPlayerCount)
-            .ToList();
-        if (normalized.Count >= MinLocalPlayerCount)
-        {
-            return normalized;
-        }
-
-        ulong primary = fallbackPrimaryId == 0 ? 1UL : fallbackPrimaryId;
-        return BuildSequentialPlayerIds(primary, MinLocalPlayerCount);
-    }
-
-    private static List<ulong> BuildSequentialPlayerIds(ulong primaryPlayerId, int count)
-    {
-        int targetCount = Math.Clamp(count, MinLocalPlayerCount, MaxLocalPlayerCount);
-        List<ulong> ids = new(targetCount) { primaryPlayerId == 0 ? 1UL : primaryPlayerId };
-        while (ids.Count < targetCount)
-        {
-            ulong nextId = ids[^1] == ulong.MaxValue ? 1UL : ids[^1] + 1UL;
-            while (nextId == 0 || ids.Contains(nextId))
-            {
-                nextId = nextId == ulong.MaxValue ? 1UL : nextId + 1UL;
-            }
-
-            ids.Add(nextId);
-        }
-
-        return ids;
-    }
-
-    private static void TrimWakuuPlayerIdsToConfiguredPlayers()
-    {
-        HashSet<ulong> activeSet = _localPlayerIds.Take(_desiredLocalPlayerCount).ToHashSet();
-        _wakuuPlayerIds.RemoveWhere((playerId) => !activeSet.Contains(playerId));
-    }
-
-    private static void MarkCurrentProfileTag()
-    {
-        List<ulong> saveIds = _localPlayerIds.Take(_desiredLocalPlayerCount).ToList();
-        LocalSelfCoopSaveTag.MarkCurrentProfile(saveIds, GetWakuuPlayerIdsSnapshot());
+        _localPlayerIds.AddRange(playerIds.Take(PlayerCount));
     }
 }

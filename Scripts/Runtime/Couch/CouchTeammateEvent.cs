@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Players;

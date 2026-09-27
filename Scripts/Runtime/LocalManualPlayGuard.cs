@@ -1,4 +1,3 @@
-using System.Threading;
 using Godot;
 
 namespace LocalMultiControl.Scripts.Runtime;

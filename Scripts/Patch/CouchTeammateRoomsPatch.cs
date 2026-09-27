@@ -1,7 +1,4 @@
-using System.Linq;
-using System.Threading.Tasks;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
 using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models.Cards;
@@ -60,7 +57,7 @@ internal static class CouchTeammateRoomsPatch
             return;
         }
 
-        // The fork already settles Spoils Map quests for every player here; the chest message would settle it twice.
+        // The base mod already settles Spoils Map quests for every player here; the chest message would settle it twice.
         if (teammate.Deck.Cards.OfType<SpoilsMap>().Any((SpoilsMap map) => map.SpoilsActIndex == runState.CurrentActIndex))
         {
             CouchLog.Info($"Teammate {teammate.NetId} has a Spoils Map for this act; skipping their separate chest gold.");

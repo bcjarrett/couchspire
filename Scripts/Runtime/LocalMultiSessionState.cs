@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Runs;
 
@@ -89,19 +87,6 @@ internal sealed class LocalMultiSessionState
         int previousIndex = _activeIndex;
         _activeIndex = (_activeIndex + 1) % _orderedPlayerIds.Count;
         LocalMultiControlLogger.Info($"切换操控角色(下一位): {_orderedPlayerIds[previousIndex]} -> {_orderedPlayerIds[_activeIndex]}");
-        return true;
-    }
-
-    public bool SwitchPreviousPlayer()
-    {
-        if (!CanSwitch("切换到上一位"))
-        {
-            return false;
-        }
-
-        int previousIndex = _activeIndex;
-        _activeIndex = (_activeIndex - 1 + _orderedPlayerIds.Count) % _orderedPlayerIds.Count;
-        LocalMultiControlLogger.Info($"切换操控角色(上一位): {_orderedPlayerIds[previousIndex]} -> {_orderedPlayerIds[_activeIndex]}");
         return true;
     }
 

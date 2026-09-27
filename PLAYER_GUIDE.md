@@ -1,11 +1,11 @@
-# Player Guide — DualRoleAdventure (LocalMultiControl)
+# Player Guide: multi-character play
 
-Control 2–12 characters by yourself in Slay the Spire 2's multiplayer mode, on one machine, with no network.
+Control 2–12 characters in Slay the Spire 2's multiplayer mode, on one machine, with no network. This is the Local Multi-Control layer that CouchSpire builds on; for couch co-op with one controller per player, see [COUCH.md](COUCH.md).
 
 ## Install & enable
 
-1. Subscribe on the Steam Workshop (or place `DualRoleAdventure.dll` + `DualRoleAdventure.json` in `<game>\mods\DualRoleAdventure\`).
-2. Launch the game → `Settings → Mods` → enable **多角色冒险 (DualRoleAdventure)**. Restart if prompted.
+1. Install with `deploy.sh`, or place `CouchSpire.dll` + `CouchSpire.json` in `<game>/mods/CouchSpire/` (see [README.md](README.md)).
+2. Launch the game → `Settings → Mods` → enable **CouchSpire**. Restart if prompted.
 
 ## Starting a run
 
@@ -66,5 +66,5 @@ Add `"extraCrossCharacterCardReward": true` to the settings file above and each 
 ## Troubleshooting & feedback
 
 - Log file: `%APPDATA%\SlayTheSpire2\logs\godot.log` — mod lines are prefixed `[LocalMultiControl]`.
-- If something breaks, note the **act, room/screen, and exact steps**, then open a [GitHub issue](https://github.com/GuyGinat/STS2_DualRoleAdventure/issues) with the log attached.
+- If something breaks, note the **act, room/screen, and exact steps**, and include the log when you report it.
 - Known issues under investigation are tracked in [TODO.md](TODO.md).

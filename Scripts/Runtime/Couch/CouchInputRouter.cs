@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using Godot;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Runs;
@@ -22,7 +20,7 @@ internal enum CouchRouteDecision
 /// Decides what happens to each controller input during a couch run and on the couch character select screen. The
 /// seat whose character is the current local player (<see cref="LocalContext.NetId"/>) is the driver and its input
 /// passes. During a run, a press from another seat drives that seat's own HUD and panels (simultaneous mode) or claims
-/// control when the fork's switch guard allows it. On character select, a press from another seat makes that seat the
+/// control when the base mod's switch guard allows it. On character select, a press from another seat makes that seat the
 /// one being edited, so each controller picks its own character.
 /// </summary>
 internal static class CouchInputRouter
@@ -37,7 +35,7 @@ internal static class CouchInputRouter
 
     /// <summary>
     /// True during a local multi-character run with at least two characters, or on its character select screen, with
-    /// routing enabled. Outside of that, every input passes and the game behaves as the fork does.
+    /// routing enabled. Outside of that, every input passes and the game behaves as the base mod does.
     /// </summary>
     public static bool IsActive
     {
@@ -64,7 +62,6 @@ internal static class CouchInputRouter
     /// <summary>The local co-op character select screen is up (before the run starts).</summary>
     private static bool InLobby =>
         !RunManager.Instance.IsInProgress
-        && LocalSelfCoopContext.DesiredLocalPlayerCount >= 2
         && LocalSelfCoopContext.ActiveCharacterSelectScreen is { } screen
         && GodotObject.IsInstanceValid(screen)
         && screen.IsVisibleInTree();
@@ -74,7 +71,7 @@ internal static class CouchInputRouter
     {
         return RunManager.Instance.IsInProgress
             ? LocalMultiControlRuntime.SessionState.OrderedPlayerIds
-            : LocalSelfCoopContext.LocalPlayerIds.Take(LocalSelfCoopContext.DesiredLocalPlayerCount).ToList();
+            : LocalSelfCoopContext.LocalPlayerIds;
     }
 
     public static CouchRouteDecision Decide(CouchDeviceKey device, string input, CouchInputKind kind)

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions;
@@ -126,7 +123,7 @@ internal static class CouchTeammateChoices
 
     /// <summary>
     /// True if a selection the teammate can answer from their own UI was just started for <paramref name="player"/>.
-    /// Selections without one stay on the main screen (the fork's behavior), so nothing waits for an answer that can't come.
+    /// Selections without one stay on the main screen (the base mod's behavior), so nothing waits for an answer that can't come.
     /// </summary>
     public static bool HasRequest(Player player)
     {
