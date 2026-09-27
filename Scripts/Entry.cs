@@ -14,12 +14,11 @@ public partial class Entry
 
     public static void Init()
     {
-        LocalMultiControlLogger.Info("开始初始化 Harmony 补丁。");
+        LocalMultiControlLogger.Info("Applying Harmony patches.");
         LocalMultiControlLogger.Info(BuildMarker);
-        LocalWakuuRelicLocalization.Initialize();
         _harmony = new Harmony("sts2.couchspire");
         _harmony.PatchAll();
         CouchRuntime.Initialize();
-        LocalMultiControlLogger.Info("Mod 初始化完成。");
+        LocalMultiControlLogger.Info("Mod initialized.");
     }
 }

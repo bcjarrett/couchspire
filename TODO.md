@@ -32,17 +32,13 @@ players (`CombatTurnState.PlayersTakingExtraTurn`) if it recurs.
 
 ## Feature requests
 
-### D. Keyboard controls one character, gamepad the other (Workshop, 2026-08-25)
-Large: needs per-device input routing to different characters. The mod already has a
-gamepad axis router; not started.
+### ~~D. Keyboard controls one character, gamepad the other~~ (DONE: couch co-op)
+Per-controller routing now gives each controller its own character (see COUCH.md).
 
 ## Resolved by re-audit (needs playtest confirmation only)
 
-### ~~Issue 1: Extra card group after combat~~ (IMPLEMENTED, opt-in, unreleased)
-Now generated inside CombatRoomOfferRewardsPatch for each character from the other
-characters' pools. Off by default: set `"extraCrossCharacterCardReward": true` in
-`user://dual_role_adventure_settings.json`. The original `AddExtraReward(otherPlayer, ...)`
-approach failed because RewardsSet fetches ExtraRewards keyed by its own player.
+### ~~Issue 1: Extra card group after combat~~ (REMOVED)
+The opt-in cross-character card group was removed with the switch to two-player couch co-op.
 
 ### ~~Issue 2: Treasure chest deadlock~~ (RESOLVED by earlier redesign)
 Current flow: per-character voting with auto-switch (TreasureRoomRelicSynchronizerPatch)

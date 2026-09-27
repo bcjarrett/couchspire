@@ -12,6 +12,18 @@ Notable versions and key changes of CouchSpire. The v1.33 and earlier entries ar
 - Teammate UI using the game's own art: P2 top bar section, relic row, hand, health bar, and rewards/event/rest-site handling.
 - `CouchSpire.cfg` settings file, and `deploy.sh` for macOS and Linux (Bazzite) installs.
 
+### Changed
+- Couch co-op is always two players. The host menu card is now **Couch Co-op**; the lobby adds P2 automatically.
+- Player-facing text is English only.
+
+### Removed
+- 3–12 player support: the `+`/`-` count controls, the lobby cap raise, and the 16-player packet-format transpilers. With the transpilers gone, the mod no longer changes the online lobby packet format.
+- Vakuu AI auto-play (relic, lobby toggles, auto-switching).
+- Ghost hands overlay (`F8`) and its settings file.
+- Custom Mode entry for local co-op.
+- On-screen switch buttons (combat, lobby, players list), the LT+stick switch combos, and the legacy switch keys (`[` `]` `R` `T` `/`). `Tab` and right-clicking a character in the players list still switch.
+- The optional cross-character card reward.
+
 ## v1.33 - 2026-09-01
 
 ### Added

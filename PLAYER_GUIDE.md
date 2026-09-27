@@ -1,6 +1,6 @@
-# Player Guide: multi-character play
+# Player Guide
 
-Control 2–12 characters in Slay the Spire 2's multiplayer mode, on one machine, with no network. This is the Local Multi-Control layer that CouchSpire builds on; for couch co-op with one controller per player, see [COUCH.md](COUCH.md).
+Two players, one screen, one controller each. CouchSpire runs a real two-player Slay the Spire 2 multiplayer run inside one game, with no network. Setup, settings and the full controller layout are in [COUCH.md](COUCH.md).
 
 ## Install & enable
 
@@ -10,61 +10,33 @@ Control 2–12 characters in Slay the Spire 2's multiplayer mode, on one machine
 ## Starting a run
 
 1. Main menu → **Multiplayer → Host**.
-2. Pick the **Local Multi-Control (单人多角色)** card (it sits next to Standard / Daily / Custom).
-3. In character select:
-   - **`+` / `-`** — add/remove local characters (2–12; duplicates allowed)
-   - **`Tab` / `Shift+Tab`** — switch which character you're editing
-   - Pick a character and ready-up for each slot, then start as usual.
-4. **Custom mode** also works: entering `Custom Mode` from the multiplayer menu keeps the local multi-control flow, so you can use seeds and custom rules with multiple characters.
-
-## Vakuu (AI auto-play)
-
-Any character can be handed to the built-in autoplayer ("Vakuu"):
-
-- On the character-select screen: toggle per character, or toggle **all** at once.
-- Controller: `Y` toggles the highlighted character, `LT + Y` toggles everyone.
-- Vakuu characters play their turns automatically; when no Vakuu character can act, control returns to you.
+2. Pick the **Couch Co-op** card (next to Standard / Daily / Custom).
+3. The controller you used in the menus is **P1**. Pressing a button on the second controller makes it **P2**. Each player picks a character on their own controller; duplicates are allowed.
+4. Start the run as usual.
 
 ## During a run
 
-- **Switch characters:** `Tab` (next) / `Shift+Tab` (previous). Legacy keys `]` `R` `/` (next) and `[` `T` (previous) still work.
-- Each character owns their deck, hand, energy, gold, potions, relics, and choices. The UI (hand, energy, potion bar, status strip) follows whoever you control.
-- **Combat:** play each character's turn, switching freely; end turn per character.
-- **Rewards:** loot is generated per character and shown as one combined list, each entry prefixed with its owner (e.g. `[Player 2]`). Claim with the matching character.
-- **Events:** by default each character resolves the event independently — the mod walks you through them one by one. Shared-event votes are auto-completed where the game requires everyone to vote.
-- **Rest sites:** each character chooses in sequence (rest, upgrade, etc.).
-- **Shops:** purchases and card removal are billed to the character currently in control.
-- **Map:** picking the next node auto-completes the "everyone must vote" step.
-- **Save & continue:** quit normally; `Multiplayer → Load` resumes the run and auto-readies all local characters.
+- Each character has their own deck, hand, energy, gold, potions, relics and choices.
+- **Combat:** P1 plays on the main screen; P2 plays at the same time from the teammate HUD. Each player ends their own turn.
+- **Rewards, shops, rest sites, treasure, events:** P1 uses the main screen, P2 uses their own panel. Purchases and card removal are billed to whoever makes them.
+- **Map:** picking the next node completes the "everyone votes" step.
+- **Taking the main screen:** P2 clicks a stick in (L3/R3); on the keyboard, press `Tab`.
+- **Save & continue:** quit normally; `Multiplayer → Load` resumes the run.
 
-## Ghost hands overlay (optional)
-
-Shows your backgrounded characters' hands behind and above your active hand, so you can plan across the whole team:
-
-- **`F8`** — toggle on/off (off by default; remembered between sessions)
-- **`Ctrl+Arrows`** — move the display (hold to glide); **`Ctrl+Shift+Arrows`** — fine 4px steps
-- Cards are semi-transparent, click-through, and update as characters draw/play.
-- Settings persist to `%APPDATA%\SlayTheSpire2\dual_role_adventure_settings.json`; edit `ghostHandsScale` (default `0.5`) there to resize the cards.
-- The overlay position is clamped to the visible screen, so it can't get lost off-screen.
-
-## Optional: extra cross-character card rewards
-
-Add `"extraCrossCharacterCardReward": true` to the settings file above and each character's post-combat rewards will include one extra pick-1-of-3 card group drawn from your **other** characters' card pools (off by default).
-
-## Hotkey reference
+## Keyboard reference
 
 | Key | Context | Action |
 |---|---|---|
-| `Tab` / `Shift+Tab` | anywhere | switch controlled character (next / previous) |
-| `[` `T` / `]` `R` `/` | anywhere | legacy switch aliases (previous / next) |
-| `+` / `-` | lobby | change local character count (2–12) |
-| `F8` | combat | toggle ghost hands overlay |
-| `Ctrl+Arrows` (+`Shift`) | combat, overlay on | move ghost hands (fine steps with Shift) |
-| `Y` / `LT+Y` | character select, controller | toggle Vakuu for one / all characters |
-| `LT + D-pad` | character select, controller | count and edit-slot controls |
+| `Tab` | character select | switch which player's pick you're editing |
+| `Tab` | in a run | hand the main screen to the other character |
+| `F9` | anywhere | forget controller bindings |
+| `F10` | anywhere | debug overlay |
+| `F11` | anywhere | screenshot to `couch_shots/` |
 
-## Troubleshooting & feedback
+P2's keyboard block (for testing without a second controller) is listed in [COUCH.md](COUCH.md).
 
-- Log file: `%APPDATA%\SlayTheSpire2\logs\godot.log` — mod lines are prefixed `[LocalMultiControl]`.
+## Troubleshooting
+
+- Log file: `%APPDATA%\SlayTheSpire2\logs\godot.log` on Windows, `~/.local/share/SlayTheSpire2/logs/godot.log` on Linux. Mod lines are prefixed `[LocalMultiControl]` and `[Couch]`.
 - If something breaks, note the **act, room/screen, and exact steps**, and include the log when you report it.
-- Known issues under investigation are tracked in [TODO.md](TODO.md).
+- Known issues are tracked in [TODO.md](TODO.md).

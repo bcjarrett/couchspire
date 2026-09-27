@@ -5,7 +5,7 @@
 # Verbose input diagnostics in the game log, plus the debug overlay at startup.
 probe = 0
 
-# Per-controller routing (each controller drives its own character). 0 = plain Local Multi-Control.
+# Per-controller routing (each controller drives its own character). 0 = one screen, switch with Tab.
 routing = 1
 
 # Show the debug overlay at startup (F10 toggles it anyway).

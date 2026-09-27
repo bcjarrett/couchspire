@@ -9,7 +9,7 @@ namespace LocalMultiControl.Scripts.Patch;
 
 /// <summary>
 /// Couch co-op: a teammate's card play (sent as a remote request) would be shown waiting in the play queue by
-/// flying it out of the teammate's intent UI. The fork disables that UI in local mode
+/// flying it out of the teammate's intent UI. The base mod disables that UI in local mode
 /// (<see cref="NMultiplayerPlayerIntentHandlerPatch"/>), so the game's code would dereference null. Skip the queue
 /// preview instead; the card still flies out of the teammate's character when it resolves
 /// (<c>CardPileCmd</c> creates the node for non-local owners), and cancellation tolerates the missing queue entry.

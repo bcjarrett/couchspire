@@ -28,7 +28,7 @@ dotnet format LocalMultiControl.csproj --verify-no-changes
 
 - Log file: `%APPDATA%\SlayTheSpire2\logs\godot.log` (Windows), `~/.local/share/SlayTheSpire2/logs/godot.log` (Linux); `./deploy.sh logs` follows the remote log.
 - Log via `Log.Info` with the unified prefix `[LocalMultiControl]` (`Log.Debug` is invisible by default). Add logs for anything you fix.
-- On startup the mod logs `开始初始化 Harmony 补丁` → build marker → `Mod 初始化完成`; any Harmony exception between those lines means a patch target broke.
+- On startup the mod logs `Applying Harmony patches.` → build marker → `Mod initialized.`; any Harmony exception between those lines means a patch target broke.
 - There are no automated tests; the maintainer playtests. Provide focused, step-by-step test scripts and read the log after each round.
 
 ## 4. Harmony & domain conventions
@@ -71,5 +71,5 @@ When the game updates and the mod breaks:
 
 ## 8. Documentation map
 
-- `README.md` — project front door; `COUCH.md` — couch co-op setup, settings, tests; `PLAYER_GUIDE.md` — multi-character usage; `CHANGELOG.md` — history; `TODO.md` — open issues.
+- `README.md` — project front door; `COUCH.md` — couch co-op setup, settings, tests; `PLAYER_GUIDE.md` — how a run plays; `CHANGELOG.md` — history; `TODO.md` — open issues.
 - `docs/architecture.md`, `docs/console-commands.md`, `docs/design/*` — developer docs.

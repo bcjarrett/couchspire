@@ -1,17 +1,15 @@
 # CouchSpire
 
-A **Slay the Spire 2** mod for couch co-op on one screen. Each controller drives its own character in a local multi-character run. The game's real multiplayer flow runs underneath, with no networking.
-
-CouchSpire is built on Local Multi-Control, which lets one player run **2–12 characters** on a single machine. On top of that, CouchSpire routes each controller to its own seat and lets teammates act at the same time.
+A **Slay the Spire 2** mod for two-player couch co-op on one screen. Each controller drives its own character. The game's real multiplayer flow runs underneath, with no networking.
 
 ## Features
 
 - Per-controller seats: each controller picks and drives its own character. Press a button on your controller to take over when your teammate isn't mid-action
 - Simultaneous play in combat, with a teammate HUD (P2 top bar, relics, hand) that uses the game's own art
-- Everything from Local Multi-Control: 2–12 characters, `Tab` / `Shift+Tab` switching, per-character decks, gold, potions, relics and choices, Vakuu AI auto-play, and the `F8` ghost-hands overlay
+- Per-character decks, gold, potions, relics and choices; rewards, shops, rest sites, treasure and events handled per player
 - Pure code mod: `has_dll=true`, `has_pck=false`
 
-See **[COUCH.md](COUCH.md)** for setup, settings, controls and test scripts, and the **[Player Guide](PLAYER_GUIDE.md)** for the underlying multi-character gameplay.
+See **[COUCH.md](COUCH.md)** for setup, settings, controls and test scripts, and the **[Player Guide](PLAYER_GUIDE.md)** for how a run plays.
 
 ## Compatibility
 
@@ -46,7 +44,7 @@ cp -r /tmp/sts2-src/MegaCrit/Sts2/. src/
 ## Documentation
 
 - [COUCH.md](COUCH.md): couch co-op setup, settings, controls, tests
-- [Player Guide](PLAYER_GUIDE.md): multi-character gameplay and hotkeys
+- [Player Guide](PLAYER_GUIDE.md): how a run plays, keyboard reference
 - [CHANGELOG](CHANGELOG.md): release history
 - [TODO](TODO.md): known issues
 - [docs/architecture.md](docs/architecture.md): how the mod works internally

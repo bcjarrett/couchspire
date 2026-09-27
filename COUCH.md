@@ -1,6 +1,6 @@
 # CouchSpire: couch co-op on one screen
 
-CouchSpire builds on Local Multi-Control (DualRoleAdventure), which already runs several characters in one game. CouchSpire adds **per-controller routing**: each controller drives its own character. To take over, press a button on your controller; if your teammate is in the middle of something (playing or targeting a card, picking cards) or it's the enemy turn, the press is ignored and you try again.
+CouchSpire runs a two-character multiplayer run in one game, with **per-controller routing**: each controller drives its own character. To take over, press a button on your controller; if your teammate is in the middle of something (playing or targeting a card, picking cards) or it's the enemy turn, the press is ignored and you try again.
 
 Status: **Phase 1 MVP, not yet playtested.** The steps below are the Phase 0 tests plus the first playtest.
 
@@ -26,9 +26,9 @@ Put settings in `CouchSpire.cfg` in the repo root: copy `CouchSpire.cfg.example`
 | Setting | Effect |
 |---|---|
 | `probe = 1` | Verbose input diagnostics, and the overlay at startup |
-| `routing = 0` | Turn couch routing off (plain Local Multi-Control) |
+| `routing = 0` | Turn couch routing off: one screen, switch characters with Tab or by right-clicking a character in the players list |
 | `overlay = 1` | Only the overlay |
-| `simultaneous = 0` | In combat, go back to the fork's hotseat behavior: auto-switch after end turn, and the teammate's choices on the main screen |
+| `simultaneous = 0` | In combat, go back to hotseat behavior: auto-switch after end turn, and the teammate's choices on the main screen |
 
 - **Linux (Bazzite):** the same switches also work as Steam launch options, e.g. `COUCHSPIRE_PROBE=1 %command%`, and they override the file.
 - **Mac:** leave Steam launch options empty. Steam for Mac doesn't run them through a shell, so that form fails with "OS Error 260".
@@ -36,13 +36,12 @@ Put settings in `CouchSpire.cfg` in the repo root: copy `CouchSpire.cfg.example`
 Keyboard keys, for testing:
 - **F10:** toggle the debug overlay (routing state, seats, controllers, driver, recent decisions).
 - **F9:** forget all controller bindings.
-- **Tab:** cycle characters, the fork's hotkey; still works.
-- **F8:** the fork's "ghost hands" overlay (shows the other characters' hands).
+- **Tab:** hand the main screen to the other character (on character select: the other player's pick).
 - **F7 / Shift+F7 / F6 / F5:** the simultaneous-play test (test D below). The teammate who isn't driving plays a card, ends their turn, or answers a pending choice, without taking the screen.
 
 ## Playing
 
-1. Main menu → Multiplayer → Host → **Local Multi-Control** → set 2 characters → pick characters (Tab switches which one you're editing) → start.
+1. Main menu → Multiplayer → Host → **Couch Co-op** → each controller picks its character (on the keyboard, Tab switches which pick you're editing) → start.
 2. The controller used in the menus becomes **P1**. The first press from the other controller binds it as **P2** and takes control if it's allowed right now.
 3. After that, press any button (not a stick or the d-pad) to take control of your own character. Ending your turn hands control to the teammate automatically.
 
@@ -50,7 +49,7 @@ Keyboard keys, for testing:
 
 Run each test, then send back the `[Couch]` log lines (`./deploy.sh logs`, or `~/.local/share/SlayTheSpire2/logs/godot.log`).
 
-**A. Base fork works on Linux** (`routing = 0`): start a 2-character run, press Tab to switch, play a combat.
+**A. Base co-op works on Linux** (`routing = 0`): start a Couch Co-op run, press Tab to switch, play a combat.
 
 **B. Can the game tell the controllers apart?** (`probe = 1`, `routing = 0`)
 1. Wait on the main menu for the `===== Input environment (startup)` dump.
@@ -76,7 +75,7 @@ What the log answers:
 **D. Simultaneous play test** (keyboard + mouse, works on the Mac too)
 
 Question: can P2 act while P1 keeps the screen? F7 sends P2's card play through the in-process fake network as P2's own request. That is how an online teammate's play reaches the host.
-1. Start a 2-character Local Multi-Control run and enter a combat. Press F8 to see P2's hand as ghost cards.
+1. Start a Couch Co-op run and enter a combat. P2's hand shows in the HUD.
 2. **F7:** P2 plays a Strike or Defend.
    - Expected: P1's hand and UI don't change, the card flies out of P2's character, and the enemy takes damage or P2 gains block.
    - Log lines: `[RemotePlay] ... left the hand, energy 3 -> 2`, then the game's own `Player <P2 id> playing card STRIKE_...`.
@@ -95,7 +94,7 @@ P2's portrait, HP, gold and potions sit in the empty middle of the top bar all r
 - a key hint, which follows whether P2 last used keys or a pad;
 - P2's hand, or the options of a choice. After P2 ends their turn the hand slides away, and comes back if they take the turn back.
 
-The HUD fades while P1 has a hand selection, overlay, map or deck view open, or a tooltip for something in the top bar (P1's potions, relics). It replaces the F8 ghost hand for P2. Move or resize it with `hud_x`, `hud_y`, `hud_scale` in `CouchSpire.cfg`; `p1_hand_scale` (default 0.85) sets P1's resting hand size.
+The HUD fades while P1 has a hand selection, overlay, map or deck view open, or a tooltip for something in the top bar (P1's potions, relics). Move or resize it with `hud_x`, `hud_y`, `hud_scale` in `CouchSpire.cfg`; `p1_hand_scale` (default 0.85) sets P1's resting hand size.
 
 | P2 action | Keyboard | Controller |
 |---|---|---|
@@ -147,7 +146,7 @@ All of these use the same keys: J/L to move and I to choose (D-pad and A on a pa
 **P2's info and deck changes**
 - **V** (keyboard) or **View/Back** (P2's pad) opens P2's deck and relics, with HP, gold and potions. J/L scrolls, U switches between deck and relics, and V or K closes it.
 - When P2's deck changes outside combat, the game's own animations play as they do for P1: a transformed card morphs into its replacement, an upgraded card flashes, and a new card pops up and flies into the deck. New relics pop into P2's relic row.
-- **Break glass:** clicking a stick in on P2's pad (L3/R3) hands P2 the main screen; Tab (or Shift+Tab) does the same on the keyboard. During a run, the fork's other swap keys (R, T, [, ], /) are off, because they sit next to P2's keys. There are no on-screen swap arrows or buttons in simultaneous mode.
+- **Break glass:** clicking a stick in on P2's pad (L3/R3) hands P2 the main screen; Tab does the same on the keyboard. There are no on-screen swap buttons.
 - **Layout:** P2's combat band and the relic row line up with the top of the players list (names and health bars) on the left, leaving P1's relic row clear; the band starts to the right of that list. Panels on the left start below the list, panels on the right below P2's relic row.
 - **Screenshots:** F11 saves one to `couch_shots/` in the game's user folder; `shots = 1` also saves one each time a P2 screen opens.
 - **Mend** (rest site): P2 picks who to heal in their card picker.
@@ -163,26 +162,24 @@ Checks:
 
 ## Later (known gaps)
 
-- **More than two players:** the P2 panels handle one teammate. With three or more characters, the others still take turns on the main screen.
 - **P2's gold on the map:** shown in combat and in the rewards, rest site and shop panels, not on the map screen.
 - **Polish:** the P2 panels have no hover tooltips, animations or art yet.
-- **Rare edge:** if P2 holds a Spoils Map for the current act, P2 skips the separate chest gold (the fork settles the map instead).
+- **Rare edge:** if P2 holds a Spoils Map for the current act, P2 skips the separate chest gold (the base co-op code settles the map instead).
 
 ## How it works (for development)
 
 - `Scripts/Runtime/Couch/CouchInputGate.cs`: a node kept as the scene root's last child, so it receives input first. It routes raw joypad events and marks blocked ones handled.
 - `Scripts/Runtime/Couch/CouchSteamPoller.cs`: the game only polls the **first** Steam Input controller (`SteamControllerInputStrategy.UpdateControllerConnections` uses `[0]`). This polls every controller and routes at the source.
 - `Scripts/Runtime/Couch/CouchGodotPadPoller.cs`: the same for the Godot joypad path (Steam Input off). Sticks and triggers are read per pad.
-- `Scripts/Runtime/Couch/CouchInputRouter.cs`: pass, block, or claim. Claims go through the fork's `LocalControlSwitchGuard.TrySwitchTo`, and the driver is `LocalContext.NetId`.
+- `Scripts/Runtime/Couch/CouchInputRouter.cs`: pass, block, or claim. Claims go through `LocalControlSwitchGuard.TrySwitchTo`, and the driver is `LocalContext.NetId`.
 - `Scripts/Runtime/Couch/CouchSeats.cs`: seat ↔ controller ↔ character.
 - Events the pollers synthesize use device ids ≥ 1000 (`CouchEventDevice`), so the gate knows they've already been routed.
-- The fork's LT+stick switching combos are off while couch routing is active.
-- `Scripts/Runtime/Couch/CouchRemotePlay.cs`: the simultaneous-play test. It dispatches a `RequestEnqueueActionMessage` from the teammate on the fork's `LocalLoopbackHostGameService`, which reaches `ActionQueueSynchronizer.HandleRequestEnqueueActionMessage(message, senderId)` exactly like an online client's request.
+- `Scripts/Runtime/Couch/CouchRemotePlay.cs`: the simultaneous-play test. It dispatches a `RequestEnqueueActionMessage` from the teammate on `LocalLoopbackHostGameService`, which reaches `ActionQueueSynchronizer.HandleRequestEnqueueActionMessage(message, senderId)` exactly like an online client's request.
 - `Scripts/Runtime/Couch/CouchTeammateHud.cs`: the teammate's hand, cursor, target marker and choice picker. It is attached to every combat room by `CouchTeammateHudPatch`. Controller input reaches it through `CouchInputRouter` (via `CouchHudInput`), and the keyboard block through `CouchInputGate`.
 - `Scripts/Runtime/Couch/CouchTeammateChoices.cs` and `Scripts/Patch/CouchTeammateChoicePatch.cs`: in simultaneous combat, a teammate's card choice takes the game's remote path (`WaitForRemoteChoice`). It is answered with a `PlayerChoiceMessage` sent as the teammate.
-- `Scripts/Runtime/Couch/CouchTeammateRewards.cs`: the teammate's post-combat rewards panel. The fork's merged reward offer (`CombatRoomOfferRewardsPatch`) leaves the teammate's set out of P1's screen and hands it to the panel. Rewards are claimed with `Reward.SelectUnsynchronized()`. A card reward then takes the game's remote path (`WaitForRemoteChoice`), and the panel answers it with a `PlayerChoiceMessage` sent as the teammate. `CouchRewardsProceedPatch` holds P1's Proceed until the teammate is done.
+- `Scripts/Runtime/Couch/CouchTeammateRewards.cs`: the teammate's post-combat rewards panel. The merged reward offer (`CombatRoomOfferRewardsPatch`) leaves the teammate's set out of P1's screen and hands it to the panel. Rewards are claimed with `Reward.SelectUnsynchronized()`. A card reward then takes the game's remote path (`WaitForRemoteChoice`), and the panel answers it with a `PlayerChoiceMessage` sent as the teammate. `CouchRewardsProceedPatch` holds P1's Proceed until the teammate is done.
 - `Scripts/Runtime/Couch/CouchPanel.cs`: shared base for the rest site, treasure, shop and card-picker panels. They live on a CanvasLayer (layer 110) under the input gate.
-- `CouchTeammateChoicePanel`: answers the teammate's out-of-combat card selections. Deck selections (`FromDeck*`), reward grids and bundles are captured in `CouchTeammateChoicePatch`. The fork's forced-local selection (`CardSelectCmdPatch`) is skipped only when such a request exists (`CouchTeammateChoices.HasRequest`), so an unsupported selection falls back to the main screen instead of waiting forever.
+- `CouchTeammateChoicePanel`: answers the teammate's out-of-combat card selections. Deck selections (`FromDeck*`), reward grids and bundles are captured in `CouchTeammateChoicePatch`. The forced-local selection (`CardSelectCmdPatch`) is skipped only when such a request exists (`CouchTeammateChoices.HasRequest`), so an unsupported selection falls back to the main screen instead of waiting forever.
 - `CouchTeammateRestSite`: sends `OptionIndexChosenMessage` (RestSite) or `RestSiteSkippedMessage` as the teammate.
 - `CouchTeammateTreasure`: sends `PickRelicAction` as the teammate.
 - `CouchTeammateShop`: buys from the teammate's `MerchantInventory` with the entry's own purchase logic. Card removal uses `OneOffSynchronizer.DoMerchantCardRemoval` (the remote-player path).
@@ -190,6 +187,6 @@ Checks:
 - `CouchTeammateRelicBar`: the teammate's relics as game `NRelicInventoryHolder`s (not the top bar's `NRelicInventory`, which assumes the local player). It also plays the gold sound for the teammate, since `PlayerCmd.GainGold` plays it only for `LocalContext.GetMe`.
 - `CouchSfx`: the sounds used by the teammate UI. UI clicks come from `SfxCmd.Play` (FMOD events). A few come from the game's remaining plain audio files via `NDebugAudioManager`: card select, deny, relic get, smith.
 - Damage preview: `NCard.SetPreviewTarget(creature)`, the same call the game's `NCardPlay` makes while the driver hovers a target.
-- `Scripts/Patch/NCardPlayQueueRemotePlayPatch.cs`: skips the play-queue preview for teammate cards. That preview needs the teammate intent UI, which the fork disables in local mode. The card still animates out of the teammate when it resolves.
+- `Scripts/Patch/NCardPlayQueueRemotePlayPatch.cs`: skips the play-queue preview for teammate cards. That preview needs the teammate intent UI, which local co-op disables. The card still animates out of the teammate when it resolves.
 
 Decompiled game source for reference: `src/` (gitignored; regenerate with `ilspycmd` per `AGENTS.md` §5).
