@@ -133,8 +133,12 @@ internal static class NMultiplayerHostSubmenuPatch
     {
         LocalMultiControlLogger.Info("Entering the single-player multi-character flow.");
         LocalSelfCoopSaveTag.ClearCurrentProfile();
-        SaveManager.Instance.DeleteCurrentMultiplayerRun();
-        LocalMultiControlLogger.Info("Cleared historical multiplayer saves to avoid interference from old-format validation.");
+        // Only delete when there is a save: on a profile with no saves/ folder yet, the game logs an Error.
+        if (SaveManager.Instance.HasMultiplayerRunSave)
+        {
+            SaveManager.Instance.DeleteCurrentMultiplayerRun();
+            LocalMultiControlLogger.Info("Cleared historical multiplayer saves to avoid interference from old-format validation.");
+        }
 
         NSubmenuStack? stack = GetStack(submenu);
         if (stack == null)

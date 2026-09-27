@@ -51,17 +51,6 @@ internal static class CouchTestLogPatterns
     /// </summary>
     private static readonly (string Substring, string Reason)[] Allowlist =
     {
-        // GodotFileIo.cs:167-173 (game core): DeleteFile logs Error only when DirAccess.RemoveAbsolute returns
-        // neither Ok nor FileNotFound. On a profile reset down to just settings.save (docs/design/testing-plan.md
-        // §6.6 rule 1), modded/profile1/saves/ doesn't exist yet the first time a couch run is entered — nothing has
-        // written a save there yet — so SaveManager.DeleteCurrentMultiplayerRun() (called unconditionally by
-        // NMultiplayerHostSubmenuPatch.OnLocalSelfCoopPressed to clear stale multiplayer saves) hits a missing
-        // parent directory, which Godot reports as Error.Failed rather than Error.FileNotFound. Confirmed benign by
-        // running "start" on a freshly reset profile (2026-09-27): the assertions all passed and
-        // modded/profile1/saves/current_run_mp.save legitimately doesn't exist afterward either way. In real play
-        // this profile directory already exists by the time anyone reaches Couch Co-op, so this is a test-harness
-        // fresh-profile artifact, not a reachable player-facing bug.
-        ("Error deleting path modded/profile1/saves/current_run_mp.save", "GodotFileIo.DeleteFile logs Error.Failed for a missing parent directory on a freshly reset profile; the delete's goal (no such file) is already true either way")
     };
 
     /// <summary>The first pattern this line matches, or null. Checked after <see cref="IsAllowlisted"/>.</summary>
