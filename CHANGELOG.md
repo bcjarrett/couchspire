@@ -7,6 +7,7 @@ Notable versions and key changes of CouchSpire. The v1.33 and earlier entries ar
 ### Fixed
 - Steam Deck / Bazzite Game Mode: the controller did nothing after launch until you opened the Steam menu and came back. Under gamescope the game window could miss its focus event while it switched to fullscreen, and the game ignores input while unfocused. The mod now treats the window as focused under gamescope unless the Steam overlay is open (`gamescope_focus = 0` turns this off).
 - P2's relic row in combat sat lower and further right than intended, crowding the hint line. The game's relic holders shrink around their center, so the mod now offsets for that, and centers the row on P2's energy/draw/discard line.
+- After a relic was obtained, gold gained later in the same step wasn't shared with the other player. The mod switched gold sharing off during relic pickup but never switched it back on for the rest of that step (the counter was reset inside an async method, where `AsyncLocal` writes don't reach the caller).
 
 ## CouchSpire 0.1.0 (in progress, on Local Multi-Control v1.33)
 

@@ -19,18 +19,6 @@ internal static class GoldMirrorSuppressionContext
         SuppressDepth.Value++;
     }
 
-    internal static async Task<T> ExitSuppressionWhenCompleteAsync<T>(Task<T> task)
-    {
-        try
-        {
-            return await task;
-        }
-        finally
-        {
-            ExitSuppressionOnce();
-        }
-    }
-
     internal static void ExitSuppressionOnce()
     {
         if (SuppressDepth.Value > 0)

@@ -29,7 +29,10 @@ internal static class RelicCmdObtainPatch
     [HarmonyPostfix]
     private static void Postfix(Player player, ref Task<RelicModel> __result)
     {
-        __result = GoldMirrorSuppressionContext.ExitSuppressionWhenCompleteAsync(MirrorObtainForOtherLocalPlayersAsync(player, __result));
+        // Start the wrapped task while suppression is active (its async flow captures it), then exit here,
+        // synchronously: an AsyncLocal write inside an async method never flows back to the caller.
+        __result = MirrorObtainForOtherLocalPlayersAsync(player, __result);
+        GoldMirrorSuppressionContext.ExitSuppressionOnce();
     }
 
     [HarmonyFinalizer]
