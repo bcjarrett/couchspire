@@ -9,7 +9,7 @@ internal static class WhisperingEarringPatch
     [HarmonyPrefix]
     private static bool Prefix()
     {
-        // 保持原版低语耳环行为，避免与本地多控的瓦库专用遗物混用导致持续接管。
+        // Keep the base game's Whispering Earring behavior to avoid it interfering with the Toolbox relic's local multi-control handling and causing a continuous takeover.
         return true;
     }
 }

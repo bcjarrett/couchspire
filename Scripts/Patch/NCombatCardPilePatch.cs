@@ -39,7 +39,7 @@ internal static class NCombatCardPilePatch
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"切换角色时清理牌堆监听失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Failed to clean up pile listener while switching players: {exception.Message}");
         }
     }
 }

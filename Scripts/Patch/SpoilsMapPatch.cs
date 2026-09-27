@@ -72,7 +72,7 @@ internal static class SpoilsMapPatch
                         PlayerCmd.CompleteQuest(pendingMap);
                         await CardPileCmd.RemoveFromDeck(pendingMap);
                         LocalMultiControlLogger.Info(
-                            $"藏宝图结算已同步到本地角色: owner={sourceOwner?.NetId ?? 0}, target={otherPlayer.NetId}, gold={pendingMap.DynamicVars.Gold.IntValue}");
+                            $"Spoils map resolution synced to the local player: owner={sourceOwner?.NetId ?? 0}, target={otherPlayer.NetId}, gold={pendingMap.DynamicVars.Gold.IntValue}");
                     }
                     finally
                     {

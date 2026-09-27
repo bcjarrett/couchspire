@@ -42,7 +42,7 @@ internal static class PaelsWingPatch
             PendingOwnerNetIds.Add(owner.NetId);
         }
 
-        LocalMultiControlLogger.Info($"佩尔之翼献祭命中遗物阈值，已登记为非共享: owner={owner.NetId}");
+        LocalMultiControlLogger.Info($"Pael's Wing sacrifice hit the relic threshold; registered as non-shared: owner={owner.NetId}");
     }
 
     internal static bool TryConsumePendingOwner(ulong ownerNetId)

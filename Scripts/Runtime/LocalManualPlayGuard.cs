@@ -25,7 +25,7 @@ internal static class LocalManualPlayGuard
         int nextDepth = Interlocked.Increment(ref _depth);
         if (nextDepth == 1)
         {
-            LocalMultiControlLogger.Info($"进入手动出牌临界区: source={source}");
+            LocalMultiControlLogger.Info($"Entering manual card-play critical section: source={source}");
         }
     }
 
@@ -35,9 +35,9 @@ internal static class LocalManualPlayGuard
         if (nextDepth <= 0)
         {
             Volatile.Write(ref _depth, 0);
-            // 目标选择结束到动作真正入队之间存在一个很窄的异步窗口，这里补一个短暂保护期。
+            // There is a narrow async window between the end of target selection and the action actually being enqueued; add a brief hold period here to cover it.
             Volatile.Write(ref _holdUntilMs, Time.GetTicksMsec() + 180UL);
-            LocalMultiControlLogger.Info($"退出手动出牌临界区: source={source}");
+            LocalMultiControlLogger.Info($"Exiting manual card-play critical section: source={source}");
         }
     }
 }

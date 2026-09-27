@@ -59,10 +59,10 @@ internal static class RelicCmdObtainPatch
             return obtainedRelic;
         }
 
-        // 汇总奖励流程中，每个角色已独立生成奖励，不需要镜像
+        // In the combat-reward-merge flow, each player has already independently generated their reward, so no mirroring is needed
         if (CombatRewardMergeContext.IsActive)
         {
-            LocalMultiControlLogger.Info($"汇总奖励流程中跳过遗物镜像: relic={obtainedRelic.Id.Entry}, owner={player.NetId}");
+            LocalMultiControlLogger.Info($"Skipping relic mirror during the combat-reward-merge flow: relic={obtainedRelic.Id.Entry}, owner={player.NetId}");
             return obtainedRelic;
         }
 
@@ -75,7 +75,7 @@ internal static class RelicCmdObtainPatch
 
         if (PaelsWingPatch.TryConsumePendingOwner(player.NetId))
         {
-            LocalMultiControlLogger.Info($"佩尔之翼献祭产出的遗物不做共享镜像: relic={obtainedRelic.Id.Entry}, owner={player.NetId}");
+            LocalMultiControlLogger.Info($"Relic produced by a Pael's Wing sacrifice is not shared-mirrored: relic={obtainedRelic.Id.Entry}, owner={player.NetId}");
             return obtainedRelic;
         }
 
@@ -83,7 +83,7 @@ internal static class RelicCmdObtainPatch
         if (skipChainMirror)
         {
             NonSharedChainRelics.Add(obtainedRelic);
-            LocalMultiControlLogger.Info($"链式遗物按特判处理，不做共享镜像: relic={obtainedRelic.Id.Entry}, owner={player.NetId}");
+            LocalMultiControlLogger.Info($"Chain relic handled as a special case, not shared-mirrored: relic={obtainedRelic.Id.Entry}, owner={player.NetId}");
             return obtainedRelic;
         }
 
@@ -99,11 +99,11 @@ internal static class RelicCmdObtainPatch
                 RelicModel mirroredRelic = RelicModel.FromSerializable(obtainedRelic.ToSerializable());
                 otherPlayer.AddRelicInternal(mirroredRelic);
                 await mirroredRelic.AfterObtained();
-                LocalMultiControlLogger.Info($"本地多控共享遗物同步: {obtainedRelic.Id.Entry}, {player.NetId} -> {otherPlayer.NetId}");
+                LocalMultiControlLogger.Info($"Local multi-control shared relic sync: {obtainedRelic.Id.Entry}, {player.NetId} -> {otherPlayer.NetId}");
             }
             catch (Exception exception)
             {
-                LocalMultiControlLogger.Warn($"共享遗物同步失败(获得): target={otherPlayer.NetId}, error={exception.Message}");
+                LocalMultiControlLogger.Warn($"Shared relic sync failed (obtain): target={otherPlayer.NetId}, error={exception.Message}");
             }
         }
 
@@ -144,7 +144,7 @@ internal static class RelicCmdRemovePatch
             return;
         }
 
-        // 汇总奖励流程中跳过镜像
+        // Skip mirroring during the combat-reward-merge flow
         if (CombatRewardMergeContext.IsActive)
         {
             return;
@@ -175,11 +175,11 @@ internal static class RelicCmdRemovePatch
             {
                 otherPlayer.RemoveRelicInternal(mirroredRelic);
                 await mirroredRelic.AfterRemoved();
-                LocalMultiControlLogger.Info($"本地多控共享遗物同步移除: {removedRelic.Id.Entry}, owner={otherPlayer.NetId}");
+                LocalMultiControlLogger.Info($"Local multi-control shared relic sync removal: {removedRelic.Id.Entry}, owner={otherPlayer.NetId}");
             }
             catch (Exception exception)
             {
-                LocalMultiControlLogger.Warn($"共享遗物同步失败(移除): target={otherPlayer.NetId}, error={exception.Message}");
+                LocalMultiControlLogger.Warn($"Shared relic sync failed (remove): target={otherPlayer.NetId}, error={exception.Message}");
             }
         }
     }

@@ -28,7 +28,7 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
     {
         _currentSenderId = hostPlayerId;
         IsConnected = true;
-        LocalMultiControlLogger.Info($"创建本地回环网络服务，初始 sender={_currentSenderId}");
+        LocalMultiControlLogger.Info($"Created local loopback network service, initial sender={_currentSenderId}");
     }
 
     public ulong NetId => _currentSenderId;
@@ -69,14 +69,14 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
             return;
         }
 
-        LocalMultiControlLogger.Info($"sender切换: {_currentSenderId} -> {playerId}");
+        LocalMultiControlLogger.Info($"sender switch: {_currentSenderId} -> {playerId}");
         _currentSenderId = playerId;
     }
 
     public void SendMessage<T>(T message, ulong playerId) where T : INetMessage
     {
         AlignSenderWithLocalContext();
-        LocalMultiControlLogger.Info($"本地回环定向发消息: {typeof(T).Name}, sender={_currentSenderId}, target={playerId}");
+        LocalMultiControlLogger.Info($"Local loopback directed message send: {typeof(T).Name}, sender={_currentSenderId}, target={playerId}");
     }
 
     public void SendMessage<T>(T message) where T : INetMessage
@@ -84,7 +84,7 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
         AlignSenderWithLocalContext();
         if (message is not PeerInputMessage)
         {
-            LocalMultiControlLogger.Info($"本地回环广播消息: {typeof(T).Name}, sender={_currentSenderId}");
+            LocalMultiControlLogger.Info($"Local loopback broadcast message: {typeof(T).Name}, sender={_currentSenderId}");
         }
 
         TryDispatchSyntheticLocalPlayerSync(message);
@@ -116,18 +116,18 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
         if (_isBufferingMessages && message.ShouldBuffer)
         {
             _bufferedDispatches.Add(() => DispatchLoopback(message, senderId));
-            LocalMultiControlLogger.Info($"本地回环消息进入缓冲: {typeof(T).Name}, sender={senderId}, buffered={_bufferedDispatches.Count}");
+            LocalMultiControlLogger.Info($"Local loopback message entered buffer: {typeof(T).Name}, sender={senderId}, buffered={_bufferedDispatches.Count}");
             return;
         }
 
         Type messageType = typeof(T);
         if (!_handlers.TryGetValue(messageType, out List<Delegate>? handlers) || handlers.Count == 0)
         {
-            LocalMultiControlLogger.Info($"本地回环消息分发: {messageType.Name}, sender={senderId}, handlers=0");
+            LocalMultiControlLogger.Info($"Local loopback message dispatch: {messageType.Name}, sender={senderId}, handlers=0");
             return;
         }
 
-        LocalMultiControlLogger.Info($"本地回环消息分发: {messageType.Name}, sender={senderId}, handlers={handlers.Count}");
+        LocalMultiControlLogger.Info($"Local loopback message dispatch: {messageType.Name}, sender={senderId}, handlers={handlers.Count}");
         foreach (Delegate handler in handlers)
         {
             if (handler is MessageHandlerDelegate<T> typedHandler)
@@ -149,7 +149,7 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
         }
 
         IsConnected = false;
-        LocalMultiControlLogger.Info($"本地回环网络断开: reason={reason}, now={now}");
+        LocalMultiControlLogger.Info($"Local loopback network disconnected: reason={reason}, now={now}");
         Disconnected?.Invoke(new NetErrorInfo(reason, selfInitiated: true));
     }
 
@@ -161,7 +161,7 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
     public void SetGameLoading(bool isLoading)
     {
         IsGameLoading = isLoading;
-        LocalMultiControlLogger.Info($"本地回环加载状态更新: {isLoading}");
+        LocalMultiControlLogger.Info($"Local loopback loading state updated: {isLoading}");
     }
 
     public void SetBufferMessages(bool bufferMessages)
@@ -174,13 +174,13 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
         _isBufferingMessages = bufferMessages;
         if (bufferMessages)
         {
-            LocalMultiControlLogger.Info("本地回环开始缓冲消息");
+            LocalMultiControlLogger.Info("Local loopback started buffering messages");
             return;
         }
 
         List<Action> bufferedDispatches = new(_bufferedDispatches);
         _bufferedDispatches.Clear();
-        LocalMultiControlLogger.Info($"本地回环释放缓冲消息: count={bufferedDispatches.Count}");
+        LocalMultiControlLogger.Info($"Local loopback flushed buffered messages: count={bufferedDispatches.Count}");
         foreach (Action dispatch in bufferedDispatches)
         {
             dispatch();
@@ -194,7 +194,7 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
 
     public void DisconnectClient(ulong peerId, NetError reason, bool now = false)
     {
-        LocalMultiControlLogger.Warn($"本地回环请求断开客户端被忽略: peer={peerId}, reason={reason}, now={now}");
+        LocalMultiControlLogger.Warn($"Local loopback request to disconnect client was ignored: peer={peerId}, reason={reason}, now={now}");
         ClientDisconnected?.Invoke(peerId, new NetErrorInfo(reason, selfInitiated: true));
     }
 
@@ -205,7 +205,7 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
 
     public void SetPeerReadyForBroadcasting(ulong peerId)
     {
-        LocalMultiControlLogger.Info($"本地回环设置广播就绪（占位）: peer={peerId}");
+        LocalMultiControlLogger.Info($"Local loopback set broadcast ready (placeholder): peer={peerId}");
         ClientConnected?.Invoke(peerId);
     }
 
@@ -240,7 +240,7 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
 
         if (dispatchCount > 0)
         {
-            LocalMultiControlLogger.Info($"本地回环已注入额外玩家同步消息: count={dispatchCount}");
+            LocalMultiControlLogger.Info($"Local loopback injected additional player sync messages: count={dispatchCount}");
         }
     }
 

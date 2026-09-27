@@ -32,7 +32,7 @@ internal static class StartRunLobbySetReadyPatch
 
         if (hasChange)
         {
-            LocalMultiControlLogger.Info("本地双人模式自动就绪：已将全部玩家标记为 ready。");
+            LocalMultiControlLogger.Info("Local co-op mode auto-ready: marked all players as ready.");
         }
 
         bool beginningRun = AccessTools.Field(typeof(StartRunLobby), "_isBeginningRun")?.GetValue(__instance) as bool? ?? false;

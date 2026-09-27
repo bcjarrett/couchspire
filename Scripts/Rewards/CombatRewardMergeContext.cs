@@ -4,10 +4,10 @@ using MegaCrit.Sts2.Core.Rooms;
 namespace LocalMultiControl.Scripts.Rewards;
 
 /// <summary>
-/// 标记当前是否处于战利品汇总流程中。
-/// 当处于汇总流程时，遗物/药水/金币的镜像复制应被抑制，
-/// 因为每个角色已经独立生成了自己的奖励。
-/// 使用静态计数器而非 AsyncLocal，确保在 UI 回调中也能正确读取。
+/// Marks whether we are currently in the combat reward merge flow.
+/// While in the merge flow, mirror copying of relics/potions/gold should be suppressed,
+/// because each player has already independently generated their own reward.
+/// Uses a static counter instead of AsyncLocal to ensure it can also be read correctly from UI callbacks.
 /// </summary>
 internal static class CombatRewardMergeContext
 {

@@ -16,12 +16,12 @@ internal static class NMultiplayerPlayerIntentHandlerPatch
             return true;
         }
 
-        // 风险点：远端意图UI会订阅 InputSynchronizer/Targeting 事件，
-        // 本地双人切人时容易与 NMouseCardPlay、远端目标线节点生命周期冲突，
-        // 表现为频繁 ObjectDisposedException 与出牌队列异常。
-        // 当前选择直接禁用该UI，后续如需恢复必须先完成稳定性回归。
+        // Risk: the remote intent UI subscribes to InputSynchronizer/Targeting events,
+        // and switching players in local co-op mode easily conflicts with the lifecycle of NMouseCardPlay and remote targeting-line nodes,
+        // manifesting as frequent ObjectDisposedException and card-play queue errors.
+        // The current choice is to disable this UI outright; restoring it later requires a stability regression pass first.
         __result = null;
-        LocalMultiControlLogger.Info($"本地双人模式已禁用远端意图UI: player={player.NetId}");
+        LocalMultiControlLogger.Info($"Local co-op mode has disabled the remote intent UI: player={player.NetId}");
         return false;
     }
 }

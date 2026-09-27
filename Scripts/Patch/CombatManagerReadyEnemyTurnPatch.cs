@@ -63,7 +63,7 @@ internal static class CombatManagerReadyEnemyTurnPatch
         if (pendingPlayers.Count > 0)
         {
             LocalMultiControlLogger.Info(
-                $"本地多控自动补齐敌方回合就绪: trigger={player.NetId}, mirrored={string.Join(",", pendingPlayers.Select((candidate) => candidate.NetId))}");
+                $"Local multi-control auto-filled enemy-turn ready state: trigger={player.NetId}, mirrored={string.Join(",", pendingPlayers.Select((candidate) => candidate.NetId))}");
         }
     }
 
@@ -98,7 +98,7 @@ internal static class CombatManagerReadyEnemyTurnPatch
         // The game already completed the signal on the normal path; TrySetResult is a no-op then.
         if (allReady && signalSource != null && signalSource.TrySetResult(actionDuringEnemyTurn))
         {
-            LocalMultiControlLogger.Info("检测到敌方回合未推进，触发本地兜底推进。");
+            LocalMultiControlLogger.Info("Detected that the enemy turn is not progressing; triggering a local fallback to advance it.");
         }
     }
 

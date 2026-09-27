@@ -18,7 +18,7 @@ internal static class LocalQuickRestartLoader
         {
             if (!LocalSelfCoopSaveTag.TryReadCurrentProfile(out List<ulong> playerIds) || playerIds.Count < 2)
             {
-                LocalMultiControlLogger.Warn("快速重启失败：未找到有效本地多控玩家标记。");
+                LocalMultiControlLogger.Warn("Quick restart failed: no valid local multi-control player marker found.");
                 return false;
             }
 
@@ -28,7 +28,7 @@ internal static class LocalQuickRestartLoader
             ReadSaveResult<SerializableRun> readSaveResult = SaveManager.Instance.LoadAndCanonicalizeMultiplayerRunSave(primaryPlayerId);
             if (!readSaveResult.Success || readSaveResult.SaveData == null)
             {
-                LocalMultiControlLogger.Warn("快速重启失败：多人存档读取失败。");
+                LocalMultiControlLogger.Warn("Quick restart failed: failed to read multiplayer save.");
                 return false;
             }
 
@@ -36,7 +36,7 @@ internal static class LocalQuickRestartLoader
             if (!LocalSelfCoopContext.IsSaveOwnedByLocalSelfCoop(saveData))
             {
                 LocalSelfCoopSaveTag.ClearCurrentProfile();
-                LocalMultiControlLogger.Warn("快速重启失败：存档玩家与本地多控标记不一致。");
+                LocalMultiControlLogger.Warn("Quick restart failed: save players do not match the local multi-control marker.");
                 return false;
             }
 
@@ -71,12 +71,12 @@ internal static class LocalQuickRestartLoader
             await game.LoadRun(runState, saveData.PreFinishedRoom);
             lobby.CleanUp(disconnectSession: false);
             await game.Transition.FadeIn();
-            LocalMultiControlLogger.Info("ESC 快速重启已直接完成读档并进入游戏。");
+            LocalMultiControlLogger.Info("ESC quick restart directly completed loading the save and entered the game.");
             return true;
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Error($"ESC 快速重启直接读档失败: {exception}");
+            LocalMultiControlLogger.Error($"ESC quick restart direct load failed: {exception}");
             return false;
         }
     }

@@ -36,7 +36,7 @@ internal static class RewardsSetPatch
         {
             if (!CombatRewardMergeContext.TryMarkRoomMerged(combatRoom))
             {
-                LocalMultiControlLogger.Info($"检测到重复战后奖励 Offer 调用，已忽略: player={__instance.Player.NetId}");
+                LocalMultiControlLogger.Info($"Detected a duplicate post-combat reward Offer call; ignored: player={__instance.Player.NetId}");
                 __result = Task.CompletedTask;
                 return false;
             }
@@ -80,7 +80,7 @@ internal static class RewardsSetPatch
                 }
 
                 mergedRewards.AddRange(perPlayerSet.Rewards);
-                LocalMultiControlLogger.Info($"角色独立奖励已生成(Offer): player={player.NetId}, rewardCount={perPlayerSet.Rewards.Count}");
+                LocalMultiControlLogger.Info($"Per-player independent reward generated (Offer): player={player.NetId}, rewardCount={perPlayerSet.Rewards.Count}");
             }
 
             Player displayPlayer = allPlayers.FirstOrDefault((p) => p.Creature?.IsDead != true) ?? allPlayers[0];
@@ -143,7 +143,7 @@ internal static class RewardsSetPatch
         }
 
         LocalMultiControlRuntime.SwitchControlledPlayerTo(rewardsSet.Player.NetId, "rewards-offer");
-        LocalMultiControlLogger.Info($"打开奖励界面: player={rewardsSet.Player.NetId}, count={rewardsSet.Rewards.Count}");
+        LocalMultiControlLogger.Info($"Opening reward screen: player={rewardsSet.Player.NetId}, count={rewardsSet.Rewards.Count}");
         Task rewardsSetTask = RunManager.Instance.RewardsSetSynchronizer.BeginRewardsSet(rewardsSet);
 
         if (TestMode.IsOn)

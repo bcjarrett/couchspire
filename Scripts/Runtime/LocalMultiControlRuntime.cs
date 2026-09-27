@@ -47,11 +47,11 @@ internal static class LocalMultiControlRuntime
 
     public static void OnRunLaunched(RunState runState)
     {
-        LocalMultiControlLogger.Info("检测到 RunManager.Launch，开始初始化本地多控会话。");
+        LocalMultiControlLogger.Info("Detected RunManager.Launch, starting to initialize local multi-control session.");
         if (LocalSelfCoopContext.IsEnabled)
         {
             RunManager.Instance.CombatStateSynchronizer.IsDisabled = true;
-            LocalMultiControlLogger.Info("本地双人模式已禁用战斗同步等待，避免单进程回环阻塞。");
+            LocalMultiControlLogger.Info("Local co-op mode has disabled combat sync waiting to avoid single-process loopback blocking.");
         }
 
         Session.InitializeFromRunState(runState);
@@ -61,7 +61,7 @@ internal static class LocalMultiControlRuntime
         }
         else
         {
-            LocalMultiControlLogger.Info("当前运行未启用本地多控会话。");
+            LocalMultiControlLogger.Info("The current run has not enabled a local multi-control session.");
         }
     }
 
@@ -78,7 +78,7 @@ internal static class LocalMultiControlRuntime
         _flowBlockSignalWindowStartMs = 0L;
         LocalMerchantInventoryRuntime.Clear();
         LocalSelfCoopContext.Disable("RunManager.CleanUp");
-        LocalMultiControlLogger.Info("RunManager.CleanUp 后已完成本地多控会话清理。");
+        LocalMultiControlLogger.Info("Local multi-control session cleanup completed after RunManager.CleanUp.");
     }
 
     public static void SwitchNextControlledPlayer(string source)
@@ -90,8 +90,8 @@ internal static class LocalMultiControlRuntime
 
         if (CombatManager.Instance.IsInProgress)
         {
-            // 风险点：战斗中如果按“会话顺序”盲切，可能切到不在当前 CombatState 的角色，
-            // 进而触发手牌UI与动作队列 owner 不一致，表现为“无法出牌/切到空角色”。
+            // Risk: during combat, blindly switching by "session order" may switch to a player not present in the current CombatState,
+            // which then triggers a mismatch between the hand UI and the action queue owner, manifesting as "cannot play cards / switched to an empty player".
             if (!CanSwitchDuringCombat(source))
             {
                 return;
@@ -181,7 +181,7 @@ internal static class LocalMultiControlRuntime
             bool hasPlayableCards = PileType.Hand.GetPile(player).Cards.Any((card) => card.CanPlay());
             if (hasPlayableCards)
             {
-                LocalMultiControlLogger.Info($"玩家主动结束回合时检测到仍有可出牌角色，不触发全员结束: round={combatState.RoundNumber}");
+                LocalMultiControlLogger.Info($"Detected a player who can still play cards while another player manually ended their turn; not triggering an all-players end: round={combatState.RoundNumber}");
                 return false;
             }
         }
@@ -222,7 +222,7 @@ internal static class LocalMultiControlRuntime
         if (endedAnyPlayer)
         {
             _allPlayersAutoEndedRounds.Add(combatState.RoundNumber);
-            LocalMultiControlLogger.Info($"检测到全员无牌可出，已自动结束全部角色回合: round={combatState.RoundNumber}, source={source}");
+            LocalMultiControlLogger.Info($"Detected that no player can play any cards; automatically ended all players' turns: round={combatState.RoundNumber}, source={source}");
         }
 
         return endedAnyPlayer;
@@ -250,7 +250,7 @@ internal static class LocalMultiControlRuntime
         CombatState? combatState = combatUi != null ? TryGetCombatState(combatUi) : null;
         _pendingManualEndTurnPlayerId = playerId;
         _pendingManualEndTurnRound = combatState?.RoundNumber ?? -1;
-        LocalMultiControlLogger.Info($"已记录手动结束回合意图: player={playerId}, round={_pendingManualEndTurnRound}, source={source}");
+        LocalMultiControlLogger.Info($"Recorded manual end-turn intent: player={playerId}, round={_pendingManualEndTurnRound}, source={source}");
     }
 
     private static void ApplyControlContext(string source)
@@ -267,7 +267,7 @@ internal static class LocalMultiControlRuntime
             CombatState? combatState = combatUi != null ? TryGetCombatState(combatUi) : null;
             if (combatState != null && combatState.GetPlayer(currentControlledPlayerId.Value) == null)
             {
-                LocalMultiControlLogger.Warn($"检测到无效战斗角色ID，回退到1号位: {currentControlledPlayerId.Value}");
+                LocalMultiControlLogger.Warn($"Detected an invalid combat player ID, falling back to slot 1: {currentControlledPlayerId.Value}");
                 ulong fallbackPlayerId = Session.OrderedPlayerIds.FirstOrDefault();
                 if (fallbackPlayerId != 0 && Session.TrySetCurrentPlayer(fallbackPlayerId))
                 {
@@ -289,9 +289,9 @@ internal static class LocalMultiControlRuntime
         bool combatUiRefreshSucceeded = RefreshCombatUiForControlledPlayer(currentControlledPlayerId.Value);
         if (CombatManager.Instance.IsInProgress && !combatUiRefreshSucceeded)
         {
-            // 风险点：若 LocalContext 已切换但战斗UI刷新失败，会导致“逻辑 owner 与显示 owner”分离。
-            // 该状态会把后续出牌入队到错误玩家队列，因此这里必须立即回滚上下文。
-            LocalMultiControlLogger.Warn($"控制上下文切换回滚：战斗UI刷新失败，target={currentControlledPlayerId.Value}");
+            // Risk: if LocalContext has already switched but the combat UI refresh fails, the "logical owner" and "displayed owner" become separated.
+            // That state would enqueue subsequent card plays to the wrong player's queue, so we must roll back the context immediately here.
+            LocalMultiControlLogger.Warn($"Control context switch rolled back: combat UI refresh failed, target={currentControlledPlayerId.Value}");
             LocalContext.NetId = previousNetId;
             if (previousNetId.HasValue)
             {
@@ -308,7 +308,7 @@ internal static class LocalMultiControlRuntime
         RefreshEventRoomForControlledPlayer(currentControlledPlayerId.Value);
         LocalMerchantInventoryRuntime.RefreshShopRoomForPlayer(currentControlledPlayerId.Value);
         EnsureTreasureCursorVisibleAfterSwitch(source);
-        LocalMultiControlLogger.Info($"控制上下文已更新: {previousNetId?.ToString() ?? "null"} -> {currentControlledPlayerId.Value}, source={source}");
+        LocalMultiControlLogger.Info($"Control context updated: {previousNetId?.ToString() ?? "null"} -> {currentControlledPlayerId.Value}, source={source}");
         if (source != "run-launched")
         {
             string slotLabel = LocalSelfCoopContext.GetSlotLabel(currentControlledPlayerId.Value);
@@ -353,7 +353,7 @@ internal static class LocalMultiControlRuntime
         LocalSelfCoopContext.NetService?.SetCurrentSenderId(playerId);
         SyncRunSynchronizerLocalPlayerId(playerId);
         LocalMultiControlLogger.Warn(
-            $"检测到手动出牌上下文漂移，已强制校正: {previousNetId?.ToString() ?? "null"} -> {playerId}, source={source}");
+            $"Detected manual card-play context drift, forcibly corrected: {previousNetId?.ToString() ?? "null"} -> {playerId}, source={source}");
     }
 
     private static void TrySetLocalPlayerId(object? target, ulong playerId, string componentName)
@@ -372,7 +372,7 @@ internal static class LocalMultiControlRuntime
             string key = $"{componentName}:{target.GetType().Name}";
             if (_fieldSyncFailures.Add(key))
             {
-                LocalMultiControlLogger.Warn($"同步 {key} 的 _localPlayerId 失败: {exception.Message}");
+                LocalMultiControlLogger.Warn($"Failed to sync _localPlayerId for {key}: {exception.Message}");
             }
         }
     }
@@ -394,17 +394,17 @@ internal static class LocalMultiControlRuntime
         if (!matchedManualEndTurn && Session.CurrentControlledPlayerId != endedPlayerId)
         {
             LocalMultiControlLogger.Info(
-                $"跳过结束回合后自动切人：ended={endedPlayerId}, controlled={Session.CurrentControlledPlayerId?.ToString() ?? "null"}, manualMatched={matchedManualEndTurn}");
+                $"Skipping auto-switch after end turn: ended={endedPlayerId}, controlled={Session.CurrentControlledPlayerId?.ToString() ?? "null"}, manualMatched={matchedManualEndTurn}");
             return;
         }
 
         if (CombatManager.Instance.AllPlayersReadyToEndTurn())
         {
-            LocalMultiControlLogger.Info("所有角色均已结束回合，跳过自动切换，等待敌方回合推进。");
+            LocalMultiControlLogger.Info("All players have ended their turn; skipping auto-switch and waiting for the enemy turn to proceed.");
             return;
         }
 
-        LocalMultiControlLogger.Info($"检测到角色 {endedPlayerId} 结束回合，自动切换到下一位。");
+        LocalMultiControlLogger.Info($"Detected player {endedPlayerId} ending their turn; automatically switching to the next player.");
         Callable.From(delegate
         {
             if (TrySwitchToNextPlayablePlayer(endedPlayerId, "auto-end-turn-next-playable"))
@@ -426,31 +426,31 @@ internal static class LocalMultiControlRuntime
         NCombatUi? combatUi = NCombatRoom.Instance?.Ui;
         if (combatUi == null)
         {
-            LocalMultiControlLogger.Info($"忽略切换请求({source})：战斗UI未就绪。");
+            LocalMultiControlLogger.Info($"Ignoring switch request ({source}): combat UI not ready.");
             return false;
         }
 
         NPlayerHand hand = combatUi.Hand;
         if (hand.InCardPlay || hand.IsInCardSelection || (NTargetManager.Instance?.IsInSelection ?? false))
         {
-            // 风险点：在拖牌、目标选择、选牌UI过程中切换，会把 NCardPlay/选择上下文中途打断，
-            // 容易触发 NMouseCardPlay._ExitTree 空引用，以及动作队列进入 cancel-all 状态。
-            LocalMultiControlLogger.Info($"忽略切换请求({source})：当前存在进行中的出牌/选牌操作。");
+            // Risk: switching during card dragging, target selection, or card selection UI would interrupt the NCardPlay/selection context mid-flight,
+            // which easily triggers an NMouseCardPlay._ExitTree null reference and puts the action queue into a cancel-all state.
+            LocalMultiControlLogger.Info($"Ignoring switch request ({source}): a card-play/card-selection operation is currently in progress.");
             return false;
         }
 
         ActionSynchronizerCombatState combatSyncState = RunManager.Instance.ActionQueueSynchronizer.CombatState;
         if (combatSyncState != ActionSynchronizerCombatState.PlayPhase)
         {
-            // 风险点：非 PlayPhase 期间切换 owner，动作会被延迟/拒绝入队，造成“按牌无反应”。
-            LocalMultiControlLogger.Info($"忽略切换请求({source})：战斗同步阶段={combatSyncState}。");
+            // Risk: switching owner outside of PlayPhase causes actions to be delayed/rejected from the queue, resulting in "card presses doing nothing".
+            LocalMultiControlLogger.Info($"Ignoring switch request ({source}): combat sync phase={combatSyncState}.");
             return false;
         }
 
         CombatState? combatState = TryGetCombatState(combatUi);
         if (combatState == null || combatState.CurrentSide != CombatSide.Player)
         {
-            LocalMultiControlLogger.Info($"忽略切换请求({source})：当前不在玩家出牌阶段。");
+            LocalMultiControlLogger.Info($"Ignoring switch request ({source}): not currently in the player's card-play phase.");
             return false;
         }
 
@@ -474,8 +474,8 @@ internal static class LocalMultiControlRuntime
         List<ulong> combatPlayerIds = combatState.Players.Select((player) => player.NetId).Distinct().ToList();
         if (combatPlayerIds.Count < 2)
         {
-            // 风险点：当前实现只保证“双角色本地多控”，人数异常时继续切换会引入不可预期 owner 绑定。
-            LocalMultiControlLogger.Warn($"战斗角色切换需要至少2名玩家，当前数量={combatPlayerIds.Count}");
+            // Risk: the current implementation only guarantees "two-player local multi-control"; continuing to switch with an unexpected player count could cause unpredictable owner binding.
+            LocalMultiControlLogger.Warn($"Combat player switch requires at least 2 players, current count={combatPlayerIds.Count}");
             return false;
         }
 
@@ -555,7 +555,7 @@ internal static class LocalMultiControlRuntime
             }
 
             ApplyControlContext(source);
-            LocalMultiControlLogger.Info($"结束回合后已切换到下一个可出牌角色: {currentPlayerId} -> {targetPlayerId}");
+            LocalMultiControlLogger.Info($"Switched to the next player who can play cards after ending turn: {currentPlayerId} -> {targetPlayerId}");
             return true;
         }
 
@@ -619,7 +619,7 @@ internal static class LocalMultiControlRuntime
         Player? player = combatState.GetPlayer(playerId);
         if (player == null)
         {
-            LocalMultiControlLogger.Warn($"刷新战斗UI失败：未找到玩家 {playerId}");
+            LocalMultiControlLogger.Warn($"Failed to refresh combat UI: player {playerId} not found");
             return false;
         }
 
@@ -628,8 +628,8 @@ internal static class LocalMultiControlRuntime
             NPlayerHand hand = combatUi.Hand;
             if (hand.InCardPlay || hand.IsInCardSelection || (NTargetManager.Instance?.IsInSelection ?? false))
             {
-                // 风险点：此时重建手牌容器会销毁仍在生命周期中的 holder/cardplay 节点。
-                LocalMultiControlLogger.Info($"战斗UI刷新延后：当前有进行中的出牌/选牌操作，player={playerId}");
+                // Risk: rebuilding the hand container at this point would destroy holder/cardplay nodes still in their lifecycle.
+                LocalMultiControlLogger.Info($"Combat UI refresh deferred: a card-play/card-selection operation is currently in progress, player={playerId}");
                 return false;
             }
 
@@ -653,8 +653,8 @@ internal static class LocalMultiControlRuntime
                 }
                 catch
                 {
-                    // 防御性兜底：历史日志中该处出现过节点生命周期竞争（已释放对象被二次访问）。
-                    // 这里保留最小破坏的强制移除路径，后续请谨慎改动该分支。
+                    // Defensive fallback: past logs have shown a node lifecycle race here (an already-freed object accessed a second time).
+                    // Keep this minimally destructive forced-removal path; change this branch with caution going forward.
                     holder.GetParent()?.RemoveChild(holder);
                     holder.QueueFreeSafely();
                 }
@@ -672,12 +672,12 @@ internal static class LocalMultiControlRuntime
             hand.ForceRefreshCardIndices();
             RefreshCombatEnergyUi(combatUi, player);
             ReevaluateEndTurnButtonState(combatUi, combatState, player);
-            LocalMultiControlLogger.Info($"战斗UI已刷新到当前角色 {playerId}，手牌数量={handPile.Cards.Count}");
+            LocalMultiControlLogger.Info($"Combat UI refreshed to current player {playerId}, hand card count={handPile.Cards.Count}");
             return true;
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"刷新战斗UI失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Failed to refresh combat UI: {exception.Message}");
             return false;
         }
     }
@@ -765,14 +765,14 @@ internal static class LocalMultiControlRuntime
 
             NPotionContainerPatch.TryBindPotionContainerToPlayer(runNode.GlobalUi.TopBar.PotionContainer, runState, playerId);
 
-            // 注意：遗物刷新必须先清理旧节点再重建，避免切人后叠层。
+            // Note: relic refresh must clean up old nodes before rebuilding, to avoid stacked layers after switching players.
             NRelicInventoryPatch.TryRebuildRelicInventoryToPlayer(runNode.GlobalUi.RelicInventory, runState, playerId);
             AccessTools.Method(typeof(MegaCrit.Sts2.Core.Nodes.Relics.NRelicInventory), "UpdateNavigation")
                 ?.Invoke(runNode.GlobalUi.RelicInventory, Array.Empty<object>());
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"刷新顶部栏失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Failed to refresh top bar: {exception.Message}");
         }
     }
 
@@ -800,11 +800,11 @@ internal static class LocalMultiControlRuntime
         try
         {
             RefreshCombatEnergyUi(combatUi, player);
-            LocalMultiControlLogger.Info($"入战能量显示已刷新: player={playerId}, source={source}");
+            LocalMultiControlLogger.Info($"Combat-entry energy display refreshed: player={playerId}, source={source}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"入战能量显示刷新失败: player={playerId}, source={source}, error={exception.Message}");
+            LocalMultiControlLogger.Warn($"Combat-entry energy display refresh failed: player={playerId}, source={source}, error={exception.Message}");
         }
     }
 
@@ -832,7 +832,7 @@ internal static class LocalMultiControlRuntime
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"战斗前药水栏刷新失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Pre-combat potion bar refresh failed: {exception.Message}");
         }
 
         try
@@ -841,18 +841,18 @@ internal static class LocalMultiControlRuntime
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"战斗前遗物栏刷新失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Pre-combat relic bar refresh failed: {exception.Message}");
         }
 
         if (!potionRefreshed && !relicRefreshed)
         {
-            LocalMultiControlLogger.Warn($"战斗前顶部栏刷新未生效: source={source}");
+            LocalMultiControlLogger.Warn($"Pre-combat top bar refresh had no effect: source={source}");
             return;
         }
 
         AccessTools.Method(typeof(NTopBar), "UpdateNavigation")?.Invoke(runNode.GlobalUi.TopBar, Array.Empty<object>());
         AccessTools.Method(typeof(MegaCrit.Sts2.Core.Nodes.Relics.NRelicInventory), "UpdateNavigation")?.Invoke(runNode.GlobalUi.RelicInventory, Array.Empty<object>());
-        LocalMultiControlLogger.Info($"战斗前顶部栏刷新完成: source={source}, potion={potionRefreshed}, relic={relicRefreshed}");
+        LocalMultiControlLogger.Info($"Pre-combat top bar refresh complete: source={source}, potion={potionRefreshed}, relic={relicRefreshed}");
     }
 
     private static void RefreshTopBarDeck(NTopBarDeckButton deckButton, Player player)
@@ -909,11 +909,11 @@ internal static class LocalMultiControlRuntime
                 AccessTools.Method(typeof(NDeckViewScreen), "DisplayCards")?.Invoke(deckView, Array.Empty<object>());
             }
 
-            LocalMultiControlLogger.Info($"卡组界面已切换到当前角色: {playerId}");
+            LocalMultiControlLogger.Info($"Deck view screen switched to current player: {playerId}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"刷新卡组界面失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Failed to refresh deck view screen: {exception.Message}");
         }
     }
 
@@ -931,11 +931,11 @@ internal static class LocalMultiControlRuntime
             AccessTools.Field(typeof(NRestSiteRoom), "_lastFocused")?.SetValue(restSiteRoom, null);
             AccessTools.Method(typeof(NRestSiteRoom), "UpdateRestSiteOptions")?.Invoke(restSiteRoom, null);
             RestSiteUiRefreshUtil.EnsureChoicesVisibleForLocalPlayer(restSiteRoom, $"runtime-switch-{playerId}");
-            LocalMultiControlLogger.Info($"休息区UI已刷新到当前角色: {playerId}");
+            LocalMultiControlLogger.Info($"Rest site UI refreshed to current player: {playerId}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"刷新休息区UI失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Failed to refresh rest site UI: {exception.Message}");
         }
     }
 
@@ -981,16 +981,16 @@ internal static class LocalMultiControlRuntime
             NEventRoom? refreshedRoom = NEventRoom.Create(targetEvent, runState, isPreFinished);
             if (refreshedRoom == null)
             {
-                LocalMultiControlLogger.Warn($"重建事件房间失败：Create 返回 null，player={playerId}");
+                LocalMultiControlLogger.Warn($"Failed to rebuild event room: Create returned null, player={playerId}");
                 return;
             }
 
             NRun.Instance?.SetCurrentRoom(refreshedRoom);
-            LocalMultiControlLogger.Info($"非共享事件房间已按当前角色重建: player={playerId}, event={targetEvent.Id.Entry}");
+            LocalMultiControlLogger.Info($"Non-shared event room rebuilt for the current player: player={playerId}, event={targetEvent.Id.Entry}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"切换非共享事件视图失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Failed to switch non-shared event view: {exception.Message}");
         }
     }
 
@@ -1071,7 +1071,7 @@ internal static class LocalMultiControlRuntime
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"刷新回合结束按钮状态失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Failed to refresh end-turn button state: {exception.Message}");
         }
     }
 
@@ -1089,11 +1089,11 @@ internal static class LocalMultiControlRuntime
             {
                 Input.MouseMode = Input.MouseModeEnum.Visible;
             }).CallDeferred();
-            LocalMultiControlLogger.Info($"宝箱切人后已强制恢复鼠标可见: source={source}");
+            LocalMultiControlLogger.Info($"Forced mouse cursor visible after treasure room player switch: source={source}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"宝箱切人后恢复鼠标失败: source={source}, error={exception.Message}");
+            LocalMultiControlLogger.Warn($"Failed to restore mouse cursor after treasure room player switch: source={source}, error={exception.Message}");
         }
     }
 

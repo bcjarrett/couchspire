@@ -7,7 +7,7 @@ code; two were already resolved by earlier redesigns.
 ## Open — needs reporter logs / repro
 
 ### A. Black screen + hard lock in the room after a rest site (Workshop, 2026-08-26, v0.111)
-Reporter: 萧统. No log yet. The mod's rest-site option flow (RestSitePatch) traces clean;
+Reporter: Xiao Tong. No log yet. The mod's rest-site option flow (RestSitePatch) traces clean;
 suspects are the next-room transition (map vote → room build) or an event room rebuild.
 Ask for `%APPDATA%/SlayTheSpire2/logs/godot.log` and whether it happens at every campfire.
 
@@ -20,7 +20,7 @@ Static trace of the whole pipeline finds every known hole already patched:
 - `GameActionPlayerChoiceContext/HookPlayerChoiceContext.SignalPlayerChoiceEnded` → resume forced unconditionally
 - Host-side `RequestResumeActionAfterPlayerChoice` → resumes with no owner validation
 So the failure is somewhere runtime-only; UsePotionActionWatchdogPatch should log
-"药水动作等待选择超过2000ms" if the action stalls. Need the reporter's log. Also verify
+"Potion action waited for selection over 2000ms" if the action stalls. Need the reporter's log. Also verify
 where the selected card lands (it goes to the TARGET's hand, which is backgrounded —
 could read as "no effect" if the user doesn't switch).
 

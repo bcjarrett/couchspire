@@ -8,7 +8,7 @@ using MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby;
 namespace LocalMultiControl.Scripts.Patch;
 
 /// <summary>
-/// 兼容 0.103.2：开局入口已改为 BeginRunForAllPlayers，具体本地开局流程由 BeginRunLocally 负责。
+/// Compatibility for 0.103.2: the run-start entry point has changed to BeginRunForAllPlayers; the actual local start flow is handled by BeginRunLocally.
 /// </summary>
 [HarmonyPatch(typeof(StartRunLobby), "BeginRunForAllPlayers")]
 internal static class StartRunLobbyPatch
@@ -21,7 +21,7 @@ internal static class StartRunLobbyPatch
             return true;
         }
 
-        LocalMultiControlLogger.Info("检测到本地回环 Lobby 开始开局，接管 BeginRunForAllPlayers 逻辑。");
+        LocalMultiControlLogger.Info("Detected the local loopback lobby starting a run; taking over the BeginRunForAllPlayers logic.");
 
         MethodInfo? updatePreferredAscensionMethod = AccessTools.Method(typeof(StartRunLobby), "UpdatePreferredAscension");
         updatePreferredAscensionMethod?.Invoke(__instance, Array.Empty<object>());
@@ -42,7 +42,7 @@ internal static class StartRunLobbyPatch
         }
 
         beginRunLocallyMethod.Invoke(__instance, new object[] { seed, modifiers });
-        LocalMultiControlLogger.Info($"本地回环 Lobby 开局流程完成，玩家数={__instance.Players.Count}，seed={seed}");
+        LocalMultiControlLogger.Info($"Local loopback lobby run-start flow complete, player count={__instance.Players.Count}, seed={seed}");
         return false;
     }
 }

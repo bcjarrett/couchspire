@@ -153,7 +153,7 @@ All paths are relative to the repo root. `src/` is the decompiled game source: r
 - **Timeouts** dump the overlay stack, current room, driver, action queue state, and both players' pending choices and panels, then save one diagnostic screenshot.
 - **Log watch** (`CouchTestLogWatch`) subscribes to `Log.LogCallback` for each scenario.
   - Any `Error` fails the scenario, and so does any mod line matching a failure pattern. The pattern list lives in one file, with an allowlist for known-benign lines. Start from:
-    - `超过2000ms` (`UsePotionActionWatchdogPatch.cs:31`).
+    - `over 2000ms` (`UsePotionActionWatchdogPatch.cs:31`).
     - `Flow-block watchdog` (`LocalMultiControlRuntime.cs:1042`).
     - Rollback lines (`LocalMultiControlRuntime.cs:294`, `CouchInputRouter.cs:210`).
     - Swallowed exceptions (`ActionQueueFailSafePatch.cs:32,105`).

@@ -39,7 +39,7 @@ internal static class CardSelectManualConfirmationPatch
         prefs = patchedPrefs;
 
         LocalMultiControlLogger.Info(
-            $"本地多控下强制牌组选牌弹出背包: source={source}, min={prefs.MinSelect}, max={prefs.MaxSelect}");
+            $"Local multi-control forces deck card selection to pop up the inventory: source={source}, min={prefs.MinSelect}, max={prefs.MaxSelect}");
     }
 
     [HarmonyPatch(typeof(CardSelectCmd), nameof(CardSelectCmd.FromDeckForUpgrade), new[] { typeof(Player), typeof(CardSelectorPrefs) })]

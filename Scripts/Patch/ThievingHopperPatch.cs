@@ -30,6 +30,6 @@ internal static class ThievingHopperPatch
 
         selectedTarget ??= targets.FirstOrDefault((creature) => creature.IsAlive) ?? targets[0];
         targets = new List<Creature> { selectedTarget };
-        LocalMultiControlLogger.Info($"蝗虫偷牌目标已收敛为单角色: target={selectedTarget.Player?.NetId ?? selectedTarget.PetOwner?.NetId ?? 0UL}");
+        LocalMultiControlLogger.Info($"Thieving Hopper card-steal target narrowed to a single player: target={selectedTarget.Player?.NetId ?? selectedTarget.PetOwner?.NetId ?? 0UL}");
     }
 }

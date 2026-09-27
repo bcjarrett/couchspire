@@ -28,7 +28,7 @@ internal static class NRelicInventoryPatch
         NRelicInventoryHolder? holder = relicNodes?.FirstOrDefault((node) => node.Relic.Model == relic);
         if (holder == null)
         {
-            LocalMultiControlLogger.Warn($"跳过遗物动画：当前视图不存在遗物 {relic.Id.Entry}");
+            LocalMultiControlLogger.Warn($"Skipping relic animation: relic {relic.Id.Entry} does not exist in the current view");
             return false;
         }
 
@@ -77,7 +77,7 @@ internal static class NRelicInventoryPatch
             addMethod.Invoke(relicInventory, new object[] { relic, true, -1 });
         }
 
-        LocalMultiControlLogger.Info($"遗物栏已重建到目标玩家: player={targetPlayer.NetId}, count={targetPlayer.Relics.Count}");
+        LocalMultiControlLogger.Info($"Relic bar rebuilt for the target player: player={targetPlayer.NetId}, count={targetPlayer.Relics.Count}");
         return true;
     }
 }

@@ -72,7 +72,7 @@ internal static class TreasureRoomRelicSynchronizerPatch
             int selectedIndex = index.Value;
             if (selectedIndex < 0 || selectedIndex >= currentRelics.Count)
             {
-                LocalMultiControlLogger.Warn($"宝箱投票索引越界，已忽略: index={selectedIndex}, relicCount={currentRelics.Count}");
+                LocalMultiControlLogger.Warn($"Treasure room vote index out of range; ignored: index={selectedIndex}, relicCount={currentRelics.Count}");
                 return false;
             }
 
@@ -93,12 +93,12 @@ internal static class TreasureRoomRelicSynchronizerPatch
             SkipAutoSwitchOnce.Add(__instance);
             RemoveOverflowPlan(__instance);
             LocalMultiControlLogger.Info(
-                $"宝箱5人以上快速结算：player={player.NetId}, relic={selectedRelic.Id.Entry}，已按结算结果发放并结束房间。");
+                $"Treasure room fast resolution for 5+ players: player={player.NetId}, relic={selectedRelic.Id.Entry}, awarded per the resolution result and ended the room.");
             return false;
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"宝箱溢出投票接管失败，回退原流程: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Treasure room overflow vote takeover failed; falling back to the original flow: {exception.Message}");
             RemoveOverflowPlan(__instance);
             return true;
         }
@@ -224,12 +224,12 @@ internal static class TreasureRoomRelicSynchronizerPatch
                 LocalMultiControlRuntime.SwitchControlledPlayerTo(nextPlayerId, source);
             }).CallDeferred();
 
-            LocalMultiControlLogger.Info($"宝箱选择完成后自动切换到下一位未选角色: {currentPlayerId} -> {nextPlayerId}");
+            LocalMultiControlLogger.Info($"Treasure room auto-switched to the next unselected player after selection completed: {currentPlayerId} -> {nextPlayerId}");
             return true;
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"宝箱自动切换未选角色失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Treasure room auto-switch to an unselected player failed: {exception.Message}");
             return false;
         }
     }
@@ -272,7 +272,7 @@ internal static class TreasureRoomRelicSynchronizerBeginPatch
                 }
 
                 TreasureRoomRelicSynchronizerPatch.RemoveOverflowPlan(__instance);
-                LocalMultiControlLogger.Info("宝箱已禁用自动代投，改为逐角色手动选择。");
+                LocalMultiControlLogger.Info("Treasure room disabled auto-vote-on-behalf; switched to per-player manual selection.");
                 return;
             }
 
@@ -293,11 +293,11 @@ internal static class TreasureRoomRelicSynchronizerBeginPatch
             }
 
             TreasureRoomRelicSynchronizerPatch.SetOverflowPlan(__instance, plan);
-            LocalMultiControlLogger.Info($"宝箱5人以上特判已启用：仅1号位参与事件，其余{plan.Followers.Count}人将直接复制1号位遗物。");
+            LocalMultiControlLogger.Info($"Treasure room special-case for 5+ players enabled: only slot 1 participates in the event, the other {plan.Followers.Count} players will directly copy slot 1's relic.");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"禁用宝箱自动代投失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Failed to disable treasure room auto-vote-on-behalf: {exception.Message}");
         }
     }
 }

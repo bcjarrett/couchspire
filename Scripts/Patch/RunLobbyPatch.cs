@@ -17,7 +17,7 @@ internal static class RunLobbyPatch
             return true;
         }
 
-        LocalMultiControlLogger.Info("本地多控接管 RunLobby.AbandonRun，直接执行整局放弃流程。");
+        LocalMultiControlLogger.Info("Local multi-control taking over RunLobby.AbandonRun, executing the full run-abandon flow directly.");
         ((IRunLobbyListener)RunManager.Instance).RunAbandoned();
         return false;
     }

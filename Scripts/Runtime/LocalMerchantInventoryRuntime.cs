@@ -49,7 +49,7 @@ internal static class LocalMerchantInventoryRuntime
         {
             inventory = BuildDualPoolInventory(player);
             perPlayer[player.NetId] = inventory;
-            LocalMultiControlLogger.Info($"已生成角色专属商店库存: player={player.NetId}");
+            LocalMultiControlLogger.Info($"Generated player-specific shop inventory: player={player.NetId}");
         }
 
         return inventory;
@@ -67,7 +67,7 @@ internal static class LocalMerchantInventoryRuntime
         if (playerSlotIndex < 0 || playerSlotIndex >= room.Inventories.Count)
         {
             LocalMultiControlLogger.Warn(
-                $"商店库存绑定失败：角色槽位越界。player={player.NetId}, slot={playerSlotIndex}, inventoryCount={room.Inventories.Count}");
+                $"Shop inventory binding failed: player slot index out of range. player={player.NetId}, slot={playerSlotIndex}, inventoryCount={room.Inventories.Count}");
             return;
         }
 
@@ -104,7 +104,7 @@ internal static class LocalMerchantInventoryRuntime
         }
 
         NRun.Instance?.SetCurrentRoom(refreshedRoomNode);
-        LocalMultiControlLogger.Info($"商店界面已切换到当前角色库存: player={playerId}");
+        LocalMultiControlLogger.Info($"Shop UI switched to the current player's inventory: player={playerId}");
     }
 
     private static MerchantInventory BuildDualPoolInventory(Player player)
@@ -179,6 +179,6 @@ internal static class LocalMerchantInventoryRuntime
     private static T GetField<T>(MerchantInventory inventory, string fieldName)
     {
         return (T)(AccessTools.Field(typeof(MerchantInventory), fieldName)?.GetValue(inventory)
-            ?? throw new InvalidOperationException($"无法读取商店字段: {fieldName}"));
+            ?? throw new InvalidOperationException($"Unable to read shop field: {fieldName}"));
     }
 }

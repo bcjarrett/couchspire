@@ -42,7 +42,7 @@ internal static class CrystalSpherePaymentPlanPatch
             }
 
             LocalMultiControlLogger.Info(
-                $"水晶球事件债务卡已同步加入其余角色: owner={owner.NetId}, mirrored={string.Join(",", otherPlayers.Select((player) => player.NetId))}");
+                $"Crystal Sphere event debt card has been synced to the other players: owner={owner.NetId}, mirrored={string.Join(",", otherPlayers.Select((player) => player.NetId))}");
         }
         finally
         {

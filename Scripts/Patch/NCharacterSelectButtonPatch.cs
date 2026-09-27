@@ -39,12 +39,12 @@ internal static class NCharacterSelectButtonSelectPatch
             LocalSelfCoopContext.EnsureLobbySenderContext("character-button-reselect");
             selectDelegate.SelectCharacter(button, button.Character);
             AccessTools.Method(typeof(NCharacterSelectButton), "RefreshState")?.Invoke(button, Array.Empty<object>());
-            LocalMultiControlLogger.Info($"允许重复选角重新提交流程: character={button.Character.Id.Entry}");
+            LocalMultiControlLogger.Info($"Allowing re-selecting the same character to resubmit the flow: character={button.Character.Id.Entry}");
             return true;
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"重复选角补丁执行失败，回退原逻辑: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Repeat character-selection patch failed; falling back to original logic: {exception.Message}");
             return false;
         }
     }
@@ -82,15 +82,15 @@ internal static class NCharacterSelectButtonOnPressPatch
                 return;
             }
 
-            // 处理“已聚焦按钮重复点击不触发Select”的情况。
+            // Handle the case where "clicking an already-focused button repeatedly does not trigger Select".
             LocalSelfCoopContext.EnsureLobbySenderContext("character-button-on-press-reselect");
             selectDelegate.SelectCharacter(__instance, __instance.Character);
             AccessTools.Method(typeof(NCharacterSelectButton), "RefreshState")?.Invoke(__instance, Array.Empty<object>());
-            LocalMultiControlLogger.Info($"允许重复点击已选角色: character={__instance.Character.Id.Entry}");
+            LocalMultiControlLogger.Info($"Allowing repeated clicks on an already-selected character: character={__instance.Character.Id.Entry}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"重复点击选角补丁执行失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Repeat-click character-selection patch failed: {exception.Message}");
         }
     }
 }

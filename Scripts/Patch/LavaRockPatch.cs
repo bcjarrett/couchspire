@@ -61,7 +61,7 @@ internal static class LavaRockPatch
 
         __result = true;
         LocalMultiControlLogger.Info(
-            $"本地多控已按角色熔岩石触发首领额外遗物: rewardPlayer={player.NetId}, added={extraRelicCount}");
+            $"Local multi-control triggered the boss's extra relic per player for Lava Rock: rewardPlayer={player.NetId}, added={extraRelicCount}");
         return false;
     }
 }

@@ -36,7 +36,7 @@ internal static class CardSelectCmdPatch
             return true;
         }
 
-        // 本地多控下所有本地角色均按“本地手选”处理，避免事件删牌/变牌落入远端等待后随机或卡住。
+        // Under local multi-control, all local players are treated as "local manual selection" to avoid event card removal/transformation falling into remote-wait-then-random-or-stuck behavior.
         __result = RunManager.Instance.NetService.Type != NetGameType.Replay;
         return false;
     }
@@ -62,7 +62,7 @@ internal static class CardSelectCmdPatch
 
         if (!__result)
         {
-            LocalMultiControlLogger.Info($"牌组选牌已强制本地手选: player={player.NetId}");
+            LocalMultiControlLogger.Info($"Deck card selection forced to local manual selection: player={player.NetId}");
         }
 
         __result = true;

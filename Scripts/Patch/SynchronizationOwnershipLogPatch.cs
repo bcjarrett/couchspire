@@ -11,41 +11,41 @@ internal static class SynchronizationOwnershipLogPatch
     [HarmonyPatch(typeof(RewardSynchronizer), nameof(RewardSynchronizer.SyncLocalObtainedCard))]
     private static void PostfixRewardCard(RewardSynchronizer __instance)
     {
-        LogOwnership(__instance, "奖励-拿牌");
+        LogOwnership(__instance, "Reward-ObtainCard");
     }
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(RewardSynchronizer), nameof(RewardSynchronizer.SyncLocalObtainedRelic))]
     private static void PostfixRewardRelic(RewardSynchronizer __instance)
     {
-        LogOwnership(__instance, "奖励-拿遗物");
+        LogOwnership(__instance, "Reward-ObtainRelic");
     }
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(RewardSynchronizer), nameof(RewardSynchronizer.SyncLocalObtainedPotion))]
     private static void PostfixRewardPotion(RewardSynchronizer __instance)
     {
-        LogOwnership(__instance, "奖励-拿药水");
+        LogOwnership(__instance, "Reward-ObtainPotion");
     }
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(RewardSynchronizer), nameof(RewardSynchronizer.SyncLocalObtainedGold))]
     private static void PostfixRewardGold(RewardSynchronizer __instance)
     {
-        LogOwnership(__instance, "奖励-拿金币");
+        LogOwnership(__instance, "Reward-ObtainGold");
     }
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(OneOffSynchronizer), nameof(OneOffSynchronizer.DoLocalMerchantCardRemoval))]
     private static void PostfixMerchantRemoval(OneOffSynchronizer __instance)
     {
-        LogOwnership(__instance, "商店-删牌");
+        LogOwnership(__instance, "Shop-RemoveCard");
     }
 
     private static void LogOwnership(object synchronizer, string operation)
     {
         ulong? contextId = LocalContext.NetId;
         object? localId = AccessTools.Field(synchronizer.GetType(), "_localPlayerId")?.GetValue(synchronizer);
-        LocalMultiControl.Scripts.Runtime.LocalMultiControlLogger.Info($"{operation}归属玩家: context={contextId?.ToString() ?? "null"}, syncLocal={localId?.ToString() ?? "null"}");
+        LocalMultiControl.Scripts.Runtime.LocalMultiControlLogger.Info($"{operation} owning player: context={contextId?.ToString() ?? "null"}, syncLocal={localId?.ToString() ?? "null"}");
     }
 }

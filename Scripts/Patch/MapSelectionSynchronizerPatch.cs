@@ -69,17 +69,17 @@ internal static class MapSelectionSynchronizerPatch
                 filledCount++;
             }
 
-            LocalMultiControlLogger.Info($"地图自动跟投: vote={destination}, filled={filledCount}/{sharedCount}");
+            LocalMultiControlLogger.Info($"Map auto-follow vote: vote={destination}, filled={filledCount}/{sharedCount}");
             if (votes.Take(sharedCount).All((vote) => vote.HasValue && vote.Value.mapGenerationCount == __instance.MapGenerationCount) &&
                 netService.Type != NetGameType.Client)
             {
                 AccessTools.Method(typeof(MapSelectionSynchronizer), "MoveToMapCoord")?.Invoke(__instance, Array.Empty<object>());
-                LocalMultiControlLogger.Info("地图自动跟投完成，已触发路线推进。");
+                LocalMultiControlLogger.Info("Map auto-follow vote complete; triggered route progression.");
             }
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Error($"地图自动跟投失败: {exception}");
+            LocalMultiControlLogger.Error($"Map auto-follow vote failed: {exception}");
         }
     }
 }

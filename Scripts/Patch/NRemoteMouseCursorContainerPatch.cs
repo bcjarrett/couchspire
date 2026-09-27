@@ -17,8 +17,8 @@ internal static class NRemoteMouseCursorContainerPatch
             return true;
         }
 
-        // 风险点：本地双人复用同进程时，远端鼠标输入同步会持续驱动 PeerInput 状态变更，
-        // 在切人/节点销毁窗口中容易触发 NRemoteTargetingIndicator 的已释放对象访问。
+        // Risk: when local co-op reuses the same process, remote mouse input sync continuously drives PeerInput state changes,
+        // which easily triggers access to an already-freed NRemoteTargetingIndicator object during the player-switch/node-destruction window.
         return false;
     }
 
@@ -31,8 +31,8 @@ internal static class NRemoteMouseCursorContainerPatch
             return true;
         }
 
-        // 风险点：焦点变化会触发 SyncLocalIsUsingController，进一步驱动远端意图刷新链路。
-        // 本地双人下该链路无业务价值，且会放大战斗切换时的生命周期竞争。
+        // Risk: focus changes trigger SyncLocalIsUsingController, further driving the remote intent refresh chain.
+        // This chain has no business value in local co-op, and it amplifies lifecycle races during combat player switches.
         return false;
     }
 

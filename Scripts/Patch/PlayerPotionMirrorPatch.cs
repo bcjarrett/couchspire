@@ -32,6 +32,6 @@ internal static class PotionManualUseTargetPatch
         }
 
         target = controlledPlayer.Creature;
-        LocalMultiControlLogger.Info($"药水默认目标已跟随当前控制角色: potion={__instance.Id.Entry}, owner={__instance.Owner.NetId}, target={controlledPlayer.NetId}");
+        LocalMultiControlLogger.Info($"Potion default target now follows the currently controlled player: potion={__instance.Id.Entry}, owner={__instance.Owner.NetId}, target={controlledPlayer.NetId}");
     }
 }

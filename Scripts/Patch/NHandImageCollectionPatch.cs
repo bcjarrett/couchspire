@@ -35,8 +35,8 @@ internal static class NHandImageCollectionUpdateVisibilityPatch
             bool hasHandScreen = TryGetScreenType(synchronizer, hand.Player.NetId, out handScreenType);
             if (!hasHandScreen)
             {
-                // 正式版已移除 IsSinglePlayerOrFakeMultiplayer，这里直接回退到本地当前屏幕状态，
-                // 避免宝箱 UI 初始化阶段因缺失远端输入状态而中断整套界面创建。
+                // The release build has removed IsSinglePlayerOrFakeMultiplayer, so fall back directly to the local current screen state here,
+                // to avoid interrupting the whole UI creation because remote input state is missing during treasure room UI initialization.
                 if (!hasLocalScreen)
                 {
                     hand.Visible = false;
@@ -71,7 +71,7 @@ internal static class NHandImageCollectionUpdateVisibilityPatch
         }
         catch (InvalidOperationException exception) when (exception.Message.Contains("PeerInputState for non-existent player"))
         {
-            LocalMultiControlLogger.Warn($"宝箱手势层跳过缺失输入状态玩家: player={playerId}");
+            LocalMultiControlLogger.Warn($"Treasure room gesture layer skipping player with missing input state: player={playerId}");
             screenType = default;
             return false;
         }

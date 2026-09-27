@@ -61,6 +61,6 @@ internal static class ActChangeSynchronizerPatch
         }
 
         LocalMultiControlLogger.Info(
-            $"本地多控自动补齐下一幕就绪: local={localNetId.Value}, mirrored={string.Join(",", pendingPlayers.Select((player) => player.NetId))}");
+            $"Local multi-control auto-filled next-act ready state: local={localNetId.Value}, mirrored={string.Join(",", pendingPlayers.Select((player) => player.NetId))}");
     }
 }

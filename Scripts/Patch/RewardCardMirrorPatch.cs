@@ -55,7 +55,7 @@ internal static class RewardCardMirrorPatch
                 CardModel mirroredCard = otherPlayer.RunState.CreateCard(card, otherPlayer);
                 await CardPileCmd.Add(mirroredCard, PileType.Deck);
                 LocalMultiControlLogger.Info(
-                    $"水晶球事件卡牌奖励同步: source={sourcePlayer.NetId}, target={otherPlayer.NetId}, card={mirroredCard.Id.Entry}");
+                    $"Crystal Sphere event card reward synced: source={sourcePlayer.NetId}, target={otherPlayer.NetId}, card={mirroredCard.Id.Entry}");
             }
         }
         finally

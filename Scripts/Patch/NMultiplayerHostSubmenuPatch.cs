@@ -24,7 +24,7 @@ internal static class NMultiplayerHostSubmenuPatch
         {
             if (__instance.GetNodeOrNull<NSubmenuButton>(LocalSelfCoopButtonName) != null)
             {
-                LocalMultiControlLogger.Info("联机菜单入口已存在，跳过重复注入。");
+                LocalMultiControlLogger.Info("Multiplayer menu entry already exists; skipping duplicate injection.");
                 return;
             }
 
@@ -33,7 +33,7 @@ internal static class NMultiplayerHostSubmenuPatch
             NSubmenuButton? customButton = __instance.GetNodeOrNull<NSubmenuButton>("CustomRunButton");
             if (standardButton == null)
             {
-                LocalMultiControlLogger.Warn("未找到 StandardButton，无法注入本地多角色入口。");
+                LocalMultiControlLogger.Warn("StandardButton not found; cannot inject the local multi-character entry.");
                 return;
             }
 
@@ -50,11 +50,11 @@ internal static class NMultiplayerHostSubmenuPatch
             container.MoveChild(button, targetIndex);
 
             ArrangeFourButtonsHorizontally(standardButton, dailyButton, customButton, button);
-            LocalMultiControlLogger.Info("联机菜单已注入卡片样式入口：单人多角色（四卡并列）。");
+            LocalMultiControlLogger.Info("Multiplayer menu injected a card-style entry: single-player multi-character (four cards side by side).");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Error($"注入“单人多角色”入口失败: {exception}");
+            LocalMultiControlLogger.Error($"Failed to inject the \"single-player multi-character\" entry: {exception}");
         }
     }
 
@@ -64,7 +64,7 @@ internal static class NMultiplayerHostSubmenuPatch
                                                    Node.DuplicateFlags.Scripts |
                                                    Node.DuplicateFlags.UseInstantiation;
         return templateButton.Duplicate((int)duplicateFlags) as NSubmenuButton
-            ?? throw new InvalidOperationException("复制模板按钮失败。");
+            ?? throw new InvalidOperationException("Failed to duplicate the template button.");
     }
 
     private static void EnsureVisualResourcesUnique(NSubmenuButton button)
@@ -131,15 +131,15 @@ internal static class NMultiplayerHostSubmenuPatch
 
     private static void OnLocalSelfCoopPressed(NMultiplayerHostSubmenu submenu)
     {
-        LocalMultiControlLogger.Info("进入单人多角色流程。");
+        LocalMultiControlLogger.Info("Entering the single-player multi-character flow.");
         LocalSelfCoopSaveTag.ClearCurrentProfile();
         SaveManager.Instance.DeleteCurrentMultiplayerRun();
-        LocalMultiControlLogger.Info("已清理历史多人存档，避免旧格式校验干扰。");
+        LocalMultiControlLogger.Info("Cleared historical multiplayer saves to avoid interference from old-format validation.");
 
         NSubmenuStack? stack = GetStack(submenu);
         if (stack == null)
         {
-            LocalMultiControlLogger.Warn("无法打开角色选择：未找到 NSubmenuStack。");
+            LocalMultiControlLogger.Warn("Cannot open character select: NSubmenuStack not found.");
             return;
         }
 
@@ -158,7 +158,7 @@ internal static class NMultiplayerHostSubmenuPatch
 
         stack.Push(characterSelectScreen);
         NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(LocalModText.EnteredLocalSelfCoopHint));
-        LocalMultiControlLogger.Info("已跳转到本地多角色队伍角色选择界面。");
+        LocalMultiControlLogger.Info("Navigated to the local multi-character team's character select screen.");
     }
 
     private static NSubmenuStack? GetStack(NSubmenu submenu)

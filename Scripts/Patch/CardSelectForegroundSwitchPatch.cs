@@ -90,12 +90,12 @@ internal static class CardSelectForegroundSwitchPatch
                 source,
                 round: -1);
             LocalMultiControlLogger.Info(
-                $"战斗选牌切前台已跳过: source={source}, target={player.NetId}, reason={reason}");
+                $"Combat card-selection foreground switch skipped: source={source}, target={player.NetId}, reason={reason}");
             return;
         }
 
         LocalMultiControlLogger.Info(
-            $"检测到战斗选牌请求来自后台角色，准备延迟切换前台进行手选: source={source}, current={currentPlayerId}, target={player.NetId}");
+            $"Detected a combat card-selection request from a backgrounded player; preparing to defer a foreground switch for manual selection: source={source}, current={currentPlayerId}, target={player.NetId}");
         Callable.From(delegate
         {
             if (TryGetRejectReason(out string deferredReason))
@@ -107,7 +107,7 @@ internal static class CardSelectForegroundSwitchPatch
                     source,
                     round: -1);
                 LocalMultiControlLogger.Info(
-                    $"战斗选牌延迟切前台已取消: source={source}, target={player.NetId}, reason={deferredReason}");
+                    $"Combat card-selection deferred foreground switch canceled: source={source}, target={player.NetId}, reason={deferredReason}");
                 return;
             }
 

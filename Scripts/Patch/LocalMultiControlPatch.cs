@@ -18,7 +18,7 @@ internal static class LocalMultiControlPatch
     [HarmonyPatch(typeof(RunManager), nameof(RunManager.CleanUp))]
     private static void PrefixRunManagerCleanUp(bool graceful)
     {
-        LocalMultiControlLogger.Info($"检测到 RunManager.CleanUp(graceful={graceful})，准备清理本地多控会话。");
+        LocalMultiControlLogger.Info($"Detected RunManager.CleanUp(graceful={graceful}), preparing to clean up the local multi-control session.");
     }
 
     [HarmonyPostfix]

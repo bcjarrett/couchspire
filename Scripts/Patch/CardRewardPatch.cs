@@ -44,7 +44,7 @@ internal static class CardRewardPatch
 
         LocalContext.NetId = __instance.Player.NetId;
         loopback.SetCurrentSenderId(__instance.Player.NetId);
-        LocalMultiControlLogger.Info($"卡牌奖励切换到奖励归属角色: player={__instance.Player.NetId}");
+        LocalMultiControlLogger.Info($"Card reward switched to the reward's owning player: player={__instance.Player.NetId}");
     }
 
     [HarmonyPostfix]

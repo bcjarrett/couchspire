@@ -35,7 +35,7 @@ internal static class NEndTurnButtonPatch
         bool handled = LocalMultiControlRuntime.TryManualEndTurnAutoCloseAllPlayers();
         if (handled)
         {
-            LocalMultiControlLogger.Info("回合结束点击已按“全员无牌可出”规则处理，跳过原始结束逻辑。");
+            LocalMultiControlLogger.Info("End-turn click was handled by the \"all players have no playable cards\" rule; skipping the original end-turn logic.");
             return false;
         }
 
@@ -47,7 +47,7 @@ internal static class NEndTurnButtonPatch
 
         if (me != null && CombatManager.Instance.IsPlayerReadyToEndTurn(me))
         {
-            LocalMultiControlLogger.Info($"忽略结束回合回退点击: player={me.NetId}");
+            LocalMultiControlLogger.Info($"Ignoring end-turn back-out click: player={me.NetId}");
             return false;
         }
 

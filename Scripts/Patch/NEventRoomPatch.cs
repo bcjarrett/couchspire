@@ -33,7 +33,7 @@ internal static class NEventRoomPatch
 
         if (NOverlayStack.Instance?.ScreenCount > 0)
         {
-            LocalMultiControlLogger.Info("事件流程已完成，等待奖励/选择弹窗关闭后自动切换角色。");
+            LocalMultiControlLogger.Info("Event flow complete; waiting for the reward/choice popup to close before auto-switching players.");
             return;
         }
 
@@ -75,7 +75,7 @@ internal static class NEventRoomPatch
 
         if (NOverlayStack.Instance?.ScreenCount > 0)
         {
-            LocalMultiControlLogger.Info($"事件已完成，等待弹窗关闭后自动切换到下一位: {eventModel.Owner.NetId} -> {pendingEvent.Owner.NetId}");
+            LocalMultiControlLogger.Info($"Event complete; waiting for the popup to close before auto-switching to the next player: {eventModel.Owner.NetId} -> {pendingEvent.Owner.NetId}");
             return false;
         }
 
@@ -86,7 +86,7 @@ internal static class NEventRoomPatch
                 return;
             }
 
-            LocalMultiControlLogger.Info($"事件自动切换到下一位待选角色: {eventModel.Owner.NetId} -> {pendingEvent.Owner.NetId}");
+            LocalMultiControlLogger.Info($"Event auto-switched to the next player pending selection: {eventModel.Owner.NetId} -> {pendingEvent.Owner.NetId}");
             LocalMultiControlRuntime.SwitchControlledPlayerTo(pendingEvent.Owner.NetId, "event-finished-next-player");
         }).CallDeferred();
         return true;
@@ -99,8 +99,8 @@ internal static class NEventRoomOptionButtonPatch
     [HarmonyPrefix]
     private static bool Prefix(NEventRoom __instance, EventOption option)
     {
-        // 已在实机验证：该拦截用于保证涅奥/非共享事件必须双角色都完成后才可 Proceed。
-        // 这里是开局主流程稳定点，后续若需调整请先做日志回归，避免回归到“仅一人可选”。
+        // Verified in-game: this interception ensures that for Neow/non-shared events both players must finish before Proceed is allowed.
+        // This is a stability-critical point in the early-game flow; if changes are needed later, do a log regression first to avoid regressing to "only one player can choose".
         if (!LocalSelfCoopContext.IsEnabled || !option.IsProceed || !RunManager.Instance.IsInProgress)
         {
             return true;
@@ -137,7 +137,7 @@ internal static class NEventRoomOptionButtonPatch
             return true;
         }
 
-        LocalMultiControlLogger.Info($"检测到另一名角色尚未完成事件，拦截 Proceed 并切换到 player={pendingEvent.Owner.NetId}");
+        LocalMultiControlLogger.Info($"Detected another player has not yet finished the event; intercepted Proceed and switched to player={pendingEvent.Owner.NetId}");
         LocalMultiControlRuntime.SwitchControlledPlayerTo(pendingEvent.Owner.NetId, "event-proceed-next-player");
         return false;
     }

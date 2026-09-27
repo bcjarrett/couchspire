@@ -28,11 +28,11 @@ internal sealed class LocalMultiSessionState
 
     public void InitializeFromRunState(RunState runState)
     {
-        Reset("准备初始化新会话");
+        Reset("Preparing to initialize new session");
 
         if (runState.Players.Count < 2)
         {
-            LocalMultiControlLogger.Info($"本次运行玩家数={runState.Players.Count}，玩家不足2时不启用本地多控会话。");
+            LocalMultiControlLogger.Info($"Player count for this run={runState.Players.Count}; local multi-control session is not enabled when there are fewer than 2 players.");
             return;
         }
 
@@ -62,14 +62,14 @@ internal sealed class LocalMultiSessionState
         _activeIndex = 0;
         IsInitialized = true;
         LocalMultiControlLogger.Info(
-            $"本地多控会话已初始化，玩家列表: {string.Join(",", _orderedPlayerIds)}，当前操控玩家: {_orderedPlayerIds[_activeIndex]}");
+            $"Local multi-control session initialized, player list: {string.Join(",", _orderedPlayerIds)}, currently controlled player: {_orderedPlayerIds[_activeIndex]}");
     }
 
     public void Reset(string reason)
     {
         if (IsInitialized || _orderedPlayerIds.Count > 0)
         {
-            LocalMultiControlLogger.Info($"重置本地多控会话，原因: {reason}");
+            LocalMultiControlLogger.Info($"Resetting local multi-control session, reason: {reason}");
         }
 
         IsInitialized = false;
@@ -79,14 +79,14 @@ internal sealed class LocalMultiSessionState
 
     public bool SwitchNextPlayer()
     {
-        if (!CanSwitch("切换到下一位"))
+        if (!CanSwitch("switch to next player"))
         {
             return false;
         }
 
         int previousIndex = _activeIndex;
         _activeIndex = (_activeIndex + 1) % _orderedPlayerIds.Count;
-        LocalMultiControlLogger.Info($"切换操控角色(下一位): {_orderedPlayerIds[previousIndex]} -> {_orderedPlayerIds[_activeIndex]}");
+        LocalMultiControlLogger.Info($"Switching controlled player (next): {_orderedPlayerIds[previousIndex]} -> {_orderedPlayerIds[_activeIndex]}");
         return true;
     }
 
@@ -100,7 +100,7 @@ internal sealed class LocalMultiSessionState
         int index = _orderedPlayerIds.IndexOf(playerId);
         if (index < 0)
         {
-            LocalMultiControlLogger.Warn($"尝试设置当前操控角色失败：玩家 {playerId} 不在会话中。");
+            LocalMultiControlLogger.Warn($"Failed to set the current controlled player: player {playerId} is not in the session.");
             return false;
         }
 
@@ -111,7 +111,7 @@ internal sealed class LocalMultiSessionState
 
         ulong previousPlayerId = _orderedPlayerIds[_activeIndex];
         _activeIndex = index;
-        LocalMultiControlLogger.Info($"切换操控角色(指定): {previousPlayerId} -> {_orderedPlayerIds[_activeIndex]}");
+        LocalMultiControlLogger.Info($"Switching controlled player (explicit): {previousPlayerId} -> {_orderedPlayerIds[_activeIndex]}");
         return true;
     }
 
@@ -119,13 +119,13 @@ internal sealed class LocalMultiSessionState
     {
         if (!IsInitialized)
         {
-            LocalMultiControlLogger.Warn($"忽略{actionName}，原因: 会话未初始化。");
+            LocalMultiControlLogger.Warn($"Ignoring {actionName}, reason: session not initialized.");
             return false;
         }
 
         if (_orderedPlayerIds.Count < 2)
         {
-            LocalMultiControlLogger.Warn($"忽略{actionName}，原因: 玩家数量不足2。");
+            LocalMultiControlLogger.Warn($"Ignoring {actionName}, reason: fewer than 2 players.");
             return false;
         }
 

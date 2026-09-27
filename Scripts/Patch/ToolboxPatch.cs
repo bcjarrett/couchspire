@@ -29,7 +29,7 @@ internal static class ToolboxPatch
             return true;
         }
 
-        LocalMultiControlLogger.Info($"工具箱自动接管已命中: player={player.NetId}, reason={reason}");
+        LocalMultiControlLogger.Info($"Toolbox auto-takeover triggered: player={player.NetId}, reason={reason}");
         __result = AutoPickFirstCardAsync(__instance, player);
         return false;
     }
@@ -78,7 +78,7 @@ internal static class ToolboxPatch
         if (pickedCard != null)
         {
             await CardPileCmd.AddGeneratedCardToCombat(pickedCard, PileType.Hand, relic.Owner);
-            LocalMultiControlLogger.Info($"工具箱已自动选择首张卡: player={player.NetId}, card={pickedCard.Id.Entry}");
+            LocalMultiControlLogger.Info($"Toolbox auto-picked the first card: player={player.NetId}, card={pickedCard.Id.Entry}");
         }
     }
 }

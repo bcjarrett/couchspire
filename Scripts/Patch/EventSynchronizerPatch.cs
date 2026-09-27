@@ -130,8 +130,8 @@ internal static class EventSynchronizerPatch
                 return;
             }
 
-            // 若共享事件已结算并清空投票（例如最后一票触发了原版结算），这里直接跳过，
-            // 避免再次写票导致重复触发并把控制上下文切乱。
+            // If the shared event has already resolved and cleared the votes (e.g. the last vote triggered the base game's resolution), skip directly here
+            // to avoid writing votes again, which would cause a duplicate trigger and mess up the control context.
             if (!votes.Take(sharedCount).Any((vote) => vote.HasValue))
             {
                 return;
@@ -171,7 +171,7 @@ internal static class EventSynchronizerPatch
                 filledCount++;
             }
 
-            LocalMultiControlLogger.Info($"共享事件自动补齐投票: option={index}, filled={filledCount}/{sharedCount}");
+            LocalMultiControlLogger.Info($"Shared event auto-filled votes: option={index}, filled={filledCount}/{sharedCount}");
             if (votes.Take(sharedCount).All((vote) => vote.HasValue) && netService.Type != NetGameType.Client)
             {
                 TryChooseSharedEventOptionDeferred(synchronizer);
@@ -179,7 +179,7 @@ internal static class EventSynchronizerPatch
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"共享事件自动补票失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Shared event auto vote-fill failed: {exception.Message}");
         }
     }
 
@@ -187,7 +187,7 @@ internal static class EventSynchronizerPatch
     {
         if (_isChoosingSharedEventOption)
         {
-            LocalMultiControlLogger.Warn("共享事件结算已在进行中，跳过重复触发。");
+            LocalMultiControlLogger.Warn("Shared event resolution already in progress; skipping duplicate trigger.");
             return;
         }
 
@@ -197,11 +197,11 @@ internal static class EventSynchronizerPatch
             try
             {
                 AccessTools.Method(typeof(EventSynchronizer), "ChooseSharedEventOption")?.Invoke(synchronizer, Array.Empty<object>());
-                LocalMultiControlLogger.Info("共享事件自动补票完成，已触发结算。");
+                LocalMultiControlLogger.Info("Shared event auto vote-fill complete, triggered resolution.");
             }
             catch (Exception exception)
             {
-                LocalMultiControlLogger.Warn($"共享事件结算触发失败: {exception.Message}");
+                LocalMultiControlLogger.Warn($"Failed to trigger shared event resolution: {exception.Message}");
             }
             finally
             {
@@ -261,9 +261,9 @@ internal static class EventSynchronizerChooseOptionForEventPatch
 
             ulong? driverBefore = LocalContext.NetId;
             LocalMultiControlRuntime.SwitchControlledPlayerTo(player.NetId, "event-shared-serial-execution");
-            LocalMultiControlLogger.Info($"共享事件开始执行角色选项: player={player.NetId}, key={eventOption.TextKey}");
+            LocalMultiControlLogger.Info($"Shared event starting to execute player option: player={player.NetId}, key={eventOption.TextKey}");
             await eventOption.Chosen();
-            LocalMultiControlLogger.Info($"共享事件角色选项执行完成: player={player.NetId}, key={eventOption.TextKey}");
+            LocalMultiControlLogger.Info($"Shared event player option execution complete: player={player.NetId}, key={eventOption.TextKey}");
 
             // Couch simultaneous mode: give the screen back to the driver after running the teammate's part.
             if (CouchConfig.SimultaneousEnabled && driverBefore.HasValue && driverBefore.Value != player.NetId)
@@ -273,7 +273,7 @@ internal static class EventSynchronizerChooseOptionForEventPatch
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"共享事件角色选项执行失败: player={player.NetId}, key={eventOption.TextKey}, error={exception.Message}");
+            LocalMultiControlLogger.Warn($"Shared event player option execution failed: player={player.NetId}, key={eventOption.TextKey}, error={exception.Message}");
         }
         finally
         {

@@ -48,7 +48,7 @@ internal static class NPauseMenuRestartRoomPatch
             NPauseMenuButton? restartRoomButton = saveAndQuitButton.Duplicate((int)duplicateFlags) as NPauseMenuButton;
             if (restartRoomButton == null)
             {
-                LocalMultiControlLogger.Warn("ESC 菜单重启按钮复制失败。");
+                LocalMultiControlLogger.Warn("Failed to duplicate the ESC menu restart button.");
                 return;
             }
 
@@ -63,11 +63,11 @@ internal static class NPauseMenuRestartRoomPatch
             buttonContainer.AddChild(restartRoomButton);
             buttonContainer.MoveChild(restartRoomButton, saveAndQuitButton.GetIndex());
             RefreshFocusNeighbors(buttonContainer);
-            LocalMultiControlLogger.Info("已注入 ESC 重启房间按钮。");
+            LocalMultiControlLogger.Info("Injected the ESC restart room button.");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Error($"注入 ESC 重启房间按钮失败: {exception}");
+            LocalMultiControlLogger.Error($"Failed to inject the ESC restart room button: {exception}");
         }
     }
 
@@ -122,11 +122,11 @@ internal static class NPauseMenuRestartRoomPatch
             LocalSelfCoopSaveTag.MarkCurrentProfile(LocalSelfCoopContext.LocalPlayerIds);
             LocalSelfCoopContext.Disable("pause-restart-room");
 
-            LocalMultiControlLogger.Info("收到 ESC 重启房间请求，准备回到主菜单并快速读档。");
+            LocalMultiControlLogger.Info("Received an ESC restart room request; preparing to return to the main menu and quick-load.");
             NGame? game = NGame.Instance;
             if (game == null)
             {
-                LocalMultiControlLogger.Warn("快速重启失败：NGame.Instance 为空。");
+                LocalMultiControlLogger.Warn("Quick restart failed: NGame.Instance is null.");
                 _isRestarting = false;
                 return;
             }
@@ -141,7 +141,7 @@ internal static class NPauseMenuRestartRoomPatch
         catch (Exception exception)
         {
             _isRestarting = false;
-            LocalMultiControlLogger.Error($"ESC 重启房间失败: {exception}");
+            LocalMultiControlLogger.Error($"ESC restart room failed: {exception}");
         }
         finally
         {

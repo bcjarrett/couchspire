@@ -66,7 +66,7 @@ internal static class PlayerChoiceSynchronizerPatch
 
         LocalContext.NetId = state.PreviousContextNetId;
         state.IsPatched = false;
-        LocalMultiControlLogger.Info($"PlayerChoice sender/context 已恢复: source={source}");
+        LocalMultiControlLogger.Info($"PlayerChoice sender/context restored: source={source}");
     }
 }
 

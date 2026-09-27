@@ -10,7 +10,7 @@ using MegaCrit.Sts2.Core.Rewards;
 namespace LocalMultiControl.Scripts.Patch;
 
 /// <summary>
-/// 在奖励按钮的描述文本前追加角色标签（如"[角色1] "）。
+/// Prepends a player label (e.g. "[Player 1] ") to the reward button's description text.
 /// </summary>
 [HarmonyPatch(typeof(NRewardButton), "Reload")]
 internal static class NRewardButtonLabelPatch

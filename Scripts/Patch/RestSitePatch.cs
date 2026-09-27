@@ -22,7 +22,7 @@ internal static class RestSiteOptionPatch
     [HarmonyPostfix]
     private static void Postfix(ref List<RestSiteOption> __result)
     {
-        // 需求调整：休息区保留原多人联机选项，不再删减。
+        // Requirement change: rest site keeps the original multiplayer options; no longer trimmed.
     }
 }
 
@@ -32,7 +32,7 @@ internal static class HealRestSiteOptionPatch
     [HarmonyPrefix]
     private static bool Prefix(HealRestSiteOption __instance, ref Task<bool> __result)
     {
-        // 需求调整：休息区回血按角色独立结算，不再拦截为全体恢复。
+        // Requirement change: rest site healing resolves independently per player; no longer intercepted as an all-players heal.
         return true;
     }
 }
@@ -68,14 +68,14 @@ internal static class RestSiteSynchronizerChooseLocalOptionPatch
         bool success = await originalTask;
         if (!localPlayerId.HasValue)
         {
-            LocalMultiControlLogger.Warn($"休息区升级切换失败：无法识别当前本地角色，optionIndex={optionIndex}");
+            LocalMultiControlLogger.Warn($"Rest site upgrade switch failed: unable to identify the current local player, optionIndex={optionIndex}");
             return success;
         }
 
         if (!success)
         {
             LocalMultiControlLogger.Warn(
-                $"休息区选项执行失败，不触发自动切人: player={localPlayerId.Value}, optionIndex={optionIndex}, snapshot={DescribeOptions(sourceOptionsSnapshot)}");
+                $"Rest site option execution failed; not triggering auto-switch: player={localPlayerId.Value}, optionIndex={optionIndex}, snapshot={DescribeOptions(sourceOptionsSnapshot)}");
             return success;
         }
 
@@ -88,7 +88,7 @@ internal static class RestSiteSynchronizerChooseLocalOptionPatch
         if (TryFindNextSelectablePlayer(synchronizer, localPlayerId.Value, out ulong nextPlayerId))
         {
             LocalMultiControlLogger.Info(
-                $"休息区选择成功，已排队切换到下一位待选角色（不代选）: {localPlayerId.Value} -> {nextPlayerId}, optionIndex={optionIndex}, snapshot={DescribeOptions(sourceOptionsSnapshot)}");
+                $"Rest site choice succeeded; queued a switch to the next player pending selection (not auto-choosing for them): {localPlayerId.Value} -> {nextPlayerId}, optionIndex={optionIndex}, snapshot={DescribeOptions(sourceOptionsSnapshot)}");
             Callable.From(delegate
             {
                 RestSiteAutoSwitchUtil.SwitchToPlayerAndEnsureOptions(nextPlayerId, "rest-site-next-player-choice");
@@ -97,7 +97,7 @@ internal static class RestSiteSynchronizerChooseLocalOptionPatch
         else
         {
             LocalMultiControlLogger.Info(
-                $"休息区选择完成：所有可选角色都已选择。player={localPlayerId.Value}, optionIndex={optionIndex}");
+                $"Rest site choice complete: all eligible players have chosen. player={localPlayerId.Value}, optionIndex={optionIndex}");
             Callable.From(delegate
             {
                 RestSiteAutoSwitchUtil.ShowAllPlayersSelectedNotice();
@@ -184,7 +184,7 @@ internal static class NRestSiteRoomAfterSelectingOptionPatch
     [HarmonyPostfix]
     private static void Postfix(ref Task __result)
     {
-        // 选择后的自动切人由 RestSiteSynchronizerChooseLocalOptionPatch 统一处理。
+        // Auto-switch after selection is handled centrally by RestSiteSynchronizerChooseLocalOptionPatch.
     }
 }
 
@@ -222,7 +222,7 @@ internal static class NRestSiteRoomHoverGuardPatch
             }
             else
             {
-                LocalMultiControlLogger.Warn($"休息区悬停索引越界，已忽略: player={playerId}, index={hoveredOptionIndex.Value}, options={options.Count}");
+                LocalMultiControlLogger.Warn($"Rest site hover index out of range; ignored: player={playerId}, index={hoveredOptionIndex.Value}, options={options.Count}");
             }
         }
 
@@ -261,7 +261,7 @@ internal static class NRestSiteButtonSelectGuardPatch
         }
 
         RunManager.Instance.RestSiteSynchronizer.LocalOptionHovered(null);
-        LocalMultiControlLogger.Warn("休息区按钮与当前选项列表不一致，已拒绝本次点击并刷新。");
+        LocalMultiControlLogger.Warn("Rest site button does not match the current option list; rejected this click and refreshed.");
         __result = Task.CompletedTask;
         return false;
     }
@@ -345,7 +345,7 @@ internal static class NRestSiteRoomReadyPatch
         if (optionCount > 0 || localOptionCount > 0 || attempt >= 6)
         {
             LocalMultiControlLogger.Info(
-                $"休息区进入后选项检查: attempt={attempt}, options={optionCount}, localOptions={localOptionCount}, switchedToPrimary={switchedToPrimary}");
+                $"Rest site post-entry option check: attempt={attempt}, options={optionCount}, localOptions={localOptionCount}, switchedToPrimary={switchedToPrimary}");
             return;
         }
 
@@ -373,7 +373,7 @@ internal static class RestSiteAutoSwitchUtil
         }
 
         NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(LocalModText.RestSiteAllChosen));
-        LocalMultiControlLogger.Info("休息区提示文本已弹出：所有可选角色都已选择。");
+        LocalMultiControlLogger.Info("Rest site hint text shown: all eligible players have chosen.");
     }
 
     private static void EnsureOptionsAfterSwitch(ulong targetPlayerId, string source, int attempt, bool switched)
@@ -402,14 +402,14 @@ internal static class RestSiteAutoSwitchUtil
         if (targetOptionCount > 0 && localOptionCount > 0)
         {
             LocalMultiControlLogger.Info(
-                $"休息区已自动切换到下一位待选角色并刷新成功: target={targetPlayerId}, attempt={attempt}, targetOptions={targetOptionCount}, localOptions={localOptionCount}");
+                $"Rest site auto-switched to the next player pending selection and refreshed successfully: target={targetPlayerId}, attempt={attempt}, targetOptions={targetOptionCount}, localOptions={localOptionCount}");
             return;
         }
 
         if (attempt >= MaxRefreshAttempts)
         {
             LocalMultiControlLogger.Warn(
-                $"休息区自动切换后仍未恢复选项显示: target={targetPlayerId}, attempts={attempt + 1}, targetOptions={targetOptionCount}, localOptions={localOptionCount}");
+                $"Rest site option display still not restored after auto-switch: target={targetPlayerId}, attempts={attempt + 1}, targetOptions={targetOptionCount}, localOptions={localOptionCount}");
             return;
         }
 
@@ -436,12 +436,12 @@ internal static class RestSiteUiRefreshUtil
             AccessTools.Field(typeof(NRestSiteRoom), "_lastFocused")?.SetValue(room, null);
             AccessTools.Method(typeof(NRestSiteRoom), "UpdateRestSiteOptions")?.Invoke(room, null);
             EnsureChoicesVisibleForLocalPlayer(room, source);
-            LocalMultiControlLogger.Info($"休息区选项已刷新: source={source}, player={LocalContext.NetId?.ToString() ?? "null"}");
+            LocalMultiControlLogger.Info($"Rest site options refreshed: source={source}, player={LocalContext.NetId?.ToString() ?? "null"}");
             return true;
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"休息区选项刷新失败: source={source}, error={exception.Message}");
+            LocalMultiControlLogger.Warn($"Failed to refresh rest site options: source={source}, error={exception.Message}");
             return false;
         }
     }
@@ -470,11 +470,11 @@ internal static class RestSiteUiRefreshUtil
             AccessTools.Method(typeof(NRestSiteRoom), "EnableOptions")?.Invoke(room, null);
             AccessTools.Method(typeof(NRestSiteRoom), "AnimateDescriptionUp")?.Invoke(room, null);
             EnsureControllerFocus(room, source);
-            LocalMultiControlLogger.Info($"休息区选项可见性已恢复: source={source}, options={localOptionCount}");
+            LocalMultiControlLogger.Info($"Rest site option visibility restored: source={source}, options={localOptionCount}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"恢复休息区选项可见性失败: source={source}, error={exception.Message}");
+            LocalMultiControlLogger.Warn($"Failed to restore rest site option visibility: source={source}, error={exception.Message}");
         }
     }
 
@@ -491,16 +491,16 @@ internal static class RestSiteUiRefreshUtil
             Control? focusTarget = FindFirstFocusableRestSiteButton(room) ?? FindFirstFocusableControl(room);
             if (focusTarget == null)
             {
-                LocalMultiControlLogger.Warn($"休息区手柄焦点恢复失败：未找到可聚焦控件。source={source}");
+                LocalMultiControlLogger.Warn($"Rest site controller focus restore failed: no focusable control found. source={source}");
                 return;
             }
 
             focusTarget.GrabFocus();
-            LocalMultiControlLogger.Info($"休息区手柄焦点已恢复: source={source}, target={focusTarget.Name}");
+            LocalMultiControlLogger.Info($"Rest site controller focus restored: source={source}, target={focusTarget.Name}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"恢复休息区手柄焦点失败: source={source}, error={exception.Message}");
+            LocalMultiControlLogger.Warn($"Failed to restore rest site controller focus: source={source}, error={exception.Message}");
         }
     }
 

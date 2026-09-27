@@ -74,7 +74,7 @@ internal static class LoadRunLobbyPatch
         if (ready)
         {
             InvokeBeginRunIfAllPlayersReady(__instance);
-            LocalMultiControlLogger.Info($"本地多控读档自动就绪: players={string.Join(",", localPlayerIdsInRun)}");
+            LocalMultiControlLogger.Info($"Local multi-control save load auto-ready: players={string.Join(",", localPlayerIdsInRun)}");
         }
     }
 
@@ -92,6 +92,6 @@ internal static class LoadRunLobbyPatch
             return;
         }
 
-        LocalMultiControlLogger.Warn("读档自动开局失败：未找到 BeginRunIfAllPlayersReady/BeginRunForAllPlayersIfAllReady。");
+        LocalMultiControlLogger.Warn("Save-load auto-start failed: BeginRunIfAllPlayersReady/BeginRunForAllPlayersIfAllReady not found.");
     }
 }

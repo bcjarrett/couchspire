@@ -30,7 +30,7 @@ internal static class NCardPlayQueueOnActionEnqueuedFailSafePatch
         {
             _lastLogAtMs = now;
             LocalMultiControlLogger.Warn(
-                $"动作队列UI入队触发空引用，已拦截避免阻塞: action={action?.ToString() ?? "null"}, context={LocalContext.NetId?.ToString() ?? "null"}");
+                $"Action queue UI enqueue triggered a null reference, intercepted to avoid blocking: action={action?.ToString() ?? "null"}, context={LocalContext.NetId?.ToString() ?? "null"}");
         }
 
         TryRecoverActionOwnerContext();
@@ -103,7 +103,7 @@ internal static class ActionQueueSynchronizerRequestEnqueueFailSafePatch
         {
             _lastLogAtMs = now;
             LocalMultiControlLogger.Warn(
-                $"RequestEnqueue 空引用已拦截，避免阻塞: action={action?.ToString() ?? "null"}, context={LocalContext.NetId?.ToString() ?? "null"}");
+                $"RequestEnqueue null reference intercepted, avoiding a block: action={action?.ToString() ?? "null"}, context={LocalContext.NetId?.ToString() ?? "null"}");
         }
 
         ulong playerId = LocalContext.NetId ?? LocalSelfCoopContext.PrimaryPlayerId;

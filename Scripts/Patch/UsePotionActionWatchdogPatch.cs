@@ -28,7 +28,7 @@ internal static class UsePotionActionWatchdogPatch
         await Task.Delay(WarnThresholdMs);
         if (!executionTask.IsCompleted)
         {
-            LocalMultiControlLogger.Warn($"药水动作等待选择超过{WarnThresholdMs}ms，可能导致队列阻塞: watchId={watchId}, action={action}");
+            LocalMultiControlLogger.Warn($"Potion action waited for selection over {WarnThresholdMs}ms, which may cause the queue to block: watchId={watchId}, action={action}");
         }
 
         try

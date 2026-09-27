@@ -23,7 +23,7 @@ internal static class NMultiplayerLoadGameScreenPatch
         }
 
         __result = Task.FromResult(true);
-        LocalMultiControlLogger.Info("本地双人读档跳过未到齐弹窗，直接允许继续。");
+        LocalMultiControlLogger.Info("Local co-op save load skips the \"not all players present\" popup and allows continuing directly.");
         return false;
     }
 }

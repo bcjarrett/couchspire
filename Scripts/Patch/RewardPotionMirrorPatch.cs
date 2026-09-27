@@ -26,7 +26,7 @@ internal static class RewardPotionMirrorPatch
             return;
         }
 
-        // 汇总奖励流程中，每个角色已独立生成药水奖励，不需要镜像
+        // In the combat-reward-merge flow, each player has already independently generated their potion reward, so no mirroring is needed
         if (CombatRewardMergeContext.IsActive)
         {
             return;
@@ -71,7 +71,7 @@ internal static class RewardPotionMirrorPatch
                 PotionModel mirroredPotion = PotionModel.FromSerializable(potion.ToSerializable(-1));
                 PotionProcureResult result = await PotionCmd.TryToProcure(mirroredPotion, otherPlayer);
                 LocalMultiControlLogger.Info(
-                    $"战利品药水同步: source={sourcePlayer.NetId}, target={otherPlayer.NetId}, potion={mirroredPotion.Id.Entry}, success={result.success}");
+                    $"Reward potion synced: source={sourcePlayer.NetId}, target={otherPlayer.NetId}, potion={mirroredPotion.Id.Entry}, success={result.success}");
             }
         }
         finally

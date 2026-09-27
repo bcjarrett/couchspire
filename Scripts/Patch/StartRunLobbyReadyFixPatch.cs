@@ -18,7 +18,7 @@ internal static class StartRunLobbyReadyFixPatch
         if (__instance.Players.Count >= 2 && __instance.Players.All((player) => player.isReady))
         {
             __result = true;
-            LocalMultiControlLogger.Info($"本地多控大厅满足就绪条件，强制允许开始游戏: players={__instance.Players.Count}");
+            LocalMultiControlLogger.Info($"Local multi-control lobby meets the ready condition; forcibly allowing the game to start: players={__instance.Players.Count}");
         }
     }
 }

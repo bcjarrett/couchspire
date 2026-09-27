@@ -5,8 +5,8 @@ using MegaCrit.Sts2.Core.Rewards;
 namespace LocalMultiControl.Scripts.Rewards;
 
 /// <summary>
-/// 记录每个 Reward 实例对应的角色标签（如"角色1"）。
-/// 在战利品汇总时写入，在 NRewardButton 展示时读取。
+/// Records the player label (e.g. "Player 1") corresponding to each Reward instance.
+/// Written during combat reward merging, and read when NRewardButton displays it.
 /// </summary>
 internal static class RewardPlayerLabelRegistry
 {

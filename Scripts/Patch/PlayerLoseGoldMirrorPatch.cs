@@ -45,7 +45,7 @@ internal static class PlayerLoseGoldMirrorPatch
             }
 
             LocalMultiControlLogger.Info(
-                $"水晶球事件金币消耗已镜像到其余角色: amount={amount}, owner={sourcePlayer.NetId}, mirrored={string.Join(",", otherPlayers.Select((player) => player.NetId))}");
+                $"Crystal Sphere event gold expenditure mirrored to the other players: amount={amount}, owner={sourcePlayer.NetId}, mirrored={string.Join(",", otherPlayers.Select((player) => player.NetId))}");
         }
         finally
         {

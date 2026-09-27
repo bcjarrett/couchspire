@@ -48,11 +48,11 @@ internal static class PlayerGainGoldMirrorPatch
 
         if (GoldMirrorSuppressionContext.ShouldSuppressGoldMirror)
         {
-            LocalMultiControlLogger.Info($"遗物流程金币跳过镜像: amount={amount}, owner={player.NetId}");
+            LocalMultiControlLogger.Info($"Skipping gold mirror for relic-flow gold: amount={amount}, owner={player.NetId}");
             return;
         }
 
-        // 汇总奖励流程中，每个角色已独立生成金币奖励，不需要镜像
+        // In the combat-reward-merge flow, each player has already independently generated their gold reward, so no mirroring is needed
         if (CombatRewardMergeContext.IsActive)
         {
             return;
@@ -87,7 +87,7 @@ internal static class PlayerGainGoldMirrorPatch
             }
 
             LocalMultiControlLogger.Info(
-                $"事件/流程金币已同步到其余角色: amount={amount}, owner={sourcePlayer.NetId}, mirrored={string.Join(",", otherPlayers.Select((player) => player.NetId))}");
+                $"Event/flow gold synced to the other players: amount={amount}, owner={sourcePlayer.NetId}, mirrored={string.Join(",", otherPlayers.Select((player) => player.NetId))}");
         }
         finally
         {

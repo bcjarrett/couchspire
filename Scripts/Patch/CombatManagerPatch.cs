@@ -26,7 +26,7 @@ internal static class CombatManagerPatch
         if (canBackOut)
         {
             canBackOut = false;
-            LocalMultiControlLogger.Info($"本地双人模式禁用回合回退: player={player.NetId}");
+            LocalMultiControlLogger.Info($"Local co-op mode disables turn rollback: player={player.NetId}");
         }
     }
 }

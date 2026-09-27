@@ -30,7 +30,7 @@ internal static class RelicSelectCmdPatch
         }
 
         __result = true;
-        LocalMultiControlLogger.Info($"本地双人模式下强制本地处理遗物选择: player={player.NetId}");
+        LocalMultiControlLogger.Info($"Local co-op mode forces local handling of relic selection: player={player.NetId}");
         return false;
     }
 }

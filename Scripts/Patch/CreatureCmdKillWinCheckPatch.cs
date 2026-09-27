@@ -45,7 +45,7 @@ internal static class CreatureCmdKillWinCheckPatch
             return;
         }
 
-        LocalMultiControlLogger.Info("检测到敌方已全部死亡，立即触发战斗胜利结算。");
+        LocalMultiControlLogger.Info("Detected that all enemies are dead; immediately triggering combat victory resolution.");
         await CombatManager.Instance.CheckWinCondition();
     }
 }

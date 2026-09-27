@@ -69,14 +69,14 @@ internal static class OneOffSynchronizerSpoilsMapPatch
                 int gainedGold = await spoilsMap.OnQuestComplete();
                 totalGold += gainedGold;
                 syncedCount++;
-                LocalMultiControlLogger.Info($"宝箱房间触发藏宝图结算: player={player.NetId}, gold={gainedGold}");
+                LocalMultiControlLogger.Info($"Treasure room triggered spoils map resolution: player={player.NetId}, gold={gainedGold}");
             }
 
-            LocalMultiControlLogger.Info($"宝箱房间藏宝图批处理完成: processed={syncedCount}, players={runState.Players.Count}");
+            LocalMultiControlLogger.Info($"Treasure room spoils map batch processing complete: processed={syncedCount}, players={runState.Players.Count}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"宝箱房间藏宝图批处理失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Treasure room spoils map batch processing failed: {exception.Message}");
         }
 
         return totalGold;

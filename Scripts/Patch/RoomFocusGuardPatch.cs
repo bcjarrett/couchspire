@@ -27,12 +27,12 @@ internal static class NRestSiteRoomReadyGuardPatch
             bool isLoading = LocalSelfCoopContext.NetService?.IsGameLoading ?? false;
             string controlledPlayer = LocalContext.NetId?.ToString() ?? "null";
             LocalMultiControlLogger.Warn(
-                $"休息区初始化出现越界，已拦截并继续流程: error={__exception.Message}, players={playerCount}, controlled={controlledPlayer}, roomOptions={roomOptions}, localOptions={localOptions}, loading={isLoading}");
+                $"Rest site initialization went out of range; intercepted and continuing the flow: error={__exception.Message}, players={playerCount}, controlled={controlledPlayer}, roomOptions={roomOptions}, localOptions={localOptions}, loading={isLoading}");
 
             if (playerCount > 4)
             {
                 NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(LocalModText.RestSiteFocusHint));
-                LocalMultiControlLogger.Warn($"[待修复] 休息区5人以上首帧可能不显示选项，已弹出手动切换提示。players={playerCount}");
+                LocalMultiControlLogger.Warn($"[needs fix] Rest site with 5+ players may not show options on the first frame; showed a manual-switch hint. players={playerCount}");
             }
 
             Callable.From(delegate
@@ -68,7 +68,7 @@ internal static class NRestSiteRoomReadyGuardPatch
             if (attempt >= MaxRecoveryAttempts)
             {
                 LocalMultiControlLogger.Warn(
-                    $"休息区越界恢复失败：加载状态持续未结束，需手动切人。attempts={attempt + 1}, localOptions={SafeCountLocalOptions()}");
+                    $"Rest site out-of-range recovery failed: loading state never settled, manual player switch required. attempts={attempt + 1}, localOptions={SafeCountLocalOptions()}");
                 return;
             }
 
@@ -101,14 +101,14 @@ internal static class NRestSiteRoomReadyGuardPatch
         if (localOptions > 0)
         {
             LocalMultiControlLogger.Info(
-                $"休息区越界恢复成功：选项已可见。attempt={attempt}, roomOptions={roomOptions}, localOptions={localOptions}, controlled={LocalContext.NetId?.ToString() ?? "null"}");
+                $"Rest site out-of-range recovery succeeded: options are now visible. attempt={attempt}, roomOptions={roomOptions}, localOptions={localOptions}, controlled={LocalContext.NetId?.ToString() ?? "null"}");
             return;
         }
 
         if (attempt >= MaxRecoveryAttempts)
         {
             LocalMultiControlLogger.Warn(
-                $"休息区越界恢复结束：仍未显示选项，请手动切人。attempts={attempt + 1}, roomOptions={roomOptions}, localOptions={localOptions}, controlled={LocalContext.NetId?.ToString() ?? "null"}");
+                $"Rest site out-of-range recovery ended: options still not shown, please switch players manually. attempts={attempt + 1}, roomOptions={roomOptions}, localOptions={localOptions}, controlled={LocalContext.NetId?.ToString() ?? "null"}");
             return;
         }
 
@@ -157,7 +157,7 @@ internal static class NTreasureRoomRelicCollectionFocusGuardPatch
     {
         if (__exception is ArgumentOutOfRangeException)
         {
-            LocalMultiControlLogger.Warn($"宝箱焦点控件越界，已拦截并跳过该帧聚焦: {__exception.Message}");
+            LocalMultiControlLogger.Warn($"Treasure room focus control went out of range; intercepted and skipped focus for this frame: {__exception.Message}");
             return null;
         }
 
@@ -174,7 +174,7 @@ internal static class NTreasureRoomRelicHolderFocusGuardPatch
         if (__exception is InvalidOperationException exception &&
             exception.Message.Contains("Model was accessed before it was set", StringComparison.Ordinal))
         {
-            LocalMultiControlLogger.Warn("宝箱遗物焦点到达时模型尚未就绪，已跳过该帧 Focus。");
+            LocalMultiControlLogger.Warn("Treasure room relic model was not ready when focus arrived; skipped Focus for this frame.");
             return null;
         }
 

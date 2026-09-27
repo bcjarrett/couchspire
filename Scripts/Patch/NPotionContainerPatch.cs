@@ -25,12 +25,12 @@ internal static class NPotionContainerPatch
             ulong targetPlayerId = LocalContext.NetId ?? LocalSelfCoopContext.PrimaryPlayerId;
             if (!TryBindPotionContainerToPlayer(__instance, runState, targetPlayerId))
             {
-                LocalMultiControlLogger.Warn($"药水栏初始化失败：未找到目标玩家 {targetPlayerId}。");
+                LocalMultiControlLogger.Warn($"Potion bar initialization failed: target player {targetPlayerId} not found.");
             }
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"重建药水栏失败: {exception.Message}");
+            LocalMultiControlLogger.Warn($"Failed to rebuild potion bar: {exception.Message}");
         }
     }
 
@@ -46,7 +46,7 @@ internal static class NPotionContainerPatch
         NPotionHolder? holder = holders?.FirstOrDefault((node) => node.Potion != null && node.Potion.Model == potion);
         if (holder?.Potion == null)
         {
-            LocalMultiControlLogger.Warn($"跳过药水动画：当前视图不存在药水 {potion.Id.Entry}");
+            LocalMultiControlLogger.Warn($"Skipping potion animation: potion {potion.Id.Entry} does not exist in the current view");
             return false;
         }
 
@@ -92,7 +92,7 @@ internal static class NPotionContainerPatch
             AccessTools.Method(typeof(NPotionContainer), "Add")?.Invoke(potionContainer, new object[] { ownedPotion, true });
         }
 
-        LocalMultiControlLogger.Info($"药水栏已重建到目标玩家: player={targetPlayer.NetId}, slotCount={targetPlayer.MaxPotionCount}");
+        LocalMultiControlLogger.Info($"Potion bar rebuilt for the target player: player={targetPlayer.NetId}, slotCount={targetPlayer.MaxPotionCount}");
         return true;
     }
 }
