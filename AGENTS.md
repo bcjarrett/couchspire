@@ -4,7 +4,7 @@ Rules for automated coding agents (and humans) working in this repository. Goal:
 
 ## 1. Scope & hard constraints
 
-- Modify only mod code and mod metadata: `Scripts/`, `*.csproj`, `*.json`, `*.cfg.example`, `deploy.sh`, docs.
+- Modify only mod code and mod metadata: `Scripts/`, `Tests/`, `*.csproj`, `*.json`, `*.cfg.example`, `deploy.sh`, docs.
 - `src/` is decompiled game source — **read-only reference, never committed** (gitignored). Regenerate it after each game patch (see §5).
 - No destructive git operations (`reset --hard`, force-push, `checkout --` over user changes).
 - Language: **English** for all new code comments, commits, logs, and documentation.
@@ -18,6 +18,7 @@ Run from the repo root:
 dotnet restore LocalMultiControl.csproj
 dotnet build LocalMultiControl.csproj -c Debug     # or -c Release for shipping
 dotnet format LocalMultiControl.csproj --verify-no-changes
+dotnet test Tests/CouchSpire.Tests                 # Layer A: offline Harmony/AccessTools target check (docs/design/testing-plan.md §5)
 ```
 
 - The build copies the DLL to the repo root: `CouchSpire.dll`. **Always deploy/ship the root artifact**, not `.godot/mono/temp/...`.
@@ -50,7 +51,7 @@ When the game updates and the mod breaks:
    cp -r ~/sts2-src/MegaCrit/Sts2/. src/
    ```
 3. Build; fix compile errors using the decompiled source as ground truth (compile errors = renamed/removed members).
-4. Validate every **string-based** Harmony/`AccessTools` target against the decompiled tree — these fail at runtime, not compile time.
+4. Run `dotnet test Tests/CouchSpire.Tests` — it validates every **string-based** Harmony/`AccessTools` target against the current `sts2.dll` without starting Godot, replacing the old manual sweep against the decompiled tree. It names the mod type/method, the target string, and the game type searched for anything that fails to resolve.
 5. Fix pattern: call the **new** member name first, with a reflection fallback to the old name (see `InvokeBeginRunIfAllPlayersReady` in `Scripts/Patch/LoadRunLobbyPatch.cs`).
 6. Record every fixed breakage in `CHANGELOG.md`.
 

@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Layer A offline patch-target check (docs/design/testing-plan.md §5, §8 WP1). Plain SDK project (not
+       Godot.NET.Sdk): it never starts Godot, it only reads CouchSpire.dll and the game's sts2.dll as files
+       via Mono.Cecil. -->
+  <Import Project="../../Sts2Paths.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>true</ImplicitUsings>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>CouchSpire.Tests</RootNamespace>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- The mod DLL the main project's Build target copies to the repo root (see LocalMultiControl.csproj's
+         CopyDllToProjectRoot target). Passed to the tests via AssemblyMetadata below rather than hardcoded. -->
+    <ModDllPath>$(MSBuildThisFileDirectory)../../CouchSpire.dll</ModDllPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Mono.Cecil" Version="0.11.6" />
+  </ItemGroup>
+
+  <!-- Build the mod first so CouchSpire.dll exists before the tests run. ReferenceOutputAssembly=false: we
+       never link against it (it needs Godot at runtime), we only read it as a file with Cecil. -->
+  <ItemGroup>
+    <ProjectReference Include="../../LocalMultiControl.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- Hand the game/mod paths to the tests as assembly metadata instead of hardcoding absolute paths. -->
+  <ItemGroup>
+    <AssemblyMetadata Include="Sts2DataDir" Value="$(Sts2DataDir)" />
+    <AssemblyMetadata Include="ModDllPath" Value="$(ModDllPath)" />
+  </ItemGroup>
+</Project>
