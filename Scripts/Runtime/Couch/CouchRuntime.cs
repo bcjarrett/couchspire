@@ -1,4 +1,5 @@
 using Godot;
+using MegaCrit.Sts2.Core.Nodes;
 
 namespace LocalMultiControl.Scripts.Runtime.Couch;
 
@@ -9,6 +10,9 @@ namespace LocalMultiControl.Scripts.Runtime.Couch;
 internal static class CouchRuntime
 {
     private static bool _initialized;
+
+    /// <summary>The teammate's relic bar, top bar section and room panels.</summary>
+    private static Control? _panels;
 
     public static void Initialize()
     {
@@ -45,16 +49,19 @@ internal static class CouchRuntime
 
         CouchInputGate gate = new() { Name = CouchInputGate.GateNodeName };
 
-        // The teammate's relic bar and room panels live above the game's UI layers (the bar first, under the panels).
-        CanvasLayer panels = new() { Name = "CouchTeammatePanels", Layer = 110 };
+        // The teammate's relic bar, top bar section and room panels (the bars first, under the panels). Attached to the
+        // game once it exists (see EnsurePanelsAttached).
+        Control panels = new() { Name = "CouchTeammatePanels", MouseFilter = Control.MouseFilterEnum.Ignore };
+        panels.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         panels.AddChild(new CouchTeammateRelicBar { Name = "CouchTeammateRelicBar" });
+        panels.AddChild(new CouchTeammateTopBar { Name = "CouchTeammateTopBar" });
         panels.AddChild(new CouchTeammateChoicePanel { Name = "CouchTeammateChoicePanel" });
         panels.AddChild(new CouchTeammateRestSite { Name = "CouchTeammateRestSite" });
         panels.AddChild(new CouchTeammateTreasure { Name = "CouchTeammateTreasure" });
         panels.AddChild(new CouchTeammateShop { Name = "CouchTeammateShop" });
         panels.AddChild(new CouchTeammateDeckChanges { Name = "CouchTeammateDeckChanges" });
         panels.AddChild(new CouchTeammateInfo { Name = "CouchTeammateInfo" });
-        gate.AddChild(panels);
+        _panels = panels;
         tree.Root.CallDeferred(Node.MethodName.AddChild, gate);
         if (CouchConfig.OverlayAtStart)
         {
@@ -63,6 +70,33 @@ internal static class CouchRuntime
 
         tree.CreateTimer(5.0, processAlways: true).Timeout += () => CouchInputProbe.DumpEnvironment("startup");
         CouchLog.Info("Couch input gate attached.");
+    }
+
+    /// <summary>
+    /// Keeps the teammate's UI in the game's own draw order: over the run (its rooms, top bar and overlay screens), under
+    /// the game's hover tips, popups and screen transitions, so tooltips are never covered by the teammate's UI. Called
+    /// every frame by the input gate.
+    /// </summary>
+    public static void EnsurePanelsAttached()
+    {
+        NGame? game = NGame.Instance;
+        Node? tips = game?.HoverTipsContainer;
+        if (_panels == null || game == null || tips == null || !GodotObject.IsInstanceValid(game))
+        {
+            return;
+        }
+
+        if (_panels.GetParent() != game)
+        {
+            _panels.GetParent()?.RemoveChild(_panels);
+            game.AddChild(_panels);
+            CouchLog.Info("Teammate UI attached under the game's hover tips.");
+        }
+
+        if (_panels.GetIndex() > tips.GetIndex())
+        {
+            game.MoveChild(_panels, tips.GetIndex());
+        }
     }
 
     private static void OnJoyConnectionChanged(long device, bool connected)

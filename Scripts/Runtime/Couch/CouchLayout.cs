@@ -1,5 +1,9 @@
+using System.Collections.Generic;
 using Godot;
+using HarmonyLib;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.HoverTips;
+using MegaCrit.Sts2.Core.Nodes.Relics;
 
 namespace LocalMultiControl.Scripts.Runtime.Couch;
 
@@ -9,6 +13,65 @@ namespace LocalMultiControl.Scripts.Runtime.Couch;
 /// </summary>
 internal static class CouchLayout
 {
+    private static Dictionary<Control, NHoverTipSet>? _activeTips;
+
+    private static ulong _readingFrame = ulong.MaxValue;
+
+    private static bool _reading;
+
+    /// <summary>The game slides the driver's relics (and top bar) away for the pause menu and similar.</summary>
+    public static bool DriverRelicsHidden()
+    {
+        NRelicInventory? inventory = NRun.Instance?.GlobalUi?.RelicInventory;
+        return inventory != null && (!inventory.IsVisibleInTree() || inventory.Position.Y < inventory.GetDefaultPosition().Y - 5f);
+    }
+
+    /// <summary>
+    /// True while the driver has a tooltip open for something at the top of the screen (their potions, relics, gold,
+    /// the potion menu): the teammate's HUD and top bar fade so the driver can read it. Tooltips elsewhere (enemies,
+    /// cards) don't count, so the teammate's cards don't blink whenever the mouse crosses the battlefield.
+    /// </summary>
+    public static bool DriverReadingTopUi()
+    {
+        ulong frame = Engine.GetProcessFrames();
+        if (frame == _readingFrame)
+        {
+            return _reading;
+        }
+
+        _readingFrame = frame;
+        _reading = false;
+        _activeTips ??= AccessTools.Field(typeof(NHoverTipSet), "_activeHoverTips")?.GetValue(null) as Dictionary<Control, NHoverTipSet>;
+        if (_activeTips == null)
+        {
+            return false;
+        }
+
+        float limit = CouchTeammateHud.BandTop() + 20f;
+        foreach (Control owner in _activeTips.Keys)
+        {
+            if (GodotObject.IsInstanceValid(owner) && owner.IsVisibleInTree() && !IsCouchNode(owner) && owner.GetGlobalRect().Position.Y < limit)
+            {
+                _reading = true;
+                break;
+            }
+        }
+
+        return _reading;
+    }
+
+    private static bool IsCouchNode(Node node)
+    {
+        for (Node? current = node; current != null; current = current.GetParent())
+        {
+            if (current is CouchTeammateHud or CouchTeammateRelicBar or CouchTeammateTopBar or CouchPanel || current.Name == "CouchTeammatePanels")
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
     /// <summary>Screen rect covered by the players list's visible entries, if it's showing.</summary>
     public static Rect2? PlayersList()
     {

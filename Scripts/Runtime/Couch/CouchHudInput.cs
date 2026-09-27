@@ -58,6 +58,15 @@ internal static class CouchHudInput
             case "btn4":
                 command = CouchHudCommand.Info;
                 return true;
+            // LB / RB: the game's "Tab_Left" (the driver's view deck) and "Tab_Right".
+            case "Tab_Left":
+            case "btn9":
+                command = CouchHudCommand.TabLeft;
+                return true;
+            case "Tab_Right":
+            case "btn10":
+                command = CouchHudCommand.TabRight;
+                return true;
             // Y / Triangle: the game's "Confirm" ("Proceed / End Turn").
             case "Confirm":
             case "btn3":

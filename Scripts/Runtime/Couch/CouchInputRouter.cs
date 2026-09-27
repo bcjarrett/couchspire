@@ -178,6 +178,10 @@ internal static class CouchInputRouter
                 {
                     CouchTeammateInfo.Toggle(seat.PlayerId, fromController: true);
                 }
+                else if (command is CouchHudCommand.TabLeft or CouchHudCommand.TabRight && !CouchTeammateInfo.IsActive)
+                {
+                    CouchTeammateInfo.Open(seat.PlayerId, relics: command == CouchHudCommand.TabRight);
+                }
                 else
                 {
                     CouchTeammateUi.Handle(seat.PlayerId, command);

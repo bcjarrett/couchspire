@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
+using Godot;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.RestSite;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync;
+using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
@@ -19,6 +21,9 @@ namespace LocalMultiControl.Scripts.Runtime.Couch;
 internal sealed partial class CouchTeammateRestSite : CouchPanel
 {
     private static CouchTeammateRestSite? _instance;
+
+    /// <summary>The rest site whose driver focus has been put on its first option.</summary>
+    private static NRestSiteRoom? _focusFixedRoom;
 
     private readonly List<RowView> _rows = new();
 
@@ -76,6 +81,7 @@ internal sealed partial class CouchTeammateRestSite : CouchPanel
 
     public override void _Process(double delta)
     {
+        FixDriverFocus();
         IReadOnlyList<RestSiteOption> options = CurrentOptions();
         if (options.Count == 0)
         {
@@ -100,6 +106,28 @@ internal sealed partial class CouchTeammateRestSite : CouchPanel
 
         float y = LayoutRows(_rows, ContentTop);
         FinishLayout(y, _busy ? "Doing it..." : "", $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} choose");
+    }
+
+    /// <summary>
+    /// The rest site tries to focus its first option for the driver's controller before the options are enabled, which
+    /// doesn't take, so the driver's focus starts up in the top bar. Once per visit, when the first option is ready and the
+    /// driver's focus isn't already in the room, put it there, as the game means to.
+    /// </summary>
+    private void FixDriverFocus()
+    {
+        NRestSiteRoom? room = NRestSiteRoom.Instance;
+        if (room == null || room == _focusFixedRoom || room.DefaultFocusedControl is not NClickableControl { IsEnabled: true } first || !first.IsVisibleInTree())
+        {
+            return;
+        }
+
+        _focusFixedRoom = room;
+        Control? owner = GetViewport().GuiGetFocusOwner();
+        if (owner == null || !room.IsAncestorOf(owner))
+        {
+            first.TryGrabFocus();
+            CouchLog.Info($"Rest site: driver focus moved to the first option (was {owner?.Name ?? "nothing"}).");
+        }
     }
 
     /// <summary>The teammate's remaining rest site options, or none when there's nothing for them to do.</summary>

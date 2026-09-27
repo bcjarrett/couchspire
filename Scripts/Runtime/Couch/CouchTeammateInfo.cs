@@ -65,6 +65,22 @@ internal sealed partial class CouchTeammateInfo : CouchPanel
         }
     }
 
+    /// <summary>Opens the view on the deck or relics tab (controller LB / RB).</summary>
+    public static void Open(ulong? playerId, bool relics)
+    {
+        Player? teammate = CouchTeammate.FindTeammate();
+        if (_instance == null || !IsInstanceValid(_instance) || teammate == null || (playerId.HasValue && teammate.NetId != playerId.Value))
+        {
+            return;
+        }
+
+        _instance._open = true;
+        _instance._relicTab = relics;
+        _instance._cursor = 0;
+        _instance.LastInputFromController = playerId.HasValue;
+        CouchSfx.Accept();
+    }
+
     public static bool Handle(ulong? playerId, CouchHudCommand command)
     {
         if (!IsActive || (playerId.HasValue && _instance!._teammate?.NetId != playerId.Value))
@@ -132,7 +148,7 @@ internal sealed partial class CouchTeammateInfo : CouchPanel
         string where = _relicTab
             ? (_relicRows.Count > 0 ? $"Relic {_cursor + 1} of {_relicRows.Count}" : "No relics")
             : (_cards.Count > 0 ? $"Card {_cursor + 1} of {_cards.Count}" : "No cards");
-        FinishLayout(y, where, $"{Keys("J/L", "D-pad")} scroll · {Keys("U", "Up/Down")} deck/relics · {Keys("V or K", "View or B")} close");
+        FinishLayout(y, where, $"{Keys("J/L", "D-pad")} scroll · {Keys("U", "LB/RB")} deck/relics · {Keys("V or K", "B")} close");
     }
 
     private float LayoutDeck(float y)
@@ -201,6 +217,11 @@ internal sealed partial class CouchTeammateInfo : CouchPanel
             case CouchHudCommand.Down:
             case CouchHudCommand.ToggleRow:
                 _relicTab = !_relicTab;
+                _cursor = 0;
+                break;
+            case CouchHudCommand.TabLeft:
+            case CouchHudCommand.TabRight:
+                _relicTab = command == CouchHudCommand.TabRight;
                 _cursor = 0;
                 break;
             case CouchHudCommand.Back:

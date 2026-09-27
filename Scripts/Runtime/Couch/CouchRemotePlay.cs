@@ -160,9 +160,17 @@ internal static class CouchRemotePlay
                 reason = "this potion triggers by itself";
                 return false;
             case PotionUsage.CombatOnly:
-                if (!CanActNow(out reason) || creature.CombatState?.CurrentSide != creature.Side || CombatManager.Instance.PlayerActionsDisabled)
+                // PlayerActionsDisabled is the driver's lock (set when the driver ends their turn), so it doesn't apply
+                // to the teammate; their own ended turn does.
+                if (!CanActNow(out reason) || creature.CombatState?.CurrentSide != creature.Side)
                 {
                     reason = reason.Length > 0 ? reason : "not now";
+                    return false;
+                }
+
+                if (CombatManager.Instance.IsPlayerReadyToEndTurn(owner))
+                {
+                    reason = "you ended your turn";
                     return false;
                 }
 

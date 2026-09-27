@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Runs;
 
@@ -9,6 +10,9 @@ namespace LocalMultiControl.Scripts.Runtime.Couch;
 /// </summary>
 internal static class CouchPlayerNames
 {
+    /// <summary>Names already worked out, per player and character (the game can ask for names often).</summary>
+    private static readonly Dictionary<(ulong PlayerId, int Slot, string? Character), string> Cache = new();
+
     /// <summary>The couch name for a local character, or null for anyone else.</summary>
     public static string? For(ulong playerId)
     {
@@ -17,8 +21,20 @@ internal static class CouchPlayerNames
             return null;
         }
 
-        string seat = $"P{slot + 1}";
         Player? player = RunManager.Instance.DebugOnlyGetState()?.GetPlayer(playerId);
+        (ulong, int, string?) key = (playerId, slot, player?.Character.Id.Entry);
+        if (!Cache.TryGetValue(key, out string? name))
+        {
+            name = Build(slot, player);
+            Cache[key] = name;
+        }
+
+        return name;
+    }
+
+    private static string Build(int slot, Player? player)
+    {
+        string seat = $"P{slot + 1}";
         string character;
         try
         {

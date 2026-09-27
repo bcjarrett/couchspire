@@ -6,6 +6,11 @@ using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.GameActions.Multiplayer;
+using MegaCrit.Sts2.Core.GameActions;
+using MegaCrit.Sts2.Core.Entities.Actions;
+using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
@@ -43,7 +48,13 @@ internal enum CouchHudCommand
     SubmitOrEndTurn,
 
     /// <summary>Open or close the teammate's deck/relics view (keyboard V, controller View/Back).</summary>
-    Info
+    Info,
+
+    /// <summary>LB, as the driver's "view deck": opens the teammate's deck, or switches to its deck tab.</summary>
+    TabLeft,
+
+    /// <summary>RB: opens the teammate's relics, or switches to that tab.</summary>
+    TabRight
 }
 
 /// <summary>
@@ -75,7 +86,6 @@ internal sealed partial class CouchTeammateHud : Control
     /// <summary>Band top when the players list isn't there to line up with.</summary>
     private const float DefaultBandTop = 170f;
 
-    private const float PotionSlotSize = 56f;
 
     private const float RightMargin = 40f;
 
@@ -95,7 +105,6 @@ internal sealed partial class CouchTeammateHud : Control
 
     private readonly List<NCard> _cardNodes = new();
 
-    private readonly List<CouchPotionSlot> _potionSlots = new();
 
     private readonly HashSet<int> _picked = new();
 
@@ -123,6 +132,16 @@ internal sealed partial class CouchTeammateHud : Control
     /// <summary>The hand card whose numbers currently include a target (vulnerable, etc.).</summary>
     private NCard? _handPreviewNode;
 
+    /// <summary>
+    /// Cards the teammate has played that are still in their hand while the play waits in the action queue. Like the
+    /// driver's played cards, they leave the hand right away; they come back only if the play is cancelled.
+    /// </summary>
+    private readonly List<QueuedPlay> _queuedPlays = new();
+
+    private ActionQueueSet? _actionQueues;
+
+    private bool _cardTextDirty;
+
     /// <summary>The teammate's cards in play last frame, to hear them land in the discard pile.</summary>
     private List<CardModel> _cardsInPlay = new();
 
@@ -133,6 +152,8 @@ internal sealed partial class CouchTeammateHud : Control
     private int _cursor;
 
     private int _potionCursor;
+
+    private int _relicCursor;
 
     private int _targetIndex;
 
@@ -160,7 +181,13 @@ internal sealed partial class CouchTeammateHud : Control
     {
         Hand,
         Potions,
+
+        /// <summary>The cursor is on the teammate's relic row (right of their potions), showing tooltips.</summary>
+        Relics,
         Targeting,
+
+        /// <summary>A card or potion with no target picked up, waiting for a second press, like the driver's controller play.</summary>
+        Holding,
         Choice
     }
 
@@ -242,11 +269,17 @@ internal sealed partial class CouchTeammateHud : Control
         Visible = false;
         SetProcess(true);
         CombatManager.Instance.StateTracker.CombatStateChanged += OnCombatStateChanged;
+        _actionQueues = RunManager.Instance.ActionQueueSet;
+        _actionQueues.ActionEnqueued += OnActionEnqueued;
     }
 
     public override void _ExitTree()
     {
         CombatManager.Instance.StateTracker.CombatStateChanged -= OnCombatStateChanged;
+        if (_actionQueues != null)
+        {
+            _actionQueues.ActionEnqueued -= OnActionEnqueued;
+        }
         ClearCards();
         if (_instance == this)
         {
@@ -266,6 +299,8 @@ internal sealed partial class CouchTeammateHud : Control
                 _mode = HudMode.Hand;
                 _choice = null;
                 _picked.Clear();
+                CouchTeammateTopBar.SetCursor(null);
+                CouchTeammateRelicBar.Focus(null);
             }
 
             return;
@@ -273,19 +308,23 @@ internal sealed partial class CouchTeammateHud : Control
 
         Visible = true;
         UpdateMode();
-        List<CardModel> cards = _mode == HudMode.Choice ? _choice!.Options.ToList() : _teammate.PlayerCombatState.Hand.Cards.ToList();
+        PruneQueuedPlays();
+        List<CardModel> cards = _mode == HudMode.Choice
+            ? _choice!.Options.ToList()
+            : _teammate.PlayerCombatState.Hand.Cards.Where((CardModel c) => !_queuedPlays.Any((QueuedPlay q) => q.Card == c)).ToList();
         if (!cards.SequenceEqual(_shownCards))
         {
             RebuildCards(cards);
         }
 
         _cursor = _shownCards.Count == 0 ? 0 : Mathf.Clamp(_cursor, 0, _shownCards.Count - 1);
-        SyncPotionSlots();
+        SyncPotionCursor();
         UpdateTexts();
         Layout();
+        RefreshCardText();
         UpdateTargeting();
         ListenForPlayedCards();
-        Modulate = new Color(1f, 1f, 1f, DriverIsBusy() ? BusyAlpha : 1f);
+        Modulate = new Color(1f, 1f, 1f, DriverIsBusy() || CouchLayout.DriverReadingTopUi() ? BusyAlpha : 1f);
     }
 
     /// <summary>
@@ -325,7 +364,7 @@ internal sealed partial class CouchTeammateHud : Control
             _cursor = 0;
         }
 
-        if (_mode == HudMode.Targeting && !TargetingStillValid())
+        if (_mode is HudMode.Targeting or HudMode.Holding && !TargetingStillValid())
         {
             EndTargeting();
         }
@@ -334,16 +373,22 @@ internal sealed partial class CouchTeammateHud : Control
         {
             _mode = HudMode.Hand;
         }
+
+        if (_mode == HudMode.Relics && CouchTeammateRelicBar.RelicCount == 0)
+        {
+            _mode = HudMode.Hand;
+        }
     }
 
     private bool TargetingStillValid()
     {
+        bool targetsOk = _mode == HudMode.Holding || Targets().Count > 0;
         if (_targetingCard != null)
         {
-            return _teammate!.PlayerCombatState!.Hand.Cards.Contains(_targetingCard) && Targets().Count > 0;
+            return _teammate!.PlayerCombatState!.Hand.Cards.Contains(_targetingCard) && targetsOk;
         }
 
-        return _targetingPotion != null && _teammate!.PotionSlots.Contains(_targetingPotion) && Targets().Count > 0;
+        return _targetingPotion != null && _teammate!.PotionSlots.Contains(_targetingPotion) && targetsOk;
     }
 
     private void OnCommand(CouchHudCommand command)
@@ -356,8 +401,14 @@ internal sealed partial class CouchTeammateHud : Control
             case HudMode.Potions:
                 OnPotionCommand(command);
                 break;
+            case HudMode.Relics:
+                OnRelicCommand(command);
+                break;
             case HudMode.Targeting:
                 OnTargetingCommand(command);
+                break;
+            case HudMode.Holding:
+                OnHoldingCommand(command);
                 break;
             case HudMode.Choice:
                 OnChoiceCommand(command);
@@ -393,9 +444,22 @@ internal sealed partial class CouchTeammateHud : Control
         switch (command)
         {
             case CouchHudCommand.Left:
+                if (StepPotionCursor(-1))
+                {
+                    CouchSfx.Move();
+                }
+
+                break;
             case CouchHudCommand.Right:
-                MovePotionCursor(command == CouchHudCommand.Left ? -1 : 1);
-                CouchSfx.Move();
+                if (StepPotionCursor(1))
+                {
+                    CouchSfx.Move();
+                }
+                else
+                {
+                    EnterRelicRow(0);
+                }
+
                 break;
             case CouchHudCommand.Down:
             case CouchHudCommand.ToggleRow:
@@ -412,6 +476,98 @@ internal sealed partial class CouchTeammateHud : Control
             case CouchHudCommand.EndTurn:
             case CouchHudCommand.SubmitOrEndTurn:
                 EndTurn();
+                break;
+        }
+    }
+
+    /// <summary>The relic row, reached by moving right past the potions: move through the relics to read them.</summary>
+    private void OnRelicCommand(CouchHudCommand command)
+    {
+        int count = CouchTeammateRelicBar.RelicCount;
+        switch (command)
+        {
+            case CouchHudCommand.Left:
+                if (_relicCursor > 0)
+                {
+                    _relicCursor--;
+                    CouchSfx.Move();
+                }
+                else if (_teammate!.Potions.Any())
+                {
+                    _mode = HudMode.Potions;
+                    _potionCursor = _teammate.PotionSlots.Count;
+                    StepPotionCursor(-1);
+                    CouchSfx.Move();
+                }
+
+                break;
+            case CouchHudCommand.Right:
+                if (_relicCursor < count - 1)
+                {
+                    _relicCursor++;
+                    CouchSfx.Move();
+                }
+
+                break;
+            case CouchHudCommand.Down:
+            case CouchHudCommand.ToggleRow:
+            case CouchHudCommand.Back:
+                _mode = HudMode.Hand;
+                CouchSfx.Back();
+                break;
+            case CouchHudCommand.EndTurn:
+            case CouchHudCommand.SubmitOrEndTurn:
+                EndTurn();
+                break;
+        }
+    }
+
+    private void EnterRelicRow(int index)
+    {
+        int count = CouchTeammateRelicBar.RelicCount;
+        if (count == 0)
+        {
+            return;
+        }
+
+        _mode = HudMode.Relics;
+        _relicCursor = Mathf.Clamp(index, 0, count - 1);
+        CouchSfx.Move();
+    }
+
+    /// <summary>A picked-up card or potion that needs no target: press again to play or use it, back to put it down.</summary>
+    private void OnHoldingCommand(CouchHudCommand command)
+    {
+        switch (command)
+        {
+            case CouchHudCommand.Accept:
+            case CouchHudCommand.SubmitOrEndTurn:
+                string reason = "";
+                bool sent = _targetingCard != null
+                    ? CouchRemotePlay.TryPlay(_teammate!, _targetingCard, null, out reason)
+                    : _targetingPotion != null && CouchRemotePlay.TryUsePotion(_teammate!, _targetingPotion, null, out reason);
+                if (sent)
+                {
+                    CouchSfx.Accept();
+                    SendCardAway(_targetingCard);
+                }
+                else
+                {
+                    Flash(reason);
+                }
+
+                EndTargeting();
+                break;
+            case CouchHudCommand.Submit:
+                if (_targetingPotion != null)
+                {
+                    DiscardPotion();
+                }
+
+                break;
+            case CouchHudCommand.Back:
+                EndTargeting();
+                CouchSfx.Back();
                 break;
         }
     }
@@ -443,6 +599,7 @@ internal sealed partial class CouchTeammateHud : Control
                     if (sent)
                     {
                         CouchSfx.Accept();
+                        SendCardAway(_targetingCard);
                     }
                     else
                     {
@@ -521,6 +678,12 @@ internal sealed partial class CouchTeammateHud : Control
         }
 
         CardModel card = _shownCards[_cursor];
+        if (CombatManager.Instance.IsPlayerReadyToEndTurn(_teammate!))
+        {
+            Flash($"Turn ended ({Keys("P", "Y")} to take it back)");
+            return;
+        }
+
         if (!CouchRemotePlay.CanActNow(out string reason))
         {
             Flash(reason);
@@ -539,14 +702,7 @@ internal sealed partial class CouchTeammateHud : Control
             return;
         }
 
-        if (CouchRemotePlay.TryPlay(_teammate!, card, null, out reason))
-        {
-            CouchSfx.CardSelect();
-        }
-        else
-        {
-            Flash(reason);
-        }
+        StartHolding(card, null);
     }
 
     private void UseOrStartTargetingPotion()
@@ -570,14 +726,7 @@ internal sealed partial class CouchTeammateHud : Control
             return;
         }
 
-        if (CouchRemotePlay.TryUsePotion(_teammate!, potion, null, out reason))
-        {
-            CouchSfx.Accept();
-        }
-        else
-        {
-            Flash(reason);
-        }
+        StartHolding(null, potion);
     }
 
     private void DiscardPotion()
@@ -647,6 +796,23 @@ internal sealed partial class CouchTeammateHud : Control
         }
     }
 
+    /// <summary>Picks up a card or potion that needs no target; the next press plays or uses it.</summary>
+    private void StartHolding(CardModel? card, PotionModel? potion)
+    {
+        _targetingCard = card;
+        _targetingPotion = potion;
+        _modeBeforeTargeting = _mode;
+        _mode = HudMode.Holding;
+        if (card != null)
+        {
+            CouchSfx.CardSelect();
+        }
+        else
+        {
+            CouchSfx.Accept();
+        }
+    }
+
     private void EndTargeting()
     {
         _mode = _modeBeforeTargeting == HudMode.Potions ? HudMode.Potions : HudMode.Hand;
@@ -658,6 +824,12 @@ internal sealed partial class CouchTeammateHud : Control
     {
         if (!_teammate!.Potions.Any())
         {
+            if (CouchTeammateRelicBar.RelicCount > 0)
+            {
+                EnterRelicRow(0);
+                return;
+            }
+
             Flash("No potions");
             return;
         }
@@ -706,6 +878,22 @@ internal sealed partial class CouchTeammateHud : Control
         }
     }
 
+    /// <summary>Moves to the next filled potion slot in that direction, without wrapping; false at the end.</summary>
+    private bool StepPotionCursor(int step)
+    {
+        IReadOnlyList<PotionModel?> slots = _teammate!.PotionSlots;
+        for (int index = _potionCursor + step; index >= 0 && index < slots.Count; index += step)
+        {
+            if (slots[index] != null)
+            {
+                _potionCursor = index;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void MoveCursor(int step)
     {
         if (_shownCards.Count > 0)
@@ -722,21 +910,47 @@ internal sealed partial class CouchTeammateHud : Control
         if (denied)
         {
             CouchSfx.Deny();
+            CouchLog.Info($"Teammate HUD refused ({_mode}): {message}");
         }
     }
 
+    /// <summary>
+    /// Brings the card nodes in line with <paramref name="cards"/>, keeping the nodes of cards still shown (they glide to
+    /// their new spots, as the driver's hand does) and creating only the new ones. Creating a card node is expensive, and
+    /// the hand changes on every play and draw.
+    /// </summary>
     private void RebuildCards(List<CardModel> cards)
     {
-        ClearCards();
-        _shownCards = cards;
+        Dictionary<CardModel, NCard> existing = new();
+        for (int i = 0; i < _shownCards.Count && i < _cardNodes.Count; i++)
+        {
+            existing.TryAdd(_shownCards[i], _cardNodes[i]);
+        }
+
+        List<NCard> nodes = new();
         foreach (CardModel card in cards)
         {
-            _cardNodes.Add(CouchCards.Create(card, this));
+            nodes.Add(existing.Remove(card, out NCard? node) && IsInstanceValid(node) ? node : CouchCards.Create(card, this));
         }
+
+        foreach (NCard leftover in existing.Values)
+        {
+            if (_handPreviewNode == leftover)
+            {
+                _handPreviewNode = null;
+            }
+
+            CouchCards.Free(leftover);
+        }
+
+        _cardNodes.Clear();
+        _cardNodes.AddRange(nodes);
+        _shownCards = cards;
     }
 
     private void ClearCards()
     {
+        _queuedPlays.Clear();
         StopTargetingVisuals();
         _handPreviewNode = null;
         _cardsInPlay = new List<CardModel>();
@@ -749,29 +963,14 @@ internal sealed partial class CouchTeammateHud : Control
         _shownCards = new List<CardModel>();
     }
 
-    private void SyncPotionSlots()
+    /// <summary>The teammate's potions live in their part of the top bar; point its cursor and the relic cursor.</summary>
+    private void SyncPotionCursor()
     {
         IReadOnlyList<PotionModel?> slots = _teammate!.PotionSlots;
-        while (_potionSlots.Count < slots.Count)
-        {
-            CouchPotionSlot slot = new() { Size = new Vector2(PotionSlotSize, PotionSlotSize), ZIndex = 10 };
-            AddChild(slot);
-            _potionSlots.Add(slot);
-        }
-
-        while (_potionSlots.Count > slots.Count)
-        {
-            _potionSlots[^1].QueueFree();
-            _potionSlots.RemoveAt(_potionSlots.Count - 1);
-        }
-
         _potionCursor = slots.Count == 0 ? 0 : Mathf.Clamp(_potionCursor, 0, slots.Count - 1);
-        bool showCursor = _mode == HudMode.Potions || (_mode == HudMode.Targeting && _targetingPotion != null);
-        for (int i = 0; i < slots.Count; i++)
-        {
-            _potionSlots[i].Potion = slots[i];
-            _potionSlots[i].Highlighted = showCursor && i == _potionCursor;
-        }
+        bool showCursor = _mode == HudMode.Potions || (_mode is HudMode.Targeting or HudMode.Holding && _targetingPotion != null);
+        CouchTeammateTopBar.SetCursor(showCursor ? _potionCursor : null);
+        CouchTeammateRelicBar.Focus(_mode == HudMode.Relics ? _relicCursor : null);
     }
 
     private void Layout()
@@ -785,15 +984,8 @@ internal sealed partial class CouchTeammateHud : Control
         _header!.Position = new Vector2(left, top + HeaderOffset);
         _hint!.Position = new Vector2(left, top + HeaderOffset + 32f);
 
-        // Potion slots sit right after the header, their top edge on the band's top.
         _header.Size = new Vector2(Mathf.Max(_header.GetContentWidth(), 10f), 40f);
-        float potionX = left + _header.GetContentWidth() + 20f;
-        for (int i = 0; i < _potionSlots.Count; i++)
-        {
-            _potionSlots[i].Position = new Vector2(potionX + i * (PotionSlotSize + 4f), top);
-        }
-
-        _headerRight = potionX + _potionSlots.Count * (PotionSlotSize + 4f);
+        _headerRight = left + _header.GetContentWidth();
 
         // Cards: left-aligned under the text; overlap more when the hand is too wide for the space.
         float availableWidth = Mathf.Max(cardSize.X, viewport.X - RightMargin - left - cardSize.X);
@@ -805,7 +997,9 @@ internal sealed partial class CouchTeammateHud : Control
 
         // Like the driver's hand: the focused card snaps to full size, clear of the others, and its neighbors move
         // aside; everything else glides into place.
-        int focus = FocusIndex();
+        // After ending the turn the hand slides away, as the driver's does, and comes back if the turn is taken back.
+        bool handAway = _mode != HudMode.Choice && CombatManager.Instance.IsPlayerReadyToEndTurn(_teammate!);
+        int focus = handAway ? -1 : FocusIndex();
         float spread = FocusSpread * scale / 0.75f;
         float cardsTop = top + CardsTopOffset;
         float firstCenterX = left + cardSize.X * 0.5f;
@@ -822,7 +1016,7 @@ internal sealed partial class CouchTeammateHud : Control
                 x -= Mathf.Sign(focus - i) * Mathf.Lerp(spread, 0f, Mathf.Min(1f, Mathf.Abs(focus - i) / 4f));
             }
 
-            float nodeScale = focused ? (_mode == HudMode.Targeting ? TargetingScale : scale * FocusScale) : scale;
+            float nodeScale = focused ? (_mode is HudMode.Targeting or HudMode.Holding ? TargetingScale : scale * FocusScale) : scale;
             float y = cardsTop + NCard.defaultSize.Y * nodeScale * 0.5f + (focused ? CursorDrop * cardSize.Y : 0f) + (picked ? CursorDrop * 0.6f * cardSize.Y : 0f);
             if (focused)
             {
@@ -830,13 +1024,20 @@ internal sealed partial class CouchTeammateHud : Control
                 node.Position = new Vector2(node.Position.X, y);
             }
 
+            if (handAway)
+            {
+                y -= cardSize.Y * 0.6f;
+            }
+
             CouchCards.Glide(node, new Vector2(x, Mathf.Min(y, viewport.Y - NCard.defaultSize.Y * nodeScale * 0.5f)), nodeScale);
             node.ZIndex = focused ? 2 : picked ? 1 : 0;
-            node.Modulate = Colors.White;
+            float alpha = Mathf.Lerp(node.Modulate.A, handAway ? 0f : 1f, CouchStyle.Smooth(node.GetProcessDeltaTime(), 8f));
+            node.Modulate = new Color(1f, 1f, 1f, alpha);
+            node.Visible = alpha > 0.02f;
             CouchCards.SetGlow(node, _mode switch
             {
                 HudMode.Choice => picked ? NCardHighlight.gold : NCardHighlight.playableColor,
-                HudMode.Targeting when focused => NCardHighlight.playableColor,
+                HudMode.Targeting or HudMode.Holding when focused => NCardHighlight.playableColor,
                 _ => CouchCards.HandGlow(card, canAct)
             });
         }
@@ -847,8 +1048,8 @@ internal sealed partial class CouchTeammateHud : Control
     {
         return _mode switch
         {
-            HudMode.Targeting => _targetingCard != null ? _shownCards.IndexOf(_targetingCard) : -1,
-            HudMode.Potions => -1,
+            HudMode.Targeting or HudMode.Holding => _targetingCard != null ? _shownCards.IndexOf(_targetingCard) : -1,
+            HudMode.Potions or HudMode.Relics => -1,
             _ => _shownCards.Count > 0 ? _cursor : -1
         };
     }
@@ -857,19 +1058,16 @@ internal sealed partial class CouchTeammateHud : Control
     {
         Player teammate = _teammate!;
         PlayerCombatState state = teammate.PlayerCombatState!;
-        string seat = CouchSeats.FindByPlayer(teammate.NetId)?.Label ?? "P2";
-        string character = teammate.Character.Title.GetFormattedText();
         int draw = PileType.Draw.GetPile(teammate).Cards.Count;
         int discard = PileType.Discard.GetPile(teammate).Cards.Count;
         bool usesStars = teammate.Character.ShouldAlwaysShowStarCounter || state.Stars > 0;
         bool ended = CombatManager.Instance.IsPlayerReadyToEndTurn(teammate);
         bool canAct = CouchRemotePlay.CanActNow(out _);
 
-        // Like the driver's combat UI: the character's energy icon, gold, stars, and the draw and discard piles.
+        // Like the driver's combat UI: the character's energy icon, stars, and the draw and discard piles. Name, HP, gold
+        // and potions are in the teammate's part of the top bar.
         string energyColor = state.Energy > 0 ? CouchStyle.Cream.ToHtml(false) : StsColors.red.ToHtml(false);
-        string header = $"[b][color=#{CouchStyle.Gold.ToHtml(false)}]{seat}[/color] · {character}[/b]"
-            + $"   {CouchStyle.Icon(EnergyIconHelper.GetPath(teammate.Character.CardPool), 34)} [b][color=#{energyColor}]{state.Energy}/{state.MaxEnergy}[/color][/b]"
-            + $"   {CouchStyle.Icon(CouchStyle.GoldIconPath, 30)} [b][color=#{CouchStyle.Gold.ToHtml(false)}]{teammate.Gold}[/color][/b]"
+        string header = $"{CouchStyle.Icon(EnergyIconHelper.GetPath(teammate.Character.CardPool), 34)} [b][color=#{energyColor}]{state.Energy}/{state.MaxEnergy}[/color][/b]"
             + (usesStars ? $"   {CouchStyle.Icon(CouchStyle.StarIconPath, 30)} [b]{state.Stars}[/b]" : "")
             + $"   {CouchStyle.Icon(CouchStyle.DrawPileIconPath, 34)} [b]{draw}[/b]"
             + $"   {CouchStyle.Icon(CouchStyle.DiscardPileIconPath, 34)} [b]{discard}[/b]"
@@ -883,10 +1081,14 @@ internal sealed partial class CouchTeammateHud : Control
         string hint = _mode switch
         {
             HudMode.Targeting => $"Target for {TargetingName()}:  {Keys("J/L", "D-pad")} choose · {Keys("I", "A")} confirm · {Keys("K", "B")} back",
+            HudMode.Holding when _targetingPotion != null => $"{TargetingName()}:  {Keys("I", "A")} use · {Keys("O", "X")} discard · {Keys("K", "B")} back",
+            HudMode.Holding => $"{TargetingName()}:  {Keys("I", "A")} play · {Keys("K", "B")} back",
             HudMode.Potions => PotionHint(),
+            HudMode.Relics => $"{CouchTeammateRelicBar.FocusedName ?? "Relics"}    {Keys("J/L", "D-pad")} move · {Keys("K", "B")} back to hand",
             HudMode.Choice when _choice!.MaxSelect == 1 => $"{_choice.Prompt}  {Keys("J/L", "D-pad")} move · {Keys("I", "A")} pick",
             HudMode.Choice => $"{_choice!.Prompt}  ({_picked.Count} picked, {_choice.MinSelect}-{_choice.MaxSelect})  {Keys("J/L", "D-pad")} move · {Keys("I", "A")} toggle · {Keys("O", "Y")} confirm · {Keys("K", "B")} clear",
-            _ => $"{Keys("J/L", "D-pad")} choose · {Keys("I", "A")} play · {Keys("U", "Up")} potions · {Keys("P", "Y")} end turn"
+            _ when ended => $"Turn ended.  {Keys("P", "Y")} to take it back",
+            _ => $"{Keys("J/L", "D-pad")} choose · {Keys("I", "A")} play · {Keys("U", "Up")} potions and relics · {Keys("P", "Y")} end turn"
         };
         if (Time.GetTicksMsec() / 1000.0 < _flashUntil)
         {
@@ -896,11 +1098,11 @@ internal sealed partial class CouchTeammateHud : Control
         _hint!.Text = hint;
     }
 
+    /// <summary>The potion itself is described by its tooltip in the top bar.</summary>
     private string PotionHint()
     {
         PotionModel? potion = PotionAtCursor();
-        string about = potion == null ? "Empty slot" : $"{PotionTitle(potion)}: {CouchText.Plain(potion.DynamicDescription.GetFormattedText())}";
-        return $"{about}    {Keys("J/L", "D-pad")} choose · {Keys("I", "A")} use · {Keys("O", "X")} discard · {Keys("U", "Down")} back to hand";
+        return $"{(potion == null ? "Empty slot" : PotionTitle(potion))}    {Keys("J/L", "D-pad")} choose (right for relics) · {Keys("I", "A")} use · {Keys("O", "X")} discard · {Keys("U", "Down")} back to hand";
     }
 
     private string TargetingName()
@@ -939,9 +1141,9 @@ internal sealed partial class CouchTeammateHud : Control
             int index = _shownCards.IndexOf(_targetingCard);
             from = index >= 0 ? _cardNodes[index] : null;
         }
-        else if (target != null && _targetingPotion != null && _potionCursor < _potionSlots.Count)
+        else if (target != null && _targetingPotion != null)
         {
-            from = _potionSlots[_potionCursor];
+            from = CouchTeammateTopBar.Slot(_potionCursor);
         }
 
         NCard? cardNode = from as NCard;
@@ -959,8 +1161,9 @@ internal sealed partial class CouchTeammateHud : Control
             return;
         }
 
-        float halfHeight = from is NCard ? NCard.defaultSize.Y * from.Scale.Y * 0.5f : from.Size.Y * 0.5f;
-        Vector2 center = from is NCard ? from.GlobalPosition : from.GlobalPosition + from.Size * 0.5f;
+        Rect2 fromRect = from.GetGlobalRect();
+        float halfHeight = from is NCard ? NCard.defaultSize.Y * from.Scale.Y * 0.5f : fromRect.Size.Y * 0.5f;
+        Vector2 center = from is NCard ? from.GlobalPosition : fromRect.GetCenter();
         _arrowAnchor.GlobalPosition = center + new Vector2(0f, halfHeight - 12f);
         if (_arrowFrom != from)
         {
@@ -1014,9 +1217,96 @@ internal sealed partial class CouchTeammateHud : Control
         }
     }
 
+    /// <summary>
+    /// A played card leaves the hand at once, as the driver's does: it flies toward the teammate's character (where the
+    /// game's own play animation for them starts) while its play waits in the action queue.
+    /// </summary>
+    private void SendCardAway(CardModel? card)
+    {
+        if (card == null)
+        {
+            return;
+        }
+
+        _queuedPlays.Add(new QueuedPlay(card, NetCombatCard.FromModel(card), Time.GetTicksMsec() / 1000.0));
+        int index = _shownCards.IndexOf(card);
+        if (index < 0)
+        {
+            return;
+        }
+
+        NCard node = _cardNodes[index];
+        _cardNodes.RemoveAt(index);
+        _shownCards.RemoveAt(index);
+        if (_handPreviewNode == node)
+        {
+            _handPreviewNode = null;
+        }
+
+        CouchCards.SetGlow(node, null);
+        node.ZIndex = 5;
+        Vector2 destination = NCombatRoom.Instance?.GetCreatureNode(_teammate!.Creature)?.VfxSpawnPosition ?? node.GlobalPosition + new Vector2(0f, 200f);
+        Tween tween = node.CreateTween().SetParallel();
+        tween.TweenProperty(node, "global_position", destination, 0.3).SetEase(Tween.EaseType.In).SetTrans(Tween.TransitionType.Cubic);
+        tween.TweenProperty(node, "scale", node.Scale * 0.3f, 0.3).SetEase(Tween.EaseType.In);
+        tween.TweenProperty(node, "modulate:a", 0f, 0.3).SetEase(Tween.EaseType.In);
+        tween.Chain().TweenCallback(Callable.From(() => CouchCards.Free(node)));
+    }
+
+    /// <summary>Matches the queue's play action to the teammate's played card, to know if it later gets cancelled.</summary>
+    private void OnActionEnqueued(GameAction action)
+    {
+        if (action is not PlayCardAction play)
+        {
+            return;
+        }
+
+        QueuedPlay? queued = _queuedPlays.FirstOrDefault((QueuedPlay q) => q.Action == null && q.Net.Equals(play.NetCombatCard));
+        if (queued != null)
+        {
+            queued.Action = action;
+        }
+    }
+
+    /// <summary>Played cards return to the hand if their play was cancelled, or never reached the queue.</summary>
+    private void PruneQueuedPlays()
+    {
+        double now = Time.GetTicksMsec() / 1000.0;
+        _queuedPlays.RemoveAll((QueuedPlay q) =>
+            q.Card.Pile?.Type != PileType.Hand
+            || q.Action?.State is GameActionState.Canceled or GameActionState.Finished
+            || (q.Action == null && now - q.SentAt > 3.0));
+    }
+
+    private sealed class QueuedPlay(CardModel card, NetCombatCard net, double sentAt)
+    {
+        public CardModel Card { get; } = card;
+
+        public NetCombatCard Net { get; } = net;
+
+        public double SentAt { get; } = sentAt;
+
+        public GameAction? Action { get; set; }
+    }
+
     /// <summary>Keeps the teammate's card numbers current (strength, weak, ...), as the driver's hand does.</summary>
+    /// <summary>
+    /// The combat state changes many times per action (every damage, block and power change); refresh the teammate's
+    /// card text once per frame at most, not on each one.
+    /// </summary>
     private void OnCombatStateChanged(CombatState _)
     {
+        _cardTextDirty = true;
+    }
+
+    private void RefreshCardText()
+    {
+        if (!_cardTextDirty)
+        {
+            return;
+        }
+
+        _cardTextDirty = false;
         foreach (NCard node in _cardNodes)
         {
             if (node != null && IsInstanceValid(node) && node.Model != null)

@@ -17,18 +17,29 @@ namespace LocalMultiControl.Scripts.Runtime.Couch;
 /// Shows the teammate's deck changes outside combat the way the game shows the driver's: a transformed card morphs
 /// into its replacement (<see cref="NCardTransformVfx"/>), an upgraded card flashes its upgrade
 /// (<see cref="NCardUpgradeVfx"/>), and a new card pops up and flies into the deck (what <c>CardCmd.PreviewCardPileAdd</c>
-/// does). The game only plays these for the local player's cards. Relics are shown by <see cref="CouchTeammateRelicBar"/>.
+/// does). The game only plays these for the local player's cards. They play on the teammate's side of the screen (where
+/// their panels are), not in the middle, so the driver's own choices stay visible. Relics are shown by
+/// <see cref="CouchTeammateRelicBar"/>.
 /// </summary>
 internal sealed partial class CouchTeammateDeckChanges : Node
 {
-    /// <summary><c>CardCmd.PreviewCardPileAdd</c>'s default hold before the card flies to the deck.</summary>
-    private const float PreviewSeconds = 1.2f;
+    /// <summary>How long a new card is shown before it flies to the deck (the game holds the driver's for 1.2s).</summary>
+    private const float PreviewSeconds = 0.7f;
+
+    /// <summary>Where the effects play; a child of the teammate's panel layer.</summary>
+    private Control? _host;
 
     private Player? _watched;
 
     private List<CardModel> _deck = new();
 
     private Dictionary<CardModel, int> _upgradeLevels = new();
+
+    public override void _Ready()
+    {
+        _host = new Control { MouseFilter = Control.MouseFilterEnum.Ignore };
+        AddChild(_host);
+    }
 
     public override void _Process(double delta)
     {
@@ -63,32 +74,50 @@ internal sealed partial class CouchTeammateDeckChanges : Node
             + (upgraded.Count > 0 ? $"; upgraded {string.Join(", ", upgraded.Select((CardModel c) => c.Title))}" : ""));
 
         // If the teammate is on the main screen, the game shows these itself.
-        Control? container = NRun.Instance?.GlobalUi?.CardPreviewContainer;
-        if (LocalContext.IsMe(teammate) || container == null)
+        if (LocalContext.IsMe(teammate) || _host == null || NRun.Instance == null)
         {
             return;
         }
 
+        int slot = 0;
         if (transformed)
         {
-            container.AddChildSafely(NCardTransformVfx.Create(removed[0], added[0], null));
+            Place(NCardTransformVfx.Create(removed[0], added[0], null), slot++);
         }
         else
         {
             foreach (CardModel card in added)
             {
-                PreviewAdd(container, card);
+                PreviewAdd(card, SpotFor(slot++));
             }
         }
 
         foreach (CardModel card in upgraded)
         {
-            container.AddChildSafely(NCardUpgradeVfx.Create(card));
+            Place(NCardUpgradeVfx.Create(card), slot++);
         }
     }
 
+    /// <summary>On the teammate's side of the screen (their panels' side), stepping left for each extra card.</summary>
+    private Vector2 SpotFor(int slot)
+    {
+        Vector2 viewport = _host!.GetViewportRect().Size;
+        return new Vector2(viewport.X - 340f - slot * 90f, viewport.Y * 0.5f);
+    }
+
+    private void Place(Node2D? vfx, int slot)
+    {
+        if (vfx == null)
+        {
+            return;
+        }
+
+        vfx.Position = SpotFor(slot);
+        _host!.AddChildSafely(vfx);
+    }
+
     /// <summary><c>CardCmd.PreviewCardPileAdd</c> without its local-player check: pop the card up, then fly it to the deck.</summary>
-    private static void PreviewAdd(Control container, CardModel card)
+    private void PreviewAdd(CardModel card, Vector2 spot)
     {
         if (card.Pile == null)
         {
@@ -101,7 +130,8 @@ internal sealed partial class CouchTeammateDeckChanges : Node
             return;
         }
 
-        container.AddChildSafely(node);
+        _host!.AddChildSafely(node);
+        node.Position = spot;
         node.UpdateVisuals(card.Pile.Type, CardPreviewMode.Normal);
         Tween tween = node.CreateTween();
         tween.TweenProperty(node, "scale", Vector2.One, 0.25).From(Vector2.Zero).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);

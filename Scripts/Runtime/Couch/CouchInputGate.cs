@@ -32,7 +32,18 @@ internal sealed partial class CouchInputGate : Node
             parent.MoveChild(this, -1);
         }
 
+        CouchRuntime.EnsurePanelsAttached();
         CouchScreenshots.Tick();
+        NoteHitch(delta);
+    }
+
+    /// <summary>Logs frames that took much longer than usual during a couch run, to track down lag reports.</summary>
+    private static void NoteHitch(double delta)
+    {
+        if (delta > 0.12 && CouchInputRouter.IsActive)
+        {
+            CouchLog.Throttled("hitch", $"Slow frame: {delta * 1000.0:0} ms (HUD {CouchTeammateHud.ModeName ?? "off"}).", 2000);
+        }
     }
 
     public override void _Input(InputEvent inputEvent)

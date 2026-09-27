@@ -20,6 +20,11 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
 
     private const int VisibleCards = 4;
 
+    private const string UpgradeArrowPath = "res://images/ui/cards/upgrade_preview/upgrade_arrow.png";
+
+    /// <summary>Source tag of deck upgrade picks (Smith and the like), which get a before/after preview.</summary>
+    private const string UpgradeSource = "deck upgrade";
+
     private static CouchTeammateChoicePanel? _instance;
 
     private readonly List<NCard> _cards = new();
@@ -29,6 +34,17 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
     private readonly HashSet<int> _picked = new();
 
     private CouchTeammateChoice? _choice;
+
+    /// <summary>Upgraded copies for the preview, made once per card while this choice is up.</summary>
+    private readonly Dictionary<CardModel, CardModel> _upgradedCopies = new();
+
+    private readonly List<TextureRect> _arrows = new();
+
+    private NCard? _before;
+
+    private NCard? _after;
+
+    private CardModel? _previewFor;
 
     private int _cursor;
 
@@ -92,6 +108,8 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
 
         _cards.Clear();
         FreeRows(_extraRows);
+        SetUpgradePreview(null);
+        _upgradedCopies.Clear();
         _picked.Clear();
         _cursor = 0;
         _choice = choice;
@@ -146,6 +164,8 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
             y += cardSize.Y + 40f;
         }
 
+        y = LayoutUpgradePreview(choice, y);
+
         for (int i = 0; i < _extraRows.Count; i++)
         {
             StyleRow(_extraRows[i], _cards.Count + i == _cursor, dimmed: false);
@@ -159,6 +179,88 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
             ? $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} toggle · {Keys("O", "Y")} confirm · {Keys("K", "B")} {(choice.CanClose || choice.MinSelect == 0 ? "cancel" : "clear")}"
             : $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} pick{(choice.CanClose || choice.MinSelect == 0 ? $" · {Keys("K", "B")} cancel" : "")}";
         FinishLayout(y, string.Join("    ", new[] { counter, picks }.Where((string s) => s.Length > 0)), keys);
+    }
+
+    /// <summary>
+    /// For upgrade picks, the card under the cursor before and after upgrading, with the game's upgrade arrows between,
+    /// as on the driver's smith screen (<c>NUpgradePreview</c>).
+    /// </summary>
+    private float LayoutUpgradePreview(CouchTeammateChoice choice, float y)
+    {
+        CardModel? card = choice.Source == UpgradeSource && _cursor < _cards.Count ? choice.Options[_cursor] : null;
+        SetUpgradePreview(card);
+        if (_before == null || _after == null)
+        {
+            return y;
+        }
+
+        Vector2 cardSize = NCard.defaultSize * CardScale;
+        float centerY = y + cardSize.Y * 0.5f;
+        _before.Position = new Vector2(PanelWidth * 0.5f - cardSize.X * 0.5f - 70f, centerY);
+        _after.Position = new Vector2(PanelWidth * 0.5f + cardSize.X * 0.5f + 70f, centerY);
+        for (int i = 0; i < _arrows.Count; i++)
+        {
+            _arrows[i].Position = new Vector2(PanelWidth * 0.5f - 42f + i * 28f, centerY - 14f);
+        }
+
+        return y + cardSize.Y + 30f;
+    }
+
+    private void SetUpgradePreview(CardModel? card)
+    {
+        if (card == _previewFor)
+        {
+            return;
+        }
+
+        CouchCards.Free(_before);
+        CouchCards.Free(_after);
+        _before = null;
+        _after = null;
+        foreach (TextureRect arrow in _arrows)
+        {
+            arrow.QueueFree();
+        }
+
+        _arrows.Clear();
+        _previewFor = card;
+        if (card == null || card.CardScope == null)
+        {
+            return;
+        }
+
+        if (!_upgradedCopies.TryGetValue(card, out CardModel? upgraded))
+        {
+            upgraded = card.CardScope.CloneCard(card);
+            upgraded.UpgradeInternal();
+            upgraded.UpgradePreviewType = CardUpgradePreviewType.Deck;
+            _upgradedCopies[card] = upgraded;
+        }
+
+        _before = CouchCards.Create(card, this);
+        _after = CouchCards.Create(upgraded, this);
+        _after.ShowUpgradePreview();
+        foreach (NCard node in new[] { _before, _after })
+        {
+            node.Scale = new Vector2(CardScale, CardScale);
+            node.ZIndex = 2;
+        }
+
+        Texture2D? arrowTexture = CouchStyle.Load<Texture2D>(UpgradeArrowPath);
+        for (int i = 0; i < 3 && arrowTexture != null; i++)
+        {
+            TextureRect arrow = new()
+            {
+                Texture = arrowTexture,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                Size = new Vector2(28f, 28f),
+                MouseFilter = MouseFilterEnum.Ignore,
+                ZIndex = 2
+            };
+            AddChild(arrow);
+            _arrows.Add(arrow);
+        }
     }
 
     private void OnCommand(CouchHudCommand command)

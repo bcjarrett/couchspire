@@ -7,6 +7,7 @@ using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
+using MegaCrit.Sts2.Core.Nodes.HoverTips;
 using MegaCrit.Sts2.Core.Nodes.Relics;
 
 namespace LocalMultiControl.Scripts.Runtime.Couch;
@@ -32,6 +33,16 @@ internal sealed partial class CouchTeammateRelicBar : Control
 
     private static CouchTeammateRelicBar? _instance;
 
+    /// <summary>The relic the teammate's controller cursor is on (from their combat HUD), if any.</summary>
+    private int? _focusRequest;
+
+    private NRelicInventoryHolder? _focused;
+
+    /// <summary>Owner of the focused relic's tooltip (the holders' own tooltips belong to the driver's mouse).</summary>
+    private Control? _tipAnchor;
+
+    private Tween? _focusTween;
+
     private readonly List<NRelicInventoryHolder> _holders = new();
 
     private List<RelicModel> _shownRelics = new();
@@ -50,6 +61,20 @@ internal sealed partial class CouchTeammateRelicBar : Control
     /// <summary>
     /// <paramref name="top"/>, or just below the relic bar if that's lower. For panels placed against the right edge.
     /// </summary>
+    public static int RelicCount => _instance != null && IsInstanceValid(_instance) && _instance.Visible ? _instance._holders.Count : 0;
+
+    /// <summary>Puts the teammate's cursor on a relic (tooltip and a bigger icon, as on controller focus), or clears it.</summary>
+    public static void Focus(int? index)
+    {
+        if (_instance != null && IsInstanceValid(_instance))
+        {
+            _instance._focusRequest = index;
+        }
+    }
+
+    /// <summary>The focused relic's name, for the HUD's hint line.</summary>
+    public static string? FocusedName => _instance?._focused?.Relic?.Model is RelicModel relic ? CouchText.Plain(relic.Title.GetFormattedText()) : null;
+
     public static float TopBelowBar(float top)
     {
         return _instance != null && IsInstanceValid(_instance) && _instance.Visible ? Mathf.Max(top, _instance._bottom + 10f) : top;
@@ -62,6 +87,8 @@ internal sealed partial class CouchTeammateRelicBar : Control
         Visible = false;
         // Like the driver's relic row: just the relics, plus the seat label.
         _label = CouchStyle.CreateLabel(this, 22, bold: true, outline: 8);
+        _tipAnchor = new Control { MouseFilter = MouseFilterEnum.Ignore };
+        AddChild(_tipAnchor);
         SetProcess(true);
     }
 
@@ -98,11 +125,14 @@ internal sealed partial class CouchTeammateRelicBar : Control
         }
 
         bool wasVisible = Visible;
-        Visible = !DriverRelicsHidden() && _holders.Count > 0;
+        Visible = !CouchLayout.DriverRelicsHidden() && _holders.Count > 0;
         if (Visible)
         {
             Layout(teammate);
+            Modulate = new Color(1f, 1f, 1f, CouchLayout.DriverReadingTopUi() ? 0.15f : 1f);
         }
+
+        ApplyFocus();
 
         if (Visible != wasVisible)
         {
@@ -110,13 +140,6 @@ internal sealed partial class CouchTeammateRelicBar : Control
                 ? $"Relic bar shown for {teammate.NetId}: {_holders.Count} relics, top {CouchTeammateHud.BandTop()}, bottom {_bottom}, in combat: {CouchTeammateHud.HeaderRight.HasValue}."
                 : "Relic bar hidden.");
         }
-    }
-
-    /// <summary>The game slides the driver's relics away for the pause menu and similar; follow it.</summary>
-    private static bool DriverRelicsHidden()
-    {
-        NRelicInventory? inventory = NRun.Instance?.GlobalUi?.RelicInventory;
-        return inventory != null && (!inventory.IsVisibleInTree() || inventory.Position.Y < inventory.GetDefaultPosition().Y - 5f);
     }
 
     private void PlayGoldSound(Player teammate)
@@ -186,21 +209,28 @@ internal sealed partial class CouchTeammateRelicBar : Control
         return holder;
     }
 
+    /// <summary>
+    /// In combat: right after the teammate HUD's status line, left-aligned, so the row stays over the teammate's band and
+    /// clear of the enemies on the right. Elsewhere: right-aligned under the top bar, across from the driver's relics,
+    /// with the seat label.
+    /// </summary>
     private void Layout(Player teammate)
     {
         Vector2 viewport = GetViewportRect().Size;
-        // Level with the teammate HUD's potion slots (and the players list on the left), below the driver's relic row.
+        // Level with the teammate HUD's status line (and the players list on the left), below the driver's relic row.
         float top = CouchTeammateHud.BandTop() + 4f;
-        float right = viewport.X - EdgeMargin;
+        bool inCombat = CouchTeammateHud.HeaderRight.HasValue;
         float left = CouchTeammateHud.HeaderRight is float headerRight
-            ? headerRight + 24f
+            ? headerRight + 30f
             : Mathf.Max(viewport.X * 0.45f, DriverRelicsRight() + 32f);
+        float right = inCombat ? Mathf.Min(viewport.X - EdgeMargin, left + viewport.X * 0.3f) : viewport.X - EdgeMargin;
 
-        _label!.Text = CouchSeats.FindByPlayer(teammate.NetId)?.Label ?? "P2";
-        Vector2 labelSize = _label.GetMinimumSize();
-        float available = Mathf.Max(MinIconSize, right - left - labelSize.X - 12f);
+        _label!.Visible = !inCombat;
+        _label.Text = CouchSeats.FindByPlayer(teammate.NetId)?.Label ?? "P2";
+        Vector2 labelSize = inCombat ? Vector2.Zero : _label.GetMinimumSize();
+        float available = Mathf.Max(MinIconSize, right - left - (inCombat ? 0f : labelSize.X + 12f));
         int count = _holders.Count;
-        float size = Mathf.Clamp(available / count, MinIconSize, MaxIconSize);
+        float size = Mathf.Clamp(available / count, MinIconSize, inCombat ? 36f : MaxIconSize);
         int perRow = Mathf.Max(1, Mathf.FloorToInt(available / size));
         int rows = (count + perRow - 1) / perRow;
         for (int i = 0; i < count; i++)
@@ -212,7 +242,8 @@ internal sealed partial class CouchTeammateRelicBar : Control
             Vector2 native = holder.Size.X > 1f ? holder.Size : new Vector2(68f, 68f);
             float scale = size / Mathf.Max(native.X, native.Y);
             holder.Scale = new Vector2(scale, scale);
-            holder.Position = new Vector2(right - (inRow - column) * size, top + row * size);
+            float x = inCombat ? left + column * size : right - (inRow - column) * size;
+            holder.Position = new Vector2(x, top + row * size);
         }
 
         float iconsLeft = right - Mathf.Min(perRow, count) * size;
@@ -230,6 +261,41 @@ internal sealed partial class CouchTeammateRelicBar : Control
         }
 
         return nodes.Where(IsInstanceValid).Select((NRelicInventoryHolder n) => n.GlobalPosition.X + n.Size.X).DefaultIfEmpty(0f).Max();
+    }
+
+    /// <summary><c>NRelicInventoryHolder.OnFocus</c>: the icon grows and the relic's tooltip opens.</summary>
+    private void ApplyFocus()
+    {
+        NRelicInventoryHolder? holder = Visible && _focusRequest is int index && index >= 0 && index < _holders.Count ? _holders[index] : null;
+        if (holder == _focused)
+        {
+            return;
+        }
+
+        if (_focused != null && IsInstanceValid(_focused))
+        {
+            _focusTween?.Kill();
+            _focusTween = _focused.CreateTween();
+            _focusTween.TweenProperty(_focused.Relic.Icon, "scale", Vector2.One, 1.0).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Expo);
+        }
+
+        if (_tipAnchor != null)
+        {
+            NHoverTipSet.Remove(_tipAnchor);
+        }
+
+        _focused = holder;
+        if (holder == null || _tipAnchor == null)
+        {
+            return;
+        }
+
+        _focusTween?.Kill();
+        _focusTween = holder.CreateTween();
+        _focusTween.TweenProperty(holder.Relic.Icon, "scale", Vector2.One * 1.25f, 0.05);
+        _tipAnchor.Position = holder.Position;
+        _tipAnchor.Size = holder.Size * holder.Scale;
+        NHoverTipSet.CreateAndShow(_tipAnchor, holder.Relic.Model.HoverTips)?.SetAlignmentForRelic(holder.Relic);
     }
 
     private void Clear()

@@ -21,6 +21,11 @@ hud_x = 300
 # hud_y = 170
 hud_scale = 0.45
 
+# P1's hand size in couch co-op (1 = the game's size; the hovered card uses it too).
+p1_hand_scale = 0.85
+# P1's hand shifted sideways in pixels (negative = left), so raised cards stay off the enemies on the right.
+p1_hand_offset = -200
+
 # Screenshots for UI work: F11 saves one any time. shots = 1 also saves one each time a P2 screen or HUD mode opens.
 # They go to the game's user folder, under couch_shots/.
 shots = 0

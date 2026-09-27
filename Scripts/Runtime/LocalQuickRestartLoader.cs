@@ -8,6 +8,7 @@ using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Audio;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Saves.Runs;
@@ -49,6 +50,10 @@ internal static class LocalQuickRestartLoader
 
             LoadRunLobby lobby = new LoadRunLobby(netService, NoopLoadRunLobbyListener.Instance, saveData);
             lobby.AddLocalHostPlayer();
+
+            // The game's load screen stops the main menu music when the run begins (NMultiplayerLoadGameScreen.BeginRun);
+            // this direct load skips that screen, so stop it here or it keeps playing under the run's music.
+            NAudioManager.Instance?.StopMusic();
 
             NGame game = NGame.Instance ?? throw new InvalidOperationException("NGame.Instance is null.");
             game.RemoteCursorContainer.Initialize(lobby.InputSynchronizer, lobby.PlayerIds);

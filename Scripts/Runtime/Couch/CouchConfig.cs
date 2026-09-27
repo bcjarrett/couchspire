@@ -50,6 +50,19 @@ internal static class CouchConfig
     /// <summary>Teammate HUD position (top-left of its header, in the game's UI coordinates) and card scale.</summary>
     public static readonly float HudX = Number("hud_x", 300f);
 
+    /// <summary>
+    /// Size of the driver's resting hand in couch co-op (1 = the game's size). The card under the cursor still grows to
+    /// full size. The teammate's band shares the screen, so a slightly smaller hand leaves more room.
+    /// </summary>
+    public static readonly float DriverHandScale = Number("p1_hand_scale", 0.85f);
+
+    /// <summary>
+    /// Sideways shift of the driver's hand in couch co-op, in pixels (negative = left). The enemies stand on the right,
+    /// so a hand shifted left under the players keeps the driver's raised cards off the enemies' health and intents,
+    /// which the teammate may be reading.
+    /// </summary>
+    public static readonly float DriverHandOffset = Number("p1_hand_offset", -200f);
+
     /// <summary>Saves a screenshot each time a teammate screen or HUD mode opens (<see cref="CouchScreenshots"/>).</summary>
     public static readonly bool ShotsEnabled = Flag("shots", "COUCHSPIRE_SHOTS", defaultValue: false);
 

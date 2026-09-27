@@ -90,25 +90,26 @@ Question: can P2 act while P1 keeps the screen? F7 sends P2's card play through 
 
 **E. Teammate HUD** (P2 plays with their own cursor while P1 keeps the screen)
 
-In a combat, P2's controls sit in a band across the top of the screen, above the characters:
-- a status line with the game's icons (P2's energy, gold, stars for the Regent, draw and discard piles, turn ended) with P2's potion slots after it;
+P2's portrait, HP, gold and potions sit in the empty middle of the top bar all run, drawn like P1's. P2's relics are under the top bar on the right. In a combat, P2's controls sit in a band across the top of the screen, above the characters:
+- a status line with the game's icons (P2's energy, stars for the Regent, draw and discard piles, turn ended);
 - a key hint, which follows whether P2 last used keys or a pad;
-- P2's hand, or the options of a choice.
+- P2's hand, or the options of a choice. After P2 ends their turn the hand slides away, and comes back if they take the turn back.
 
-The HUD fades while P1 has a hand selection, overlay, map or deck view open. It replaces the F8 ghost hand for P2. Move or resize it with `hud_x`, `hud_y`, `hud_scale` in `CouchSpire.cfg`.
+The HUD fades while P1 has a hand selection, overlay, map or deck view open, or a tooltip for something in the top bar (P1's potions, relics). It replaces the F8 ghost hand for P2. Move or resize it with `hud_x`, `hud_y`, `hud_scale` in `CouchSpire.cfg`; `p1_hand_scale` (default 0.85) sets P1's resting hand size.
 
 | P2 action | Keyboard | Controller |
 |---|---|---|
-| Move the cursor (cards, potions, targets, choice options) | J / L | D-pad or stick left/right |
-| Play the card / use the potion; confirm the target; pick a choice option | I | A (Cross) |
-| Switch between hand and potions | U | Up / Down |
-| Back out of targeting or the potion row; clear the choice selection | K | B (Circle) |
+| Move the cursor (cards, potions, relics, targets, choice options) | J / L | D-pad or stick left/right |
+| Pick up the card / potion, then play or use it (a second press, as P1's controller); confirm the target; pick a choice option | I | A (Cross) |
+| Switch between the hand and the potion row (right past the last potion: P2's relics, with tooltips) | U | Up / Down |
+| Put the card or potion back; leave the potion or relic row; clear the choice selection | K | B (Circle) |
 | Confirm a multi-card choice; discard a potion (press twice) | O | X (Square) |
 | End or un-end the turn | P | Y (Triangle); in a choice, Y confirms |
+| P2's deck / relics view | V | LB (deck) / RB (relics); View toggles |
 
-1. Play a Strike with P2: I, then J/L to move the yellow arrow between enemies, then I. P1 can be mid-play at the same time.
-   - While aiming, a big copy of the card sits beside the targeted enemy showing the damage against **that** enemy (Vulnerable, etc.). The small hand card shows it too. P2's hand numbers also stay current as Strength or Weak change.
-2. Play a Defend; it has no target, so it plays immediately. Try a card P2 can't afford; the hint line should show a reason.
+1. Play a Strike with P2: I, then J/L to move P1's style of targeting arrow between enemies, then I. P1 can be mid-play at the same time.
+   - While aiming, the card is held up large and shows the damage against **that** enemy (Vulnerable, etc.). P2's hand numbers also stay current as Strength or Weak change.
+2. Play a Defend: I picks it up, I again plays it (K puts it back). Try a card P2 can't afford; the hint line should show a reason.
 3. Survivor: after I, the HUD shows P2's hand as the choice options. Pick one with I; for a multi-card choice, toggle with I and confirm with O.
 4. Potions: U, J/L to a potion (the hint shows what it does), then I. Enemy-targeted potions show the arrow. O twice discards.
 5. P ends P2's turn; the status line shows `TURN ENDED`.
