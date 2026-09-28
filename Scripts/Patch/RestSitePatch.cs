@@ -291,17 +291,36 @@ internal static class NRestSiteRoomReadyPatch
             return;
         }
 
-        Callable.From(delegate
-        {
-            EnsurePrimaryPlayerOptionsVisible(__instance, attempt: 0, loadingSettledFramesLeft: 2, switchedToPrimary: false);
-        }).CallDeferred();
+        NextFrame(() => EnsurePrimaryPlayerOptionsVisible(__instance, attempt: 0, loadingSettledFramesLeft: 2, switchedToPrimary: false, loadingFramesWaited: 0));
     }
+
+    // Retries wait a real frame. A CallDeferred queued from inside a deferred call runs in the same flush, so a
+    // "wait until loading ends" loop built on it never lets a frame pass, loading never ends, and the game freezes
+    // with the message queue full (found by the rest_site test scenario).
+    private static void NextFrame(Action action)
+    {
+        if (Engine.GetMainLoop() is not SceneTree tree)
+        {
+            return;
+        }
+
+        void OnFrame()
+        {
+            tree.ProcessFrame -= OnFrame;
+            action();
+        }
+
+        tree.ProcessFrame += OnFrame;
+    }
+
+    private const int MaxLoadingWaitFrames = 300;
 
     private static void EnsurePrimaryPlayerOptionsVisible(
         NRestSiteRoom room,
         int attempt,
         int loadingSettledFramesLeft,
-        bool switchedToPrimary)
+        bool switchedToPrimary,
+        int loadingFramesWaited)
     {
         if (!LocalSelfCoopContext.IsEnabled || !LocalSelfCoopContext.UseSingleAdventureMode || !RunManager.Instance.IsInProgress)
         {
@@ -314,21 +333,19 @@ internal static class NRestSiteRoomReadyPatch
         }
 
         bool isLoading = LocalSelfCoopContext.NetService?.IsGameLoading ?? false;
-        if (isLoading)
+        if (isLoading && loadingFramesWaited < MaxLoadingWaitFrames)
         {
-            Callable.From(delegate
-            {
-                EnsurePrimaryPlayerOptionsVisible(room, attempt, loadingSettledFramesLeft: 2, switchedToPrimary);
-            }).CallDeferred();
+            NextFrame(() => EnsurePrimaryPlayerOptionsVisible(room, attempt, loadingSettledFramesLeft: 2, switchedToPrimary, loadingFramesWaited + 1));
             return;
         }
 
-        if (loadingSettledFramesLeft > 0)
+        if (isLoading)
         {
-            Callable.From(delegate
-            {
-                EnsurePrimaryPlayerOptionsVisible(room, attempt, loadingSettledFramesLeft - 1, switchedToPrimary);
-            }).CallDeferred();
+            LocalMultiControlLogger.Warn($"Rest site entry: the game still reports loading after {MaxLoadingWaitFrames} frames; checking options anyway.");
+        }
+        else if (loadingSettledFramesLeft > 0)
+        {
+            NextFrame(() => EnsurePrimaryPlayerOptionsVisible(room, attempt, loadingSettledFramesLeft - 1, switchedToPrimary, loadingFramesWaited));
             return;
         }
 
@@ -349,10 +366,7 @@ internal static class NRestSiteRoomReadyPatch
             return;
         }
 
-        Callable.From(delegate
-        {
-            EnsurePrimaryPlayerOptionsVisible(room, attempt + 1, loadingSettledFramesLeft: 1, switchedToPrimary);
-        }).CallDeferred();
+        NextFrame(() => EnsurePrimaryPlayerOptionsVisible(room, attempt + 1, loadingSettledFramesLeft: 1, switchedToPrimary, loadingFramesWaited));
     }
 }
 

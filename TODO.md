@@ -10,6 +10,18 @@ code; two were already resolved by earlier redesigns.
 Reporter: Xiao Tong. No log yet. The mod's rest-site option flow (RestSitePatch) traces clean;
 suspects are the next-room transition (map vote → room build) or an event room rebuild.
 Ask for `%APPDATA%/SlayTheSpire2/logs/godot.log` and whether it happens at every campfire.
+Possible cause, found 2026-09-27 by the `rest_site` test scenario: `NRestSiteRoomReadyPatch.EnsurePrimaryPlayerOptionsVisible`
+retried with no limit while the net service reported loading, each retry in the same frame, so the game hard-froze
+(the log fills with `Object was deleted while awaiting a callback.`). Fixed in 7a96451, but only verified from the log, not
+yet in game. If the reporter's log shows that line, this was it.
+
+### A2. Follow-ups from the rest-site freeze (2026-09-27)
+- The loopback `IsGameLoading` flag can stay true for a long time. Test runs log `loading state updated: True` with no
+  matching `False` (`NetLoadingHandle` is ref-counted). Find out whether that happens in normal play and what holds it.
+- `RoomFocusGuardPatch` (`TryRecoverRestSiteAfterReadyOutOfRange`) and `RestSiteAutoSwitchUtil.EnsureOptionsAfterSwitch`
+  also count "frames" with `CallDeferred`, which doesn't wait a frame when called from a deferred call. They have attempt
+  limits, so they can't freeze, but their waits take no time. Switch them to a real next-frame wait once there's a test
+  covering them.
 
 ### B. Selection-type potions used cross-character do nothing (Workshop, 2026-08-29, v0.111)
 Reporter: LH. Slot 2 uses a choose-a-card potion (e.g. Droplet of Precognition / Liquid
