@@ -40,6 +40,8 @@ internal sealed partial class CouchTestContext
 
     private readonly SceneTree _tree;
     private readonly CancellationToken _cancellationToken;
+    private readonly CouchTestCheckpointOptions _layoutOptions;
+    private readonly List<CouchTestLayoutSnapshot> _layoutSnapshots = new();
 
     /// <param name="cancellationToken">
     /// Cancelled by <see cref="CouchTestRunner"/> the moment a scenario's timeout fires, before it abandons the run.
@@ -47,11 +49,18 @@ internal sealed partial class CouchTestContext
     /// they poll), so a scenario that outlives its timeout stops touching the game instead of running on as a
     /// "zombie" that could press buttons or run console commands inside the *next* scenario's run.
     /// </param>
-    public CouchTestContext(SceneTree tree, CancellationToken cancellationToken)
+    /// <param name="layoutOptions">Scenario/aspect/output-dir context <see cref="Checkpoint"/> needs for the layout
+    /// checks and snapshot compare/bless (docs/design/testing-plan.md §6.5, WP4).</param>
+    public CouchTestContext(SceneTree tree, CancellationToken cancellationToken, CouchTestCheckpointOptions layoutOptions)
     {
         _tree = tree;
         _cancellationToken = cancellationToken;
+        _layoutOptions = layoutOptions;
     }
+
+    /// <summary>Every checkpoint's layout snapshot so far this run, in order. Read by <see cref="CouchTestRunner"/>
+    /// after the scenario finishes to feed <c>--repeat</c>'s cross-run compare.</summary>
+    public IReadOnlyList<CouchTestLayoutSnapshot> LayoutSnapshots => _layoutSnapshots;
 
     /// <summary>Cancelled when the scenario times out; pass it to anything that waits.</summary>
     public CancellationToken CancellationToken => _cancellationToken;
@@ -196,15 +205,21 @@ internal sealed partial class CouchTestContext
     }
 
     /// <summary>
-    /// Records a state summary line. WP3 only: layout rules, the snapshot compare, and the <c>--review</c> screenshot
-    /// are WP4's job (docs/design/testing-plan.md §6.5); this is the hook it extends.
+    /// Records a state summary line, then runs the layout rules and the snapshot compare/bless for this checkpoint
+    /// (docs/design/testing-plan.md §6.5; see <see cref="CouchTestLayout.RunCheckpointAsync"/>). A rule or snapshot
+    /// failure aborts the scenario, naming the node and the numbers, exactly like <see cref="Expect"/>.
     /// </summary>
-    public void Checkpoint(string label)
+    public async Task Checkpoint(string label)
     {
+        _cancellationToken.ThrowIfCancellationRequested();
+
         RunState? runState = RunManager.Instance.DebugOnlyGetState();
         CouchTestLog.Info(
             $"Checkpoint '{label}': room={runState?.CurrentRoom?.RoomType.ToString() ?? "none"}, floor={runState?.TotalFloor.ToString() ?? "none"}, " +
             $"driver={LocalContext.NetId?.ToString() ?? "none"}, overlayTop={NOverlayStack.Instance?.Peek()?.GetType().Name ?? "none"}.");
+
+        CouchTestLayoutSnapshot snapshot = await CouchTestLayout.RunCheckpointAsync(_tree, _layoutOptions, label, _cancellationToken);
+        _layoutSnapshots.Add(snapshot);
     }
 
     private static Player ResolvePlayer(ulong id)

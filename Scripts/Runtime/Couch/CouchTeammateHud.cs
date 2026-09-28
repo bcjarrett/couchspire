@@ -174,6 +174,8 @@ internal sealed partial class CouchTeammateHud : Control
 
     private float _headerMiddle;
 
+    private float _headerTop;
+
     private double _flashUntil;
 
     private enum HudMode
@@ -231,6 +233,12 @@ internal sealed partial class CouchTeammateHud : Control
 
     /// <summary>Vertical middle of the HUD's top line, while the HUD is up.</summary>
     public static float? HeaderMiddle => IsActive ? _instance!._headerMiddle : null;
+
+    /// <summary>Top of the HUD's header line (before <see cref="BandTop"/>'s <c>HeaderOffset</c>), while the HUD is
+    /// up. Used by the in-game test runner (docs/design/testing-plan.md §6.5) to check the HUD band against the
+    /// players list without measuring the whole HUD's bounding box, which also spans the (separately laid out) hand
+    /// of cards and can extend above the header line when a card is focused/enlarged.</summary>
+    public static float? HeaderTop => IsActive ? _instance!._headerTop : null;
 
     /// <summary>True if the HUD is currently showing this player (so other overlays can skip them).</summary>
     public static bool IsShowing(ulong playerId)
@@ -989,6 +997,7 @@ internal sealed partial class CouchTeammateHud : Control
         _header.Size = new Vector2(Mathf.Max(_header.GetContentWidth(), 10f), 40f);
         _headerRight = left + _header.GetContentWidth();
         _headerMiddle = _header.Position.Y + _header.GetContentHeight() * 0.5f;
+        _headerTop = _header.Position.Y;
 
         // Cards: left-aligned under the text; overlap more when the hand is too wide for the space.
         float availableWidth = Mathf.Max(cardSize.X, viewport.X - RightMargin - left - cardSize.X);

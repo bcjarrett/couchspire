@@ -40,4 +40,5 @@ Quick orientation for the "online multiplayer → local two-player co-op" implem
 
 - Build & deploy: `README.md`; agent rules: `AGENTS.md`
 - History: `CHANGELOG.md`; open issues: `TODO.md`
+- Automated tests (patch-target check, in-game scenarios): `docs/testing.md`
 - Original design docs: `docs/design/`

@@ -310,7 +310,7 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
         exit 2
       fi
 
-      game_args=(--force-steam off --couch-test "$selection" --couch-test-out "$out_dir")
+      game_args=(--force-steam off --couch-test "$selection" --couch-test-out "$out_dir" --couch-test-baselines "$ROOT/Tests/layout-baselines")
       if [ -n "$repeat" ]; then
         game_args+=(--repeat "$repeat")
       fi

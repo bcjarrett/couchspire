@@ -40,10 +40,6 @@ internal static class CouchTestRunner
     private const string MainMenuPath = "/root/Game/RootSceneContainer/MainMenu";
     private const string PauseButtonPath = "/root/Game/RootSceneContainer/Run/GlobalUi/TopBar/RightAlignedStuff/PauseButton";
 
-    /// <summary>The one aspect pass WP3 runs at (docs/design/testing-plan.md WP0 facts). WP4's seam: turn this into
-    /// a list of (AspectRatioSetting, Vector2I, label) passes and loop scenarios over it.</summary>
-    private const string DefaultAspectLabel = "16:9";
-
     private static readonly TimeSpan MenuStepTimeout = TimeSpan.FromSeconds(20);
 
     public static void StartIfRequested()
@@ -112,6 +108,33 @@ internal static class CouchTestRunner
             return 2;
         }
 
+        // The baselines dir lives in the repo (Tests/layout-baselines/), not the gitignored results dir
+        // (docs/design/testing-plan.md §6.5.2), so it's its own flag; deploy.sh test always passes $ROOT/Tests/layout-baselines.
+        if (!CommandLineHelper.TryGetValue("couch-test-baselines", out string? baselinesDir) || string.IsNullOrWhiteSpace(baselinesDir))
+        {
+            CouchTestLog.Error("--couch-test-baselines <abs dir> is required when --couch-test is given (docs/design/testing-plan.md §6.5.2).");
+            return 2;
+        }
+
+        if (!Path.IsPathRooted(baselinesDir))
+        {
+            CouchTestLog.Error($"--couch-test-baselines must be an absolute path, got '{baselinesDir}'.");
+            return 2;
+        }
+
+        int repeat = 1;
+        if (CommandLineHelper.TryGetValue("repeat", out string? repeatValue))
+        {
+            if (!int.TryParse(repeatValue, out repeat) || repeat < 1)
+            {
+                CouchTestLog.Error($"--repeat needs a positive integer, got '{repeatValue}'.");
+                return 2;
+            }
+        }
+
+        bool bless = CommandLineHelper.HasArg("bless");
+        bool review = CommandLineHelper.HasArg("review");
+
         List<ICouchTestScenario> scenarios;
         try
         {
@@ -123,13 +146,35 @@ internal static class CouchTestRunner
             return 2;
         }
 
+        // Fail fast on an unknown aspect label instead of discovering it mid-run.
+        try
+        {
+            foreach (ICouchTestScenario scenario in scenarios)
+            {
+                foreach (string aspect in scenario.Aspects)
+                {
+                    CouchTestLayout.ResolveAspect(aspect);
+                }
+            }
+        }
+        catch (ArgumentException ex)
+        {
+            CouchTestLog.Error(ex.Message);
+            return 2;
+        }
+
         List<string> notes = new();
-        RecordNoOpFlags(notes);
-        CouchTestLog.Info($"Selected scenario(s): {string.Join(", ", scenarios.Select((scenario) => scenario.Name))}. Output: {outDir}");
+        CouchTestLog.Info(
+            $"Selected scenario(s): {string.Join(", ", scenarios.Select((scenario) => scenario.Name))}. Output: {outDir}. " +
+            $"Baselines: {baselinesDir}. repeat={repeat}, bless={bless}, review={review}.");
 
         await WaitHelper.Until(() => NGame.Instance != null, CancellationToken.None, TimeSpan.FromSeconds(60), "NGame instance not initialized");
         await NGame.Instance!.GameStartupComplete;
-        Control mainMenu = await WaitHelper.ForNode<Control>(tree.Root, MainMenuPath, CancellationToken.None, TimeSpan.FromSeconds(60));
+
+        // Just a readiness check here: the actual Control is re-resolved fresh per scenario/aspect pass
+        // (StartCouchRunAsync), because "Give Up" replaces the main menu scene, and a Control captured before that
+        // is disposed afterward (observed: ObjectDisposedException on NMainMenu when a second pass reused this).
+        await WaitHelper.ForNode<Control>(tree.Root, MainMenuPath, CancellationToken.None, TimeSpan.FromSeconds(60));
 
         PrepareEnvironment();
 
@@ -143,41 +188,137 @@ internal static class CouchTestRunner
             return 2;
         }
 
-        List<CouchTestScenarioResult> results = new();
-        foreach (ICouchTestScenario scenario in scenarios)
+        CouchTestLayout.ResetReview();
+
+        // §6.2/§6.6 rule 8: --repeat runs the whole selection N times and every pass's results/layout must match the
+        // first (apart from durations). Each pass is the full "for each scenario, for each aspect it declares" loop.
+        List<List<CouchTestScenarioResult>> passResults = new();
+        List<List<CouchTestLayoutSnapshot>> passSnapshots = new();
+
+        for (int repeatIndex = 0; repeatIndex < repeat; repeatIndex++)
         {
-            (CouchTestScenarioResult result, bool canContinue) = await RunScenarioAsync(tree, mainMenu, scenario, outDir);
-            results.Add(result);
-            if (!canContinue)
+            if (repeat > 1)
             {
-                CouchTestLog.Error($"Could not return to the main menu after '{scenario.Name}'; stopping (remaining scenarios not run).");
-                notes.Add($"Stopped early after '{scenario.Name}': could not reliably return to the main menu.");
+                CouchTestLog.Info($"--- Repeat pass {repeatIndex + 1}/{repeat} ---");
+            }
+
+            List<CouchTestScenarioResult> results = new();
+            List<CouchTestLayoutSnapshot> snapshots = new();
+            bool stoppedEarly = false;
+
+            foreach (ICouchTestScenario scenario in scenarios)
+            {
+                foreach (string aspect in scenario.Aspects)
+                {
+                    CouchTestCheckpointOptions layoutOptions = new(scenario.Name, aspect, outDir, baselinesDir, bless, review);
+                    (CouchTestScenarioResult result, List<CouchTestLayoutSnapshot> checkpointSnapshots, bool canContinue) =
+                        await RunScenarioPassAsync(tree, scenario, layoutOptions);
+                    results.Add(result);
+                    snapshots.AddRange(checkpointSnapshots);
+                    if (!canContinue)
+                    {
+                        CouchTestLog.Error($"Could not return to the main menu after '{scenario.Name}' ({aspect}); stopping (remaining scenario/aspect passes not run).");
+                        notes.Add($"Stopped early after '{scenario.Name}' ({aspect}): could not reliably return to the main menu.");
+                        stoppedEarly = true;
+                        break;
+                    }
+                }
+
+                if (stoppedEarly)
+                {
+                    break;
+                }
+            }
+
+            passResults.Add(results);
+            passSnapshots.Add(snapshots);
+
+            if (stoppedEarly)
+            {
                 break;
             }
         }
 
-        CouchTestResultsWriter.Write(outDir, results, notes);
-        bool passed = results.Count == scenarios.Count && results.All((result) => result.Outcome == CouchTestOutcome.Pass);
+        bool repeatMismatch = false;
+        if (passResults.Count > 1)
+        {
+            for (int i = 1; i < passResults.Count; i++)
+            {
+                string? resultMismatch = CompareResultsForRepeat(passResults[0], passResults[i], i + 1);
+                if (resultMismatch != null)
+                {
+                    CouchTestLog.Error($"--repeat mismatch: {resultMismatch}");
+                    notes.Add($"--repeat mismatch: {resultMismatch}");
+                    repeatMismatch = true;
+                }
+
+                string? layoutMismatch = CouchTestLayout.CompareLayoutForRepeat(passSnapshots[0], passSnapshots[i], i + 1);
+                if (layoutMismatch != null)
+                {
+                    CouchTestLog.Error($"--repeat mismatch: {layoutMismatch}");
+                    notes.Add($"--repeat mismatch: {layoutMismatch}");
+                    repeatMismatch = true;
+                }
+            }
+
+            if (!repeatMismatch)
+            {
+                notes.Add($"--repeat {repeat}: every pass's results and layout snapshots matched the first pass (apart from durations).");
+            }
+        }
+
+        if (bless)
+        {
+            notes.Add("--bless: layout baselines were (re)written from this run's measured rects (Tests/layout-baselines/). Diff before committing.");
+        }
+
+        if (review)
+        {
+            await CouchTestLayout.BuildContactSheetAsync(tree, outDir);
+        }
+
+        List<CouchTestScenarioResult> finalResults = passResults.Count > 0 ? passResults[0] : new List<CouchTestScenarioResult>();
+        int expectedCount = scenarios.Sum((scenario) => scenario.Aspects.Count);
+
+        CouchTestResultsWriter.Write(outDir, finalResults, notes);
+        bool passed = !repeatMismatch && finalResults.Count == expectedCount && finalResults.All((result) => result.Outcome == CouchTestOutcome.Pass);
         return passed ? 0 : 1;
     }
 
-    private static void RecordNoOpFlags(List<string> notes)
+    /// <summary>§6.2/§6.6 rule 8: every field but <c>DurationMs</c> must match the first pass, in the same order.</summary>
+    private static string? CompareResultsForRepeat(IReadOnlyList<CouchTestScenarioResult> first, IReadOnlyList<CouchTestScenarioResult> repeatPass, int repeatNumber)
     {
-        int repeat = 1;
-        if (CommandLineHelper.TryGetValue("repeat", out string? repeatValue) && int.TryParse(repeatValue, out int parsedRepeat) && parsedRepeat > 0)
+        if (first.Count != repeatPass.Count)
         {
-            repeat = parsedRepeat;
+            return $"repeat {repeatNumber}: scenario/aspect pass count differs (first run={first.Count}, this run={repeatPass.Count}).";
         }
 
-        bool bless = CommandLineHelper.HasArg("bless");
-        bool review = CommandLineHelper.HasArg("review");
-        if (repeat != 1 || bless || review)
+        for (int i = 0; i < first.Count; i++)
         {
-            string note = $"--repeat={repeat}, --bless={bless}, --review={review} were parsed but are no-ops in this build " +
-                "(WP4 implements --repeat/--bless/--review: layout baselines, blessing, and the review contact sheet).";
-            CouchTestLog.Info(note);
-            notes.Add(note);
+            CouchTestScenarioResult a = first[i];
+            CouchTestScenarioResult b = repeatPass[i];
+            if (a.Name != b.Name || a.Aspect != b.Aspect)
+            {
+                return $"repeat {repeatNumber}: pass order differs at index {i} (first run={a.Name}@{a.Aspect}, this run={b.Name}@{b.Aspect}).";
+            }
+
+            if (a.Outcome != b.Outcome)
+            {
+                return $"repeat {repeatNumber}: {a.Name}@{a.Aspect}: outcome differs (first run={a.Outcome}, this run={b.Outcome}).";
+            }
+
+            if (a.Message != b.Message)
+            {
+                return $"repeat {repeatNumber}: {a.Name}@{a.Aspect}: message differs (first run=\"{a.Message}\", this run=\"{b.Message}\").";
+            }
+
+            if (a.Seed != b.Seed)
+            {
+                return $"repeat {repeatNumber}: {a.Name}@{a.Aspect}: seed differs (first run={a.Seed}, this run={b.Seed}).";
+            }
         }
+
+        return null;
     }
 
     private static void PrepareEnvironment()
@@ -190,29 +331,30 @@ internal static class CouchTestRunner
         SaveManager.Instance.ObtainEpochOverride(EpochModel.GetId<Defect1Epoch>(), EpochState.Revealed);
         SaveManager.Instance.ObtainEpochOverride(EpochModel.GetId<Necrobinder1Epoch>(), EpochState.Revealed);
 
-        // Pin window/aspect the game's own way (WP0 spike facts). Aspect passes are WP4's job; DefaultAspectLabel is
-        // the seam it extends.
-        SettingsSave settings = SaveManager.Instance.SettingsSave;
-        settings.AspectRatioSetting = AspectRatioSetting.SixteenByNine;
-        settings.WindowSize = new Vector2I(1600, 900);
-        NGame.Instance!.ApplyDisplaySettings();
-
-        CouchTestLog.Info("Test environment prepared: FastMode=Instant, FTUEs off, all epochs unlocked, display pinned to 16:9 1600x900.");
+        // The display is pinned per scenario/aspect pass by CouchTestLayout.PinAsync (docs/design/testing-plan.md
+        // §6.5.3); nothing to do here beyond the non-display prep above.
+        CouchTestLog.Info("Test environment prepared: FastMode=Instant, FTUEs off, all epochs unlocked.");
     }
 
-    private static async Task<(CouchTestScenarioResult Result, bool CanContinue)> RunScenarioAsync(SceneTree tree, Control mainMenu, ICouchTestScenario scenario, string outDir)
+    private static async Task<(CouchTestScenarioResult Result, List<CouchTestLayoutSnapshot> LayoutSnapshots, bool CanContinue)> RunScenarioPassAsync(
+        SceneTree tree, ICouchTestScenario scenario, CouchTestCheckpointOptions layoutOptions)
     {
-        CouchTestLog.Info($"--- Scenario '{scenario.Name}' starting (seed={scenario.Seed}, p1={scenario.P1Character.Id.Entry}, p2={scenario.P2Character.Id.Entry}) ---");
+        CouchTestLog.Info(
+            $"--- Scenario '{scenario.Name}' ({layoutOptions.Aspect}) starting (seed={scenario.Seed}, p1={scenario.P1Character.Id.Entry}, p2={scenario.P2Character.Id.Entry}) ---");
         long startMs = (long)Time.GetTicksMsec();
         using CouchTestLogWatch logWatch = new();
         using CancellationTokenSource scenarioCts = new();
         CouchTestOutcome outcome = CouchTestOutcome.Pass;
         string message = "";
+        CouchTestContext? context = null;
 
         try
         {
-            await StartCouchRunAsync(mainMenu, scenario);
-            CouchTestContext context = new(tree, scenarioCts.Token);
+            // Pin before starting the run: §8.1 confirmed this works at any time, and starting fresh at the right
+            // aspect avoids a mid-run resize the game doesn't otherwise do outside the options screen.
+            await CouchTestLayout.PinAsync(tree, layoutOptions.Aspect, CancellationToken.None);
+            await StartCouchRunAsync(tree, scenario);
+            context = new CouchTestContext(tree, scenarioCts.Token, layoutOptions);
             Task scenarioTask = scenario.RunAsync(context);
             Task timeoutTask = Task.Delay(scenario.Timeout);
             Task completed = await Task.WhenAny(scenarioTask, timeoutTask);
@@ -252,23 +394,25 @@ internal static class CouchTestRunner
         long durationMs = (long)Time.GetTicksMsec() - startMs;
         // Uppercase outcome word ("FAIL"/"TIMEOUT"/"PASS"): deploy.sh test's failing-log grep looks for
         // "\[CouchTest\].*(FAIL|TIMEOUT)" in godot.log, case-sensitively.
-        CouchTestLog.Info($"--- Scenario '{scenario.Name}' finished: {CouchTestResultsWriter.OutcomeText(outcome).ToUpperInvariant()} ({durationMs}ms){(message.Length > 0 ? $" — {message}" : "")} ---");
+        CouchTestLog.Info(
+            $"--- Scenario '{scenario.Name}' ({layoutOptions.Aspect}) finished: {CouchTestResultsWriter.OutcomeText(outcome).ToUpperInvariant()} ({durationMs}ms){(message.Length > 0 ? $" — {message}" : "")} ---");
 
         if (outcome != CouchTestOutcome.Pass)
         {
             try
             {
-                await CouchScreenshots.TakeToAsync(Path.Combine(outDir, $"failure-{scenario.Name}.png"));
+                await CouchScreenshots.TakeToAsync(Path.Combine(layoutOptions.OutDir, $"failure-{scenario.Name}@{layoutOptions.Aspect}.png"));
             }
             catch (Exception ex)
             {
-                CouchTestLog.Warn($"Could not save a failure screenshot for '{scenario.Name}': {ex.Message}");
+                CouchTestLog.Warn($"Could not save a failure screenshot for '{scenario.Name}' ({layoutOptions.Aspect}): {ex.Message}");
             }
         }
 
         bool canContinue = await TryAbandonToMainMenuAsync(tree);
-        CouchTestScenarioResult result = new(scenario.Name, DefaultAspectLabel, outcome, message, scenario.Seed, durationMs);
-        return (result, canContinue);
+        CouchTestScenarioResult result = new(scenario.Name, layoutOptions.Aspect, outcome, message, scenario.Seed, durationMs);
+        List<CouchTestLayoutSnapshot> layoutSnapshots = context?.LayoutSnapshots.ToList() ?? new List<CouchTestLayoutSnapshot>();
+        return (result, layoutSnapshots, canContinue);
     }
 
     private static void ObserveLateCompletion(Task task, string scenarioName)
@@ -288,8 +432,11 @@ internal static class CouchTestRunner
     /// Drives the real menu buttons (docs/design/testing-plan.md §6.3): Multiplayer → Host → the injected Couch
     /// Co-op card (<c>NMultiplayerHostSubmenuPatch</c>), picks characters per player, sets the seed, then Embarks.
     /// </summary>
-    private static async Task StartCouchRunAsync(Control mainMenu, ICouchTestScenario scenario)
+    private static async Task StartCouchRunAsync(SceneTree tree, ICouchTestScenario scenario)
     {
+        // Re-resolved fresh every pass: "Give Up" replaces the main menu scene with a new instance, so a Control
+        // captured before that (e.g. once, outside the scenario loop) is disposed by the time a later pass reads it.
+        Control mainMenu = await WaitHelper.ForNode<Control>(tree.Root, MainMenuPath, CancellationToken.None, MenuStepTimeout);
         NButton multiplayerButton = await WaitHelper.ForNode<NButton>(mainMenu, "MainMenuTextButtons/MultiplayerButton", CancellationToken.None, MenuStepTimeout);
         await UiHelper.Click(multiplayerButton);
 

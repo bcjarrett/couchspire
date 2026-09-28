@@ -66,7 +66,7 @@ internal sealed class CombatScenario : CouchTestScenarioBase
             context.P1.PlayerCombatState!.Energy == p1EnergyBefore,
             $"Expected P1's energy to be unaffected by P2's play: before={p1EnergyBefore}, found {context.P1.PlayerCombatState!.Energy}.");
 
-        context.Checkpoint("p2-played-card");
+        await context.Checkpoint("p2-played-card");
 
         CombatState combatStateBeforeEndTurns = CombatManager.Instance.DebugOnlyGetState()
             ?? throw new CouchTestExpectationFailedException("No combat state while ending turns.");
@@ -99,7 +99,7 @@ internal sealed class CombatScenario : CouchTestScenarioBase
             combatStateAfterEnemyTurn.CurrentSide == CombatSide.Player,
             $"Expected control to return to the player side, found {combatStateAfterEnemyTurn.CurrentSide}.");
 
-        context.Checkpoint("new-player-round");
+        await context.Checkpoint("new-player-round");
 
         await context.Console(context.P1, "win");
         await context.WaitUntil(
@@ -109,7 +109,7 @@ internal sealed class CombatScenario : CouchTestScenarioBase
             NOverlayStack.Instance?.Peek() is NRewardsScreen,
             $"Expected the rewards screen to be open after 'win', found {NOverlayStack.Instance?.Peek()?.GetType().Name ?? "none"}.");
 
-        context.Checkpoint("rewards-open");
+        await context.Checkpoint("rewards-open");
         await context.Settle();
     }
 }
@@ -201,7 +201,7 @@ internal sealed class ChoiceScenario : CouchTestScenarioBase
             p1DiscardAfter.SequenceEqual(p1DiscardBefore),
             $"Expected P1's discard pile to be unaffected by P2's choice: before=[{string.Join(",", p1DiscardBefore)}], after=[{string.Join(",", p1DiscardAfter)}].");
 
-        context.Checkpoint("p2-answered-choice");
+        await context.Checkpoint("p2-answered-choice");
         await context.Settle();
     }
 }

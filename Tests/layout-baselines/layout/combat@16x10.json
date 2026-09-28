@@ -1,0 +1,11 @@
+{
+  "nodes": {
+    "anchor.P1EndTurnButton": { "x": 1604, "y": 940, "w": 220, "h": 90 },
+    "anchor.P1RelicRow": { "x": 12, "y": 82, "w": 68, "h": 68 },
+    "anchor.P1TopBar": { "x": 25, "y": -4, "w": 1879, "h": 87 },
+    "anchor.PlayersList": { "x": 12, "y": 154, "w": 389, "h": 132 },
+    "mod.CouchTeammateHud": { "x": 278, "y": 104, "w": 1032, "h": 535 },
+    "mod.CouchTeammateRelicBar": { "x": 676, "y": 165, "w": 36, "h": 36 },
+    "mod.CouchTeammateTopBar": { "x": 942, "y": 12, "w": 451, "h": 90 }
+  }
+}

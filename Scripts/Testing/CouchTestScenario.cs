@@ -24,6 +24,13 @@ internal interface ICouchTestScenario
     TimeSpan Timeout { get; }
 
     /// <summary>
+    /// The aspect ratio passes this scenario runs at (docs/design/testing-plan.md §6.5.3): a fresh couch run is
+    /// started once per label here, with the display pinned first (<see cref="CouchTestLayout.PinAsync"/>). Labels
+    /// must be one of <see cref="CouchTestLayout.KnownAspects"/>.
+    /// </summary>
+    IReadOnlyList<string> Aspects { get; }
+
+    /// <summary>
     /// Drives the scenario. Touch the game only through <paramref name="context"/> — never call game/mod APIs
     /// directly. On timeout the runner cancels <paramref name="context"/>'s token and moves on to abandon the run;
     /// every <see cref="CouchTestContext"/> method checks that token before touching the game, which is what stops
@@ -45,6 +52,9 @@ internal abstract class CouchTestScenarioBase : ICouchTestScenario
     public virtual CharacterModel P2Character => ModelDb.Character<Silent>();
 
     public virtual TimeSpan Timeout => TimeSpan.FromSeconds(90);
+
+    /// <summary>16:9 only by default (docs/design/testing-plan.md §6.5.3); layout-sensitive scenarios override this.</summary>
+    public virtual IReadOnlyList<string> Aspects { get; } = new[] { "16:9" };
 
     public abstract Task RunAsync(CouchTestContext context);
 }

@@ -1,6 +1,6 @@
 # Automated testing plan
 
-Status: **in progress.** Done: WP0 (see §8.1), WP1, WP2, WP7 fix; `deploy.sh test` (WP3 host half). The game facts below were checked against decompiled game source v0.111.0 (`src/`). Update this doc as packages land.
+Status: **in progress.** How to run and write tests: [docs/testing.md](../testing.md). Progress and corrections to this plan: §8.2. The game facts below were checked against decompiled game source v0.111.0 (`src/`).
 
 ## 1. Why
 
@@ -301,6 +301,38 @@ Rules for every package:
 - **Quit, don't kill.** SIGTERM makes .NET abort during shutdown (SIGABRT in `SafeExitProcess`), which leaves a macOS crash report. The runner must end with `GetTree().Quit(code)`. The host script's SIGTERM/SIGKILL is only for hangs.
 - **Mod UI roots.** `CouchTeammateHud` and `CouchTeammateRelicBar` are plain `Control`s, not `CanvasLayer`s, so `GetGlobalRect()` works on them directly. At the main menu the relic bar exists at zero size, and the HUD doesn't exist yet.
 - **Not verified by hand:** the manual couch run (P1 = 1 and P2 = 2 with Steam off) and identical HUD rects across launches. These are left to automation: the `start` scenario asserts the player ids, and WP4's `--repeat` / two-launch check asserts rect stability.
+
+### 8.2 Status and corrections (2026-09-28)
+
+**Merged on `testing-harness`:** WP0, WP1, WP2, WP3, WP4, WP5a (`combat`, `choice`), WP5b (`rewards`), WP5c (`rest_site`), WP5d (`shop`), WP6 (`docs/testing.md`, AGENTS.md), and the WP7 fix.
+
+**Still to do:**
+- WP5e: `treasure` and `map`.
+- The WP7 test, a `gold_mirror` scenario.
+- Bless and review the layout baselines for `combat`, `choice`, `rewards`, `rest_site` and `shop`. Until then they fail with "no baseline".
+- Verify in game: the rest-site freeze fix (7a96451); `shop`'s protection proof and two-run results diff (both unfinished); WP4's done-criteria (the 20 px relic-bar shift proof, `start,layout --repeat 3`), whose agent was stopped before reporting.
+
+**Corrections to the plan above:**
+- §4: the debug `room <type>` command records a **null** encounter id in the map history. Abandoning such a run
+  throws in `ProgressSaveManager.IncrementEncounterLoss`. Scenarios use `context.EnterRoom`, which fills the id in.
+- §4: the `damage` console command only works in combat.
+- §4: Godot's file logger buffers ordinary lines, so after a force-quit `godot.log` can stop early.
+  `deploy.sh test` also captures `game-stdout.txt`, which doesn't have that problem.
+- §6.4: `Checkpoint` is `async` and must be awaited. CS4014 is a build error, so the compiler enforces it.
+- §6.5: no "checksum or desync" log lines exist in the mod, so that pattern was dropped.
+- §6.5: the HUD band doesn't start *below* the players list. By design it lines up with the list's top
+  (`CouchTeammateHud.BandTop`) and sits to its right. The rule checks the header isn't above the list's top.
+- §6.5: baseline file names use `16x9`/`16x10`, because `:` is invalid on Windows.
+- §6.9 `choice`: the teammate choice can become pending in the same call that plays the card, before the HUD
+  switches mode. Wait for `CouchTeammateHud.ModeName == "Choice"` before answering.
+- §6.9 `combat`: the guaranteeing patch is `CombatManagerReadyEnemyTurnPatch`. `CombatManagerPatch` is a no-op
+  in simultaneous mode.
+- Scenarios are discovered by reflection. There's no registry list to edit.
+
+**Mod bugs the tests found:**
+- The rest-site entry check froze the game (unbounded same-frame retries; see `TODO.md` A/A2).
+- A dead `NRestSiteRoom.UpdateNavigation` reflection call (Layer A).
+- A spurious error when entering Couch Co-op on a profile with no saves.
 
 ## 9. Later (not in this milestone)
 - Two-player soak bot: AutoSlay's screen handlers for P1, panel input for P2, and real `PlayCardAction`s, playing whole seeded runs.

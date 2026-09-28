@@ -34,7 +34,7 @@ internal sealed class RewardsScenarios : CouchTestScenarioBase
 
         await context.Console(context.P1, "win");
         await context.Settle();
-        context.Checkpoint("rewards-open");
+        await context.Checkpoint("rewards-open");
 
         context.Expect(
             LocalContext.NetId == context.P1Id,
@@ -108,7 +108,7 @@ internal sealed class RewardsScenarios : CouchTestScenarioBase
             ?? throw new CouchTestExpectationFailedException("Expected exactly one CardReward in P2's post-Monster-combat rewards.");
 
         CouchTeammateChoice p2CardChoice = await context.P2StartCardRewardChoice(teammatePanel, p2CardReward);
-        context.Checkpoint("p2-card-choice-open");
+        await context.Checkpoint("p2-card-choice-open");
         CardModel pickedCard = await context.P2AnswerCardRewardChoice(p2CardChoice, optionIndex: 0);
         context.Expect(
             context.P2.Deck.Cards.Count == p2DeckSizeBefore + 1,
@@ -138,7 +138,7 @@ internal sealed class RewardsScenarios : CouchTestScenarioBase
         // Now P1's Proceed opens the map.
         await context.ClickAsync(proceedButton);
         await context.WaitUntil(() => NMapScreen.Instance?.IsOpen ?? false, "the map to open after P1's Proceed once P2 is done");
-        context.Checkpoint("map-open");
+        await context.Checkpoint("map-open");
 
         context.Expect(
             LocalContext.NetId == context.P1Id,

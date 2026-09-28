@@ -57,7 +57,7 @@ internal sealed class RestSiteScenarios : CouchTestScenarioBase
         // Jump straight to the rest site: EnterRoomDebug exits the current room (abandoning the unfinished combat)
         // before entering the next one, exactly like the runner's own abandon path.
         await context.EnterRoom(RoomType.RestSite);
-        context.Checkpoint("rest-site-open");
+        await context.Checkpoint("rest-site-open");
 
         context.Expect(CouchTeammateRestSite.IsActive, "Expected P2's rest site panel to be visible after entering the rest site.");
 
@@ -98,7 +98,7 @@ internal sealed class RestSiteScenarios : CouchTestScenarioBase
         await context.P2ChooseRestSiteOption(restSitePanel, "SMITH");
 
         CouchTeammateChoice upgradeChoice = await context.WaitForPendingTeammateChoice(CouchTestContext.RestSiteUpgradeChoiceSource);
-        context.Checkpoint("p2-smith-card-choice-open");
+        await context.Checkpoint("p2-smith-card-choice-open");
 
         int seededCardOptionIndex = upgradeChoice.Options.ToList().FindIndex((card) => ReferenceEquals(card, p2SeededCard));
         context.Expect(seededCardOptionIndex >= 0, "Expected the seeded NEUTRALIZE card to be offered in P2's Smith upgrade choice.");
@@ -142,7 +142,7 @@ internal sealed class RestSiteScenarios : CouchTestScenarioBase
         // Now P1's Proceed opens the map.
         await context.ClickAsync(proceedButton);
         await context.WaitUntil(() => NMapScreen.Instance?.IsOpen ?? false, "the map to open after P1's Proceed once P2 is done");
-        context.Checkpoint("map-open");
+        await context.Checkpoint("map-open");
     }
 }
 #endif

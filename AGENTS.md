@@ -30,7 +30,9 @@ dotnet test Tests/CouchSpire.Tests                 # Layer A: offline Harmony/Ac
 - Log file: `%APPDATA%\SlayTheSpire2\logs\godot.log` (Windows), `~/.local/share/SlayTheSpire2/logs/godot.log` (Linux); `./deploy.sh logs` follows the remote log.
 - Log via `Log.Info` with the unified prefix `[LocalMultiControl]` (`Log.Debug` is invisible by default). Add logs for anything you fix.
 - On startup the mod logs `Applying Harmony patches.` → build marker → `Mod initialized.`; any Harmony exception between those lines means a patch target broke.
-- There are no automated tests; the maintainer playtests. Provide focused, step-by-step test scripts and read the log after each round.
+- Automated tests: `dotnet test Tests/CouchSpire.Tests` (offline patch-target check) after every build, and `./deploy.sh test all` (in-game scenarios, macOS) before asking for a playtest or pushing. See `docs/testing.md`. Run `./deploy.sh mac` afterwards to restore the normal build.
+- Only `./deploy.sh test` may launch the game for tests: it holds a lock, resets only the `default/1/` test profile, and never touches `steam/` saves. Don't kill a game you didn't start.
+- The maintainer still playtests what scenarios don't cover. Provide focused, step-by-step test scripts and read the log after each round.
 
 ## 4. Harmony & domain conventions
 
@@ -73,4 +75,4 @@ When the game updates and the mod breaks:
 ## 8. Documentation map
 
 - `README.md` — project front door; `COUCH.md` — couch co-op setup, settings, tests; `PLAYER_GUIDE.md` — how a run plays; `CHANGELOG.md` — history; `TODO.md` — open issues.
-- `docs/architecture.md`, `docs/console-commands.md`, `docs/design/*` — developer docs.
+- `docs/architecture.md`, `docs/console-commands.md`, `docs/testing.md` (running and writing tests), `docs/design/*` — developer docs.

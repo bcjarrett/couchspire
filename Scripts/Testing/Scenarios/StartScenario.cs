@@ -50,7 +50,7 @@ internal sealed class StartScenario : CouchTestScenarioBase
             taggedPlayers.Count == 2 && taggedPlayers[0] == context.P1Id && taggedPlayers[1] == context.P2Id,
             $"Expected save tag players [{context.P1Id},{context.P2Id}], found [{string.Join(",", taggedPlayers)}].");
 
-        context.Checkpoint("run-started");
+        await context.Checkpoint("run-started");
         await context.Settle();
     }
 }

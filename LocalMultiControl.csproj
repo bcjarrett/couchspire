@@ -9,6 +9,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>CouchSpire</AssemblyName>
     <RootNamespace>DualRoleAdventure</RootNamespace>
+    <!-- An unawaited Task silently drops its failures (e.g. a test Checkpoint's layout check). -->
+    <WarningsAsErrors>$(WarningsAsErrors);CS4014</WarningsAsErrors>
   </PropertyGroup>
 
   <!-- Test gating (see docs/design/testing-plan.md §6.1): Scripts/Testing/ compiles only in Debug. -->

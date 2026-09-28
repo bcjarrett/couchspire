@@ -32,7 +32,7 @@ internal sealed class ShopScenarios : CouchTestScenarioBase
         await context.Settle();
 
         await context.EnterRoom(RoomType.Shop);
-        context.Checkpoint("shop-open");
+        await context.Checkpoint("shop-open");
 
         context.Expect(CouchTeammateShop.IsActive, "Expected P2's CouchTeammateShop panel to be visible after entering the shop.");
         CouchTeammateShop panel = context.TeammateShopPanel()
@@ -125,7 +125,7 @@ internal sealed class ShopScenarios : CouchTestScenarioBase
             $"Expected P2's relics to contain the bought relic {boughtRelic.Id.Entry}.");
         ExpectP1Unchanged("after P2 buys a relic");
 
-        context.Checkpoint("p2-bought-card-potion-relic");
+        await context.Checkpoint("p2-bought-card-potion-relic");
 
         // P1 can't leave yet: the real Proceed/leave button must be blocked while P2 is still shopping.
         await context.ClickAsync(context.MerchantProceedButton());
@@ -142,7 +142,7 @@ internal sealed class ShopScenarios : CouchTestScenarioBase
         // Now P1's real leave button opens the map.
         await context.ClickAsync(context.MerchantProceedButton());
         await context.WaitUntil(() => NMapScreen.Instance?.IsOpen ?? false, "the map to open after P1 leaves once P2 is done shopping");
-        context.Checkpoint("map-open");
+        await context.Checkpoint("map-open");
     }
 }
 #endif
