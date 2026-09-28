@@ -1,26 +1,20 @@
 #if COUCHSPIRE_TESTS
-using LocalMultiControl.Scripts.Testing.Scenarios;
-
 namespace LocalMultiControl.Scripts.Testing;
 
 /// <summary>
-/// Every scenario the runner knows about (docs/design/testing-plan.md §6.9). Add one factory line per new
-/// <c>Scripts/Testing/Scenarios/*.cs</c> file; nothing else needs to change to pick it up.
+/// Every scenario the runner knows about (docs/design/testing-plan.md §6.9): each concrete
+/// <see cref="ICouchTestScenario"/> in this assembly with a parameterless constructor. Adding a scenario class is
+/// enough; there is no list to edit (a shared list conflicted on every parallel merge).
 /// </summary>
 internal static class CouchTestScenarioRegistry
 {
-    private static readonly Func<ICouchTestScenario>[] Factories =
-    {
-        () => new StartScenario(),
-        () => new CombatScenario(),
-        () => new ChoiceScenario(),
-        () => new RewardsScenarios()
-    };
-
-    /// <summary>Every registered scenario, in a fixed order (name, ordinal) so <c>all</c> is deterministic.</summary>
+    /// <summary>Every scenario, ordered by name (ordinal), so <c>all</c> is deterministic.</summary>
     public static IReadOnlyList<ICouchTestScenario> All()
     {
-        return Factories.Select((factory) => factory())
+        return typeof(CouchTestScenarioRegistry).Assembly.GetTypes()
+            .Where((type) => typeof(ICouchTestScenario).IsAssignableFrom(type) && !type.IsAbstract && !type.IsInterface
+                && type.GetConstructor(Type.EmptyTypes) != null)
+            .Select((type) => (ICouchTestScenario)Activator.CreateInstance(type)!)
             .OrderBy((scenario) => scenario.Name, StringComparer.Ordinal)
             .ToList();
     }

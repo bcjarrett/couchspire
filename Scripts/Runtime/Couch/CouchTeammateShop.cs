@@ -173,7 +173,8 @@ internal sealed partial class CouchTeammateShop : CouchPanel
         return slot >= 0 && slot < room.Inventories.Count ? room.Inventories[slot] : null;
     }
 
-    private static List<MerchantEntry> Entries(MerchantInventory inventory)
+    /// <summary>The panel's row order (the test runner reads it too, so the two can't drift).</summary>
+    internal static List<MerchantEntry> Entries(MerchantInventory inventory)
     {
         List<MerchantEntry> entries = inventory.CharacterCardEntries.Cast<MerchantEntry>()
             .Concat(inventory.ColorlessCardEntries)
