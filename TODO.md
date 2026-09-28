@@ -29,6 +29,9 @@ yet in game. If the reporter's log shows that line, this was it.
 - Layout jitter: `CouchTeammateRelicBar` moved 5 px between runs at `combat/new-player-round`, and
   `CouchTeammateRestSite`'s height varies by 16 px (453 vs 469). Some `--review` checkpoint screenshots come out blank
   (`start/run-started`, one `layout/map`).
+- Checkpoints still come out uniformly darkened (~30%, P1's UI included) at `rest_site/p2-smith-card-choice-open` and
+  the `*/map-open` screens, even after the screen-stability waits. `NOverlayStack._backstopFade`, `NMapScreen._backstop`
+  and `NTransition` all read as idle at capture time. Find what dims them before blessing those baselines.
 
 ### A2. Follow-ups from the rest-site freeze (2026-09-27)
 - The loopback `IsGameLoading` flag can stay true for a long time. Test runs log `loading state updated: True` with no

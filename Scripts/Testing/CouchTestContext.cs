@@ -156,18 +156,24 @@ internal sealed partial class CouchTestContext
     }
 
     /// <summary>
-    /// Waits for the queue-idle/no-pending-choice/stable-overlay state defined in docs/design/testing-plan.md §6.6
-    /// rule 4:
+    /// Waits for the queue-idle/no-pending-choice/stable-overlay/stable-screen state defined in
+    /// docs/design/testing-plan.md §6.6 rule 4:
     /// <list type="bullet">
     /// <item>the action queue is empty and the executor is idle (<see cref="RunManager.ActionQueueSet"/>/<see cref="RunManager.ActionExecutor"/>);</item>
     /// <item>no teammate choice is pending (<see cref="CouchTeammateChoices.Pending"/>);</item>
-    /// <item>the overlay stack top and count (<see cref="NOverlayStack"/>) are unchanged across 2 consecutive engine frames.</item>
+    /// <item>the overlay stack top and count (<see cref="NOverlayStack"/>) are unchanged across 2 consecutive engine frames;</item>
+    /// <item>no screen-transition signal is stuck (<see cref="CouchTestLayout.FirstUnsettledScreenSignal"/>: no
+    /// screen fade, no combat turn banner, no the mod's own "Controlled Character" notice). Included here, not just
+    /// in <see cref="CouchTestLayout.RunCheckpointAsync"/>, so a scenario step never clicks or presses through a
+    /// banner or a fade. This is safe to fold into every <see cref="Settle"/> call — unlike the pending-choice rule,
+    /// every one of these signals is self-clearing on a fixed timer with no player action required, so it can never
+    /// hang on something that's legitimately meant to stay up.</item>
     /// </list>
     /// </summary>
     public Task Settle(TimeSpan? timeout = null) => SettleCore(requireNoPendingChoice: true, "Settle()", timeout);
 
     /// <summary>
-    /// Like <see cref="Settle"/> (queue-idle, stable overlay for 2 frames), but does not require
+    /// Like <see cref="Settle"/> (queue-idle, stable overlay for 2 frames, stable screen), but does not require
     /// <see cref="CouchTeammateChoices.Pending"/> to be empty. Use this between navigation presses while
     /// intentionally leaving a teammate choice open (e.g. moving the panel cursor before answering it) — that
     /// choice is expected to still be pending, so waiting on <see cref="Settle"/>'s own "no pending choice" rule
@@ -193,6 +199,8 @@ internal sealed partial class CouchTestContext
             bool queueIdle = !RunManager.Instance.IsInProgress
                 || (RunManager.Instance.ActionQueueSet.IsEmpty && !RunManager.Instance.ActionExecutor.IsRunning);
             bool noPendingChoice = !requireNoPendingChoice || CouchTeammateChoices.Pending.Count == 0;
+            string? screenSignal = CouchTestLayout.FirstUnsettledScreenSignal(_tree);
+            bool screenStable = screenSignal == null;
 
             IOverlayScreen? top = NOverlayStack.Instance?.Peek();
             int count = NOverlayStack.Instance?.ScreenCount ?? 0;
@@ -201,7 +209,7 @@ internal sealed partial class CouchTestContext
             lastCount = count;
             stableFrames = overlayUnchanged ? stableFrames + 1 : 0;
 
-            if (queueIdle && noPendingChoice && stableFrames >= 2)
+            if (queueIdle && noPendingChoice && screenStable && stableFrames >= 2)
             {
                 return;
             }
@@ -210,6 +218,7 @@ internal sealed partial class CouchTestContext
             {
                 throw new CouchTestExpectationFailedException(
                     $"{what} timed out: queueIdle={queueIdle}, noPendingChoice={noPendingChoice}, " +
+                    $"screenStable={screenStable} (stuck on {screenSignal ?? "none"}), " +
                     $"overlayStableFrames={stableFrames}, overlayTop={top?.GetType().Name ?? "none"}, overlayCount={count}.");
             }
         }

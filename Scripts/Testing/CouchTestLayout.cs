@@ -1,17 +1,25 @@
 #if COUCHSPIRE_TESTS
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Godot;
+using HarmonyLib;
 using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.AutoSlay;
 using MegaCrit.Sts2.Core.AutoSlay.Helpers;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
+using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Relics;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
+using MegaCrit.Sts2.Core.Nodes.Screens.Map;
+using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
+using MegaCrit.Sts2.Core.Nodes.Vfx;
+using MegaCrit.Sts2.Core.Rooms;
+using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Settings;
 
@@ -129,7 +137,17 @@ internal static class CouchTestLayout
     private const float AnchorTolerancePx = 4f;
     private const int SnapshotTolerancePx = 4;
     private const int StableFrameCount = 3;
-    private static readonly TimeSpan StabilizeTimeout = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// Bound for <see cref="WaitForStableRootsAsync"/> (used by <see cref="RunCheckpointAsync"/>) and for the
+    /// screen-stability check <see cref="CouchTestContext.Settle"/> folds in. Generous on purpose: the combat entry
+    /// banners chain <see cref="NCombatStartBanner"/> (~2.3s reveal/hold + a 2.5s delayed fade-out tail) into
+    /// <see cref="NPlayerTurnBanner"/> (~2.2s), and neither is shortened by the test harness's FastMode.Instant
+    /// (docs/testing.md; confirmed against the decompiled source — <c>NCombatStartBanner.AnimateVfx</c> and
+    /// <c>NPlayerTurnBanner.Display</c> use fixed tween durations regardless of FastMode). A signal that's still
+    /// stuck after this must fail loudly, not be silently measured through (see <see cref="FirstUnsettledScreenSignal"/>).
+    /// </summary>
+    private static readonly TimeSpan ScreenStableTimeout = TimeSpan.FromSeconds(10);
 
     private static readonly Regex SnapshotEntryPattern = new(
         "\"(?<name>[^\"]+)\"\\s*:\\s*\\{\\s*\"x\"\\s*:\\s*(?<x>-?\\d+)\\s*,\\s*\"y\"\\s*:\\s*(?<y>-?\\d+)\\s*,\\s*\"w\"\\s*:\\s*(?<w>-?\\d+)\\s*,\\s*\"h\"\\s*:\\s*(?<h>-?\\d+)\\s*\\}",
@@ -266,26 +284,52 @@ internal static class CouchTestLayout
     // Rect gathering
     // ---------------------------------------------------------------------------------------------------------
 
-    /// <summary>Waits until every currently-visible mod root's <see cref="ContentBounds"/>, and every named anchor
-    /// from <see cref="CollectAnchors"/> (e.g. a combat room's own P1EndTurnButton, which can still be sliding into
-    /// place from its own entry animation independent of any mod panel), stops moving across
-    /// <see cref="StableFrameCount"/> consecutive frames (see the class doc's determinism finding), or gives up after
-    /// <see cref="StabilizeTimeout"/> and measures whatever is there (logged, never silently swallowed). Confirmed
-    /// on a run: without also tracking anchors here, a --repeat pass could measure P1EndTurnButton mid-slide and
-    /// report a spurious snapshot mismatch against a pass that measured it after settling.</summary>
+    /// <summary>
+    /// Waits until the screen is actually done transitioning before anything measures or screenshots it: no
+    /// screen fade in progress, no combat turn banner or the mod's own "Controlled Character" notice still on
+    /// screen (<see cref="FirstUnsettledScreenSignal"/>), and every currently-visible mod root's
+    /// <see cref="ContentBounds"/> plus every named anchor from <see cref="CollectAnchors"/> (e.g. a combat room's
+    /// own P1EndTurnButton, which can still be sliding into place from its own entry animation independent of any
+    /// mod panel) stopped moving across <see cref="StableFrameCount"/> consecutive frames (see the class doc's
+    /// determinism finding — this is how a running tween on a mod panel or a game anchor is detected, without
+    /// enumerating <c>Tween</c> objects). Bounded by <see cref="ScreenStableTimeout"/>; on timeout this throws
+    /// naming whichever signal is still stuck, rather than silently measuring a mid-transition screen (regression
+    /// for the 2026-09-28 --review contact sheet: banners, the mod's own notice and screen fades were caught
+    /// mid-transition in checkpoint screenshots, and that also explains the layout jitter between runs — the old
+    /// 2s stabilize timeout gave up and measured anyway while a tween's Back/Expo-eased tail was still moving a few
+    /// px). Confirmed on a run: without also tracking anchors here, a --repeat pass could measure P1EndTurnButton
+    /// mid-slide and report a spurious snapshot mismatch against a pass that measured it after settling.
+    /// </summary>
     private static async Task<Dictionary<string, Control>> WaitForStableRootsAsync(SceneTree tree, CancellationToken token)
     {
+        DateTime deadline = DateTime.UtcNow + ScreenStableTimeout;
         Dictionary<string, Control> current = FindVisibleRoots(tree.Root);
         List<Rect2> previous = ContentRectsOf(current);
         List<Rect2> previousAnchors = CollectAnchors().Values.ToList();
         int stableFrames = 0;
-        DateTime deadline = DateTime.UtcNow + StabilizeTimeout;
 
         while (true)
         {
             token.ThrowIfCancellationRequested();
             await NextFrameAsync(tree, token);
             token.ThrowIfCancellationRequested();
+
+            string? signal = FirstUnsettledScreenSignal(tree);
+            if (signal != null)
+            {
+                stableFrames = 0;
+                if (DateTime.UtcNow > deadline)
+                {
+                    throw new CouchTestExpectationFailedException(
+                        $"Screen did not stabilize within {ScreenStableTimeout.TotalSeconds:0}s before a layout checkpoint: stuck on {signal}.");
+                }
+
+                // Keep the rect baselines current while we wait, so a banner/fade clearing doesn't itself get
+                // mistaken for "rects moved" on the very next frame.
+                previous = ContentRectsOf(FindVisibleRoots(tree.Root));
+                previousAnchors = CollectAnchors().Values.ToList();
+                continue;
+            }
 
             current = FindVisibleRoots(tree.Root);
             List<Rect2> rects = ContentRectsOf(current);
@@ -302,10 +346,134 @@ internal static class CouchTestLayout
 
             if (DateTime.UtcNow > deadline)
             {
-                CouchTestLog.Warn($"Layout rects did not stabilize within {StabilizeTimeout.TotalSeconds:0}s; measuring anyway.");
-                return current;
+                throw new CouchTestExpectationFailedException(
+                    $"Layout rects did not stabilize within {ScreenStableTimeout.TotalSeconds:0}s before a layout checkpoint " +
+                    "(a mod panel or game anchor tween never settled).");
             }
         }
+    }
+
+    /// <summary>
+    /// Returns the name of the first screen-transition signal that hasn't cleared yet, or null once the screen is
+    /// genuinely settled. All of these are self-clearing within a bounded time on their own (a fixed-duration
+    /// tween or Task.Delay that frees the node when done) — none of them wait on a player action — so this is safe
+    /// for <see cref="CouchTestContext.Settle"/> to gate scenario steps on too, not just checkpoints: unlike a
+    /// pending teammate choice, waiting here can never deadlock on something that's legitimately supposed to stay
+    /// up. Checked:
+    /// <list type="bullet">
+    /// <item>the screen fade/transition (<see cref="NTransition.InTransition"/>, set by <c>NTransition</c>'s
+    /// <c>FadeIn</c>/<c>FadeOut</c>/<c>RoomFadeIn</c>/<c>RoomFadeOut</c> — confirmed against the decompiled source
+    /// that <c>RoomFadeIn</c> always runs its ~0.8s tween before clearing <c>InTransition</c>, even under the test
+    /// harness's FastMode.Instant);</item>
+    /// <item>the combat turn banners (<see cref="NCombatStartBanner"/> "Battle Start", <see cref="NPlayerTurnBanner"/>
+    /// "Player Turn", <see cref="NEnemyTurnBanner"/> "Enemy Turn") and the other full-screen story banners
+    /// (<see cref="NActBanner"/> — its own darkening overlay is why a map screen briefly looks half-faded when a
+    /// new act starts; <see cref="NAncientNameBanner"/>) — each is a transient scene instance that QueueFrees
+    /// itself once its own animation finishes (confirmed in the decompiled source: none of their durations are
+    /// shortened by FastMode.Instant either), so its mere presence in the tree means it's still showing;</item>
+    /// <item>the mod's own "Controlled Character: Player N" notice (<see cref="NFullscreenTextVfx"/>, created by
+    /// <c>LocalMultiControlRuntime</c> from <see cref="LocalMultiControl.Scripts.Runtime.LocalModText.ControlledSlot"/>)
+    /// — same self-freeing shape (a 500ms <c>Task.Delay</c> then <c>QueueFreeSafely</c>);</item>
+    /// <item>two game tweens confirmed against a real run to leave the screen visibly mid-fade well after
+    /// <see cref="NOverlayStack"/>'s own top/count already read as settled, which is exactly the kind of thing the
+    /// generic rect-stability wait can't see (neither one moves a mod-panel or anchor rect): <see cref="NMapScreen"/>'s
+    /// own open/close reveal tween (its private <c>_tween</c> field — <c>_backstop</c>/<c>_mapContainer</c> fading
+    /// between transparent-black and full white over ~0.25s — explains every "map screen half-faded" shot, since
+    /// every "map-open" checkpoint and the <c>layout</c> scenario's map checkpoint land on this same screen), and
+    /// <see cref="NOverlayStack"/>'s own shared backstop fade (its private <c>_backstopFade</c> field — a 0.5s
+    /// fade-in/out that <c>Pop</c> starts but doesn't wait for, so the stack's top/count can already read "closed"
+    /// while the dim behind it is still fading out). Both are private, so read through <c>AccessTools</c> the same
+    /// way <c>CouchTestContext.&lt;Area&gt;.cs</c> partials already cross that boundary.</item>
+    /// </list>
+    /// </summary>
+    internal static string? FirstUnsettledScreenSignal(SceneTree tree)
+    {
+        if (NGame.Instance?.Transition is NTransition transition && transition.InTransition)
+        {
+            return "screen fade (NTransition.InTransition)";
+        }
+
+        // Gated on actually being on the map room (not just NMapScreen.Instance existing, which is a persistent
+        // singleton for the whole run, never recreated per room): confirmed on two separate runs that the test
+        // harness's debug "room <type>" console command (CouchTestContext.EnterRoom, used to set up almost every
+        // non-map scenario) jumps straight to the target room without going through NMapScreen.Close(). That
+        // leaves NMapScreen itself - and anything still animating under it, e.g. a just-started NActBanner - paused
+        // mid-flight (Godot pauses a tween, and any coroutine awaiting one, when its bound node's process state
+        // changes) rather than finished, killed or freed. Nothing ever un-pauses it again, so both NMapScreen's own
+        // _tween (first regression, 'choice' scenario) and NActBanner sitting frozen as its child (second
+        // regression, same scenario) read as "still showing" forever. Real map-room play (P1 opening/leaving the
+        // map through the UI, or a real act transition) always drives these through a normal, bounded finish, so
+        // gating on CurrentRoom == Map costs nothing there while no longer tripping on a paused singleton's leftover
+        // state once play has moved to a different room.
+        RunState? currentRunState = RunManager.Instance.DebugOnlyGetState();
+        bool onMapRoom = currentRunState?.CurrentRoom?.RoomType == RoomType.Map;
+        if (onMapRoom && IsTweenRunning(NMapScreen.Instance, MapScreenTweenField))
+        {
+            return "the map screen's own open/close reveal tween (NMapScreen)";
+        }
+
+        if (IsTweenRunning(NOverlayStack.Instance, OverlayBackstopFadeField))
+        {
+            return "the overlay backstop fade (NOverlayStack's shared dim behind a screen that just opened or closed)";
+        }
+
+        return FindTransientVfxNode(tree.Root, onMapRoom);
+    }
+
+    // AccessTools.Field returns null (never throws) when a target is missing, so caching these in static readonly
+    // fields is safe; literal type+name here are what Layer A (Tests/CouchSpire.Tests) checks offline against the
+    // installed sts2.dll.
+    private static readonly FieldInfo? MapScreenTweenField = AccessTools.Field(typeof(NMapScreen), "_tween");
+    private static readonly FieldInfo? OverlayBackstopFadeField = AccessTools.Field(typeof(NOverlayStack), "_backstopFade");
+
+    private static bool IsTweenRunning(GodotObject? owner, FieldInfo? tweenField)
+    {
+        if (owner == null || tweenField == null)
+        {
+            return false;
+        }
+
+        return tweenField.GetValue(owner) is Tween tween && GodotObject.IsInstanceValid(tween) && tween.IsRunning();
+    }
+
+    /// <param name="node">Subtree root to search.</param>
+    /// <param name="onMapRoom">See <see cref="FirstUnsettledScreenSignal"/>: when false, <see cref="NMapScreen"/>'s
+    /// own subtree is skipped rather than descended into. <see cref="NActBanner"/> is added as NMapScreen's child,
+    /// so without this it would read as "still showing" forever once a debug room jump leaves NMapScreen paused
+    /// with the banner frozen inside it (confirmed on a run) - the same hazard <see cref="FirstUnsettledScreenSignal"/>
+    /// already gates its direct NMapScreen tween check on.</param>
+    private static string? FindTransientVfxNode(Node node, bool onMapRoom)
+    {
+        if (!onMapRoom && ReferenceEquals(node, NMapScreen.Instance))
+        {
+            return null;
+        }
+
+        switch (node)
+        {
+            case NCombatStartBanner:
+                return "the combat start banner (\"Battle Start\")";
+            case NPlayerTurnBanner:
+                return "the player turn banner (\"Player Turn\")";
+            case NEnemyTurnBanner:
+                return "the enemy turn banner (\"Enemy Turn\")";
+            case NActBanner:
+                return "the act banner (its own darkening overlay is why a map screen can look half-faded)";
+            case NAncientNameBanner:
+                return "the Ancient name banner";
+            case NFullscreenTextVfx:
+                return "the mod's \"Controlled Character\" notice (NFullscreenTextVfx)";
+        }
+
+        foreach (Node child in node.GetChildren())
+        {
+            if (FindTransientVfxNode(child, onMapRoom) is string found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private static List<Rect2> ContentRectsOf(Dictionary<string, Control> roots)
