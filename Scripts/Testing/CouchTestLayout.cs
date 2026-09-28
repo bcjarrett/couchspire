@@ -15,6 +15,7 @@ using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Relics;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
+using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
@@ -621,7 +622,46 @@ internal static class CouchTestLayout
             anchors["PlayersList"] = playersList;
         }
 
+        // A visible P2 mod panel must not cover P1's real Proceed button, wherever the current screen keeps it
+        // (rest site, treasure and shop are all IRoomWithProceedButton; the rewards screen keeps its own as a
+        // private field). Folded into the generic named-anchor overlap check below like the relic row/top bar/
+        // end-turn button, rather than a bespoke rule, so every mod panel is checked against it for free.
+        if (FindProceedButton() is Control proceedButton && GodotObject.IsInstanceValid(proceedButton)
+            && proceedButton.IsVisibleInTree() && proceedButton.Size.X > 0.5f && proceedButton.Size.Y > 0.5f)
+        {
+            anchors["P1ProceedButton"] = proceedButton.GetGlobalRect();
+        }
+
         return anchors;
+    }
+
+    /// <summary>P1's real Proceed button on whichever screen is up, or null off those screens. <c>NRewardsScreen</c>
+    /// doesn't implement <c>IRoomWithProceedButton</c> (it's an overlay, not a room) and keeps its own button in a
+    /// private field, read via <c>AccessTools</c> the same way <c>CouchTestContext.Rewards.cs</c> already does for
+    /// it.</summary>
+    private static Control? FindProceedButton()
+    {
+        if (NRestSiteRoom.Instance is { } restSite)
+        {
+            return restSite.ProceedButton;
+        }
+
+        if (NRun.Instance?.TreasureRoom is { } treasure)
+        {
+            return treasure.ProceedButton;
+        }
+
+        if (NMerchantRoom.Instance is { } merchant)
+        {
+            return merchant.ProceedButton;
+        }
+
+        if (NOverlayStack.Instance?.Peek() is NRewardsScreen rewards)
+        {
+            return AccessTools.Field(typeof(NRewardsScreen), "_proceedButton")?.GetValue(rewards) as Control;
+        }
+
+        return null;
     }
 
     private static Rect2? UnionOf(IEnumerable<Control> controls)

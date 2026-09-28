@@ -55,8 +55,8 @@ internal sealed partial class CouchTeammateShop : CouchPanel
 
     public static bool BlocksProceed => IsActive;
 
-    /// <summary>Narrow: the shop's own stock spans nearly the whole screen, so this hugs the right edge.</summary>
-    protected override float PanelWidth => 320f;
+    /// <summary>Lives in the shared P2 column (<see cref="CouchPanel.ColumnWidth"/>).</summary>
+    protected override float PanelWidth => ColumnWidth;
 
     protected override float RowIconSize => 26f;
 
@@ -113,6 +113,13 @@ internal sealed partial class CouchTeammateShop : CouchPanel
             return;
         }
 
+        // The card picker (card removal) opens on top of the shop; both live in the same column, so let it take over.
+        if (CouchTeammateChoicePanel.IsActiveFor(_teammate!.NetId))
+        {
+            Visible = false;
+            return;
+        }
+
         Visible = true;
         List<MerchantEntry> entries = Entries(inventory);
         if (inventory != _inventory || !entries.SequenceEqual(_entries))
@@ -120,7 +127,7 @@ internal sealed partial class CouchTeammateShop : CouchPanel
             Rebuild(inventory, entries);
         }
 
-        PlaceOnSide(left: false, top: 110f, margin: 10f);
+        PlaceInColumn(top: 110f, margin: 10f);
         UpdatePotionDiscard();
         foreach (RowView row in _rows)
         {
@@ -156,7 +163,7 @@ internal sealed partial class CouchTeammateShop : CouchPanel
             StyleRow(_rows[i], i == _cursor, dimmed: !available || _busy);
         }
 
-        y = LayoutRows(_rows, y);
+        y = LayoutRowsScrolled(_rows, y, ColumnMaxY, _cursor);
         FinishLayout(y, AboutText(current), $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} buy");
     }
 

@@ -239,4 +239,26 @@ internal static class CouchTeammateChoices
             }
         }
     }
+
+    /// <summary>
+    /// Drops every pending/requested teammate choice, in or out of combat. Called from <c>RunManager.CleanUp</c>
+    /// (<see cref="LocalMultiControl.Scripts.Runtime.LocalMultiControlRuntime.OnRunCleanup"/>): a choice that's still
+    /// pending when the run ends (abandoned mid-Smith, mid-event, etc.) otherwise outlives the run it belongs to, so
+    /// its panel (<see cref="CouchTeammateChoicePanel"/>, or <see cref="CouchTeammateRewards"/>'s inline card choice)
+    /// stays up into whatever runs next, and <see cref="Answer"/>/<see cref="AnswerIndex"/> would try to dispatch a
+    /// loopback message for a choice id the game no longer knows about. Same class of bug as the rewards-merge flag
+    /// fixed in 3a21a7f: state tied to a run/screen that can be torn down early needs its own cleanup hook, not just
+    /// the happy-path "answered" or "combat ended" paths.
+    /// </summary>
+    public static void ClearAll(string reason)
+    {
+        int pendingCount = _pending.Count;
+        int requestedCount = _requested.Count;
+        _pending.Clear();
+        _requested.Clear();
+        if (pendingCount > 0 || requestedCount > 0)
+        {
+            CouchLog.Info($"{reason}: dropped {pendingCount} pending and {requestedCount} requested teammate choice(s).");
+        }
+    }
 }

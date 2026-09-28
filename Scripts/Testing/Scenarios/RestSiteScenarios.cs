@@ -106,6 +106,11 @@ internal sealed class RestSiteScenarios : CouchTestScenarioBase
         CardModel pickedCard = await context.P2AnswerSingleCardTeammateChoice(upgradeChoice, seededCardOptionIndex);
         context.Expect(ReferenceEquals(pickedCard, p2SeededCard), "Expected P2's Smith pick to be the seeded NEUTRALIZE card.");
 
+        // Regression guard: the card-choice panel (and its pending teammate choice) must close once the pick is
+        // answered, not linger into whatever comes next (guards the run-cleanup fix in CouchTeammateChoices.ClearAll
+        // and the panel's own Show(null) path).
+        context.Expect(!CouchTeammateChoicePanel.IsActive, "Expected P2's card-choice panel to be closed once the Smith pick is answered.");
+
         // Exactly one card in P2's deck went from not-upgraded to upgraded (the seeded card); P1's deck is untouched.
         List<CardModel> p1CardsAfter = context.P1.Deck.Cards.ToList();
         context.Expect(
@@ -146,6 +151,17 @@ internal sealed class RestSiteScenarios : CouchTestScenarioBase
         await context.ClickAsync(proceedButton);
         await context.WaitUntil(() => NMapScreen.Instance?.IsOpen ?? false, "the map to open after P1's Proceed once P2 is done");
         await context.Checkpoint("map-open");
+
+        context.Expect(!CouchTeammateChoicePanel.IsActive, "Expected P2's card-choice panel to still be closed once the map opens.");
+        context.Expect(CouchTeammateChoices.Pending.Count == 0, $"Expected no teammate choice to still be pending once the map opens, found {CouchTeammateChoices.Pending.Count}.");
+
+        // ...and stays closed once the next room (the next fight) is entered, per the maintainer's live observation
+        // that the Smith card-choice box could persist into combat (found to be a stale-pending-choice leak from an
+        // earlier scenario/pass that never got cleaned up on run end; CouchTeammateChoices.ClearAll fixes it).
+        await context.EnterRoom(RoomType.Monster);
+        await context.Checkpoint("next-room-entered");
+        context.Expect(!CouchTeammateChoicePanel.IsActive, "Expected P2's card-choice panel to stay closed after entering the next room (the next fight).");
+        context.Expect(CouchTeammateChoices.Pending.Count == 0, $"Expected no teammate choice to be pending after entering the next room, found {CouchTeammateChoices.Pending.Count}.");
     }
 }
 #endif

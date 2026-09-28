@@ -39,7 +39,9 @@ internal static class CouchConfig
 
     /// <summary>
     /// Which side the teammate's event panel sits on. Left by default, since the event screen puts the driver's text and
-    /// options on the right.
+    /// options on the right. Only <see cref="CouchTeammateEvent"/> reads this: every other out-of-combat teammate panel
+    /// (shop, rest site, treasure, rewards, the card picker) lives in the shared right-hand column
+    /// (<see cref="CouchPanel.PlaceInColumn"/>) regardless of this setting.
     /// </summary>
     public static readonly bool EventPanelOnLeft = Flag("event_panel_left", "COUCHSPIRE_EVENT_PANEL_LEFT", defaultValue: true);
 

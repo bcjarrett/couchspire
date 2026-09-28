@@ -20,6 +20,24 @@ internal abstract partial class CouchPanel : Control
     /// <summary>Rows sit inside the frame's padding.</summary>
     protected const float RowLeft = CouchFrame.PadLeft - 6f;
 
+    /// <summary>
+    /// Shared width for the one P2 column: every out-of-combat teammate panel (shop, rest site, treasure, rewards,
+    /// and the out-of-combat card picker) lives here, pinned to the right edge below the teammate's relic bar
+    /// (<see cref="PlaceInColumn"/>). Started at the shop's original 320 px, which reads fine once the card-choice
+    /// panel's upgrade preview is stacked vertically instead of side by side (see
+    /// <c>CouchTeammateChoicePanel.CardScale</c>), so it stayed at 320 rather than growing to ~360.
+    /// </summary>
+    protected const float ColumnWidth = 320f;
+
+    /// <summary>
+    /// Rough clearance for P1's Proceed button, which sits at the foot of the rest site, treasure and rewards
+    /// screens (<c>NRestSiteRoom</c>/<c>NTreasureRoom</c>/<c>NRewardsScreen</c>'s own <c>ProceedButton</c>/
+    /// <c>_proceedButton</c>, all bottom-anchored). The column's content stops and scrolls above this line
+    /// (<see cref="LayoutRowsScrolled"/>) instead of covering it. Confirmed against --review screenshots while
+    /// building this; loosen if a future screen's Proceed button sits lower.
+    /// </summary>
+    protected const float ProceedButtonClearance = 330f;
+
     private const double FlashSeconds = 3.0;
 
     /// <summary>How far a panel slides in from its screen edge when it opens.</summary>
@@ -96,6 +114,27 @@ internal abstract partial class CouchPanel : Control
         Position = new Vector2((left ? margin : viewport.X - PanelWidth - margin) + slide, left ? CouchLayout.BelowPlayersList(top) : CouchTeammateRelicBar.TopBelowBar(top));
     }
 
+    /// <summary>
+    /// Places the panel in the shared right-hand P2 column (see <see cref="ColumnWidth"/>): pinned to the right
+    /// edge, below the teammate's relic bar. Every out-of-combat teammate panel uses this instead of picking its own
+    /// side, so they all line up. Equivalent to <c>PlaceOnSide(left: false, ...)</c>; kept as its own name so each
+    /// panel states its intent instead of repeating "false".
+    /// </summary>
+    protected void PlaceInColumn(float top, float margin = 20f)
+    {
+        PlaceOnSide(left: false, top, margin);
+    }
+
+    /// <summary>
+    /// The panel-local y below which the column must not draw, to stay clear of P1's Proceed button. Rows are laid
+    /// out in the panel's own local coordinates (relative to <see cref="Control.Position"/>, which <see
+    /// cref="PlaceInColumn"/> sets to the panel's screen position), so this subtracts the panel's own top back out
+    /// of the viewport-space clearance line — comparing a local <c>y</c> straight against a viewport-space limit
+    /// silently allowed rows to run past the bottom of the screen by however far the panel itself sat down the
+    /// column (caught by a --review screenshot and the layout test's new Proceed-button rule during implementation).
+    /// </summary>
+    protected float ColumnMaxY => GetViewportRect().Size.Y - ProceedButtonClearance - Position.Y;
+
     /// <summary>The game's event options ease in from below and fade up; the panels do the same from their side.</summary>
     private void OnVisibilityChanged()
     {
@@ -143,6 +182,100 @@ internal abstract partial class CouchPanel : Control
         }
 
         return y;
+    }
+
+    /// <summary>
+    /// Room reserved below the rows for whatever <c>FinishLayout</c> still adds after them — the hint line(s) (a key
+    /// hint plus, for some panels, a flash message or an about-text description of unbounded length, e.g. the
+    /// shop's relic/potion description) and the frame's bottom padding. None of that is known yet when
+    /// <see cref="LayoutRowsScrolled"/> decides how many rows fit, so it reserves a fixed worst-case allowance
+    /// (about three lines of hint text) rather than none at all, which under-scrolled and still let content run
+    /// into P1's Proceed button (caught by a --review screenshot of the shop with a relic description showing).
+    /// </summary>
+    private const float FooterReserve = 220f;
+
+    /// <summary>
+    /// Like <see cref="LayoutRows"/>, but when the full list would extend past <paramref name="maxY"/> (minus
+    /// <see cref="FooterReserve"/> for whatever <c>FinishLayout</c> still adds below), shows only a window of
+    /// consecutive rows around <paramref name="cursorIndex"/> — as many as fit — and hides the rest, so the row
+    /// under the cursor is always visible and the column never grows into whatever sits below it (e.g. P1's Proceed
+    /// button). Scroll follows the cursor: called every frame, the window is recomputed from the current cursor
+    /// each time. Mirrors the windowed row of cards <c>CouchTeammateChoicePanel</c> already used for its card strip
+    /// before this helper existed.
+    /// </summary>
+    protected float LayoutRowsScrolled(IReadOnlyList<RowView> rows, float y, float maxY, int cursorIndex)
+    {
+        maxY -= FooterReserve;
+        if (rows.Count == 0)
+        {
+            return y;
+        }
+
+        float[] heights = new float[rows.Count];
+        for (int i = 0; i < rows.Count; i++)
+        {
+            RowView row = rows[i];
+            float textWidth = RowWidth - row.TextLeft - 24f;
+            row.Label.CustomMinimumSize = new Vector2(textWidth, 0f);
+            heights[i] = Mathf.Max(RowIconSize + RowPadding, row.Label.GetMinimumSize().Y + RowPadding + 4f);
+        }
+
+        float budget = Mathf.Max(0f, maxY - y);
+        float total = heights.Sum() + RowSpacing * Mathf.Max(0, rows.Count - 1);
+
+        int start = 0;
+        int end = rows.Count;
+        if (total > budget)
+        {
+            cursorIndex = Mathf.Clamp(cursorIndex, 0, rows.Count - 1);
+            start = cursorIndex;
+            end = cursorIndex + 1;
+            float used = heights[cursorIndex];
+            bool grew = true;
+            while (grew)
+            {
+                grew = false;
+                if (end < rows.Count && used + RowSpacing + heights[end] <= budget)
+                {
+                    used += RowSpacing + heights[end];
+                    end++;
+                    grew = true;
+                }
+
+                if (start > 0 && used + RowSpacing + heights[start - 1] <= budget)
+                {
+                    used += RowSpacing + heights[start - 1];
+                    start--;
+                    grew = true;
+                }
+            }
+        }
+
+        float rowY = y;
+        for (int i = 0; i < rows.Count; i++)
+        {
+            RowView row = rows[i];
+            bool shown = i >= start && i < end;
+            row.Root.Visible = shown;
+            if (!shown)
+            {
+                continue;
+            }
+
+            float textWidth = RowWidth - row.TextLeft - 24f;
+            row.Root.Position = new Vector2(RowLeft, rowY);
+            row.Root.Size = new Vector2(RowWidth, heights[i]);
+            row.Label.Position = new Vector2(row.TextLeft, 0f);
+            row.Label.Size = new Vector2(textWidth, heights[i]);
+            if (row.Icon != null)
+            {
+                row.Icon.Position = new Vector2(16f, (heights[i] - RowIconSize) * 0.5f);
+            }
+
+            rowY += heights[i] + RowSpacing;
+        }
+
+        return rowY;
     }
 
     /// <summary>Writes the hint (with any flash message) below <paramref name="y"/> and sizes the background.</summary>

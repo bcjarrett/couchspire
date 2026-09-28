@@ -39,7 +39,8 @@ internal sealed partial class CouchTeammateRestSite : CouchPanel
 
     public static bool BlocksProceed => IsActive;
 
-    protected override float PanelWidth => 460f;
+    /// <summary>Lives in the shared P2 column (<see cref="CouchPanel.ColumnWidth"/>).</summary>
+    protected override float PanelWidth => ColumnWidth;
 
     public static void NotifyProceedBlocked()
     {
@@ -88,13 +89,20 @@ internal sealed partial class CouchTeammateRestSite : CouchPanel
             return;
         }
 
+        // Smith opens the card picker on top of the rest site; both live in the same column, so let it take over.
+        if (CouchTeammateChoicePanel.IsActiveFor(_teammate!.NetId))
+        {
+            Visible = false;
+            return;
+        }
+
         Visible = true;
         if (!options.SequenceEqual(_shownOptions))
         {
             Rebuild(options);
         }
 
-        PlaceOnSide(CouchConfig.EventPanelOnLeft, 130f);
+        PlaceInColumn(130f);
         SetTitle($"{SeatLabel(_teammate!)} · Rest site    Gold {_teammate!.Gold}");
         for (int i = 0; i < _rows.Count; i++)
         {
@@ -102,7 +110,7 @@ internal sealed partial class CouchTeammateRestSite : CouchPanel
             StyleRow(_rows[i], i == _cursor, dimmed: !enabled || _busy);
         }
 
-        float y = LayoutRows(_rows, ContentTop);
+        float y = LayoutRowsScrolled(_rows, ContentTop, ColumnMaxY, _cursor);
         FinishLayout(y, _busy ? "Doing it..." : "", $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} choose");
     }
 

@@ -4,12 +4,16 @@ Notable versions and key changes of CouchSpire. The v1.33 and earlier entries ar
 
 ## Unreleased
 
+### Changed
+- P2's rest site, treasure, shop, rewards and out-of-combat card-picker panels now all share one column on the right edge of the screen, below P2's relic bar and clear of P1's Proceed button, instead of some sitting on the left. A panel taller than the column scrolls to keep the selected row in view. The out-of-combat card picker is now a vertical list with one focused preview instead of a wide horizontal strip; an upgrade pick (Smith) shows the card before and after stacked vertically with a down arrow between, instead of side by side. `event_panel_left` now only affects the event panel, which keeps its own left-by-default placement.
+
 ### Fixed
 - Steam Deck / Bazzite Game Mode: the controller did nothing after launch until you opened the Steam menu and came back. Under gamescope the game window could miss its focus event while it switched to fullscreen, and the game ignores input while unfocused. The mod now treats the window as focused under gamescope unless the Steam overlay is open (`gamescope_focus = 0` turns this off).
 - P2's relic row in combat sat lower and further right than intended, crowding the hint line. The game's relic holders shrink around their center, so the mod now offsets for that, and centers the row on P2's energy/draw/discard line.
 - After a relic was obtained, gold gained later in the same step wasn't shared with the other player. The mod switched gold sharing off during relic pickup but never switched it back on for the rest of that step (the counter was reset inside an async method, where `AsyncLocal` writes don't reach the caller).
 - The game could freeze on entering a rest site while it still reported loading. The mod's check that the rest-site options are showing retried with no limit, and each retry ran within the same frame, so loading could never finish. Retries now wait a real frame, and the loading wait gives up after about 5 seconds.
 - Giving up a run (or leaving the room) while the post-combat rewards screen was still open left gold, relic and potion sharing switched off for every later couch run until the game was restarted. The mod waited for the rewards screen to finish, which never happens if it's torn down; it now also stops waiting when the screen leaves.
+- A teammate choice (Smith, an event pick, a card reward...) still pending when the run ended (abandoned, timed out) stayed pending into the next run, so its panel could reappear during a later fight. Pending/requested teammate choices are now dropped when the run is cleaned up.
 
 ## CouchSpire 0.1.0 (in progress, on Local Multi-Control v1.33)
 

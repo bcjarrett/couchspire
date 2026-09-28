@@ -133,15 +133,15 @@ P1's "Loot!" screen now shows only P1's rewards. P2's rewards are in a panel on 
 
 **H. Rest sites, treasure, shops, and P2's card picker**
 
-All of these use the same keys: J/L to move and I to choose (D-pad and A on a pad). They appear on the left unless `event_panel_left = 0`.
+All of these use the same keys: J/L to move and I to choose (D-pad and A on a pad). They all share one column on the right edge, below P2's relic bar and clear of P1's Proceed button; a list taller than the column scrolls to keep the row under the cursor in view. `event_panel_left` doesn't affect them — it's only for the event panel (see below).
 
 - **Rest site:** P2's options, like Rest and Smith, with a "Skip the rest" row. P1 picks on screen and P2 picks in the panel, at the same time. P1's Proceed waits until P2 is done.
-- **P2's card picker** (right side): opens whenever P2 has to pick cards from their deck: Smith, shop removal, event "remove / transform / upgrade" outcomes, relics. It also handles picking from a grid of cards, or a pack.
+- **P2's card picker:** opens whenever P2 has to pick cards from their deck: Smith, shop removal, event "remove / transform / upgrade" outcomes, relics. It also handles picking from a grid of cards, or a pack. Card names list vertically with one focused preview above them; an upgrade pick (Smith) shows the card before and after upgrading stacked, with a down arrow between. It takes over the column from the rest site or shop panel underneath while it's open.
   - Single picks: I picks immediately.
   - Multi picks: I toggles, O confirms.
   - K cancels when the game allows it.
 - **Treasure:** once the chest is open, P2's panel lists the relics plus Skip. Both players pick; relics are handed out once both have picked, as in online co-op. P2 now also gets their own chest gold.
-- **Shop:** a narrow column on the right edge: P2's own stock (cards, colorless, relics, potions, card removal) with prices and P2's gold. The highlighted card is previewed. I buys. "Remove a card" opens P2's card picker. "Done shopping" lets P1 leave; until then P1's leave button waits.
+- **Shop:** P2's own stock (cards, colorless, relics, potions, card removal) with prices and P2's gold. The highlighted card is previewed. I buys. "Remove a card" opens P2's card picker. "Done shopping" lets P1 leave; until then P1's leave button waits.
 
 **P2's info and deck changes**
 - **V** (keyboard) or **View/Back** (P2's pad) opens P2's deck and relics, with HP, gold and potions. J/L scrolls, U switches between deck and relics, and V or K closes it.

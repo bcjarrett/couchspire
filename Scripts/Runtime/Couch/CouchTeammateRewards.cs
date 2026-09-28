@@ -38,7 +38,12 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
 
     private const float PanelTop = 150f;
 
-    private const float CardScale = 0.4f;
+    /// <summary>
+    /// Scale for the inline "choose a card" sub-view (a card reward's own pick), not the row icons. Shrunk from the
+    /// panel's pre-column 0.4 so up to a few cards fit side by side in the narrower shared column
+    /// (<see cref="CouchPanel.ColumnWidth"/>); verified against a --review screenshot.
+    /// </summary>
+    private const float CardScale = 0.26f;
 
     private static readonly System.Reflection.MethodInfo? SelectRewardForPlayerMethod =
         AccessTools.Method(typeof(RewardsSetSynchronizer), "SelectRewardForPlayer", new[] { typeof(Player), typeof(int) });
@@ -80,7 +85,8 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
     /// <summary>True while the teammate still has their rewards panel open.</summary>
     public static bool IsActive => _instance != null && IsInstanceValid(_instance) && !_instance._done;
 
-    protected override float PanelWidth => 460f;
+    /// <summary>Lives in the shared P2 column (<see cref="CouchPanel.ColumnWidth"/>).</summary>
+    protected override float PanelWidth => ColumnWidth;
 
     protected override float RowIconSize => 52f;
 
@@ -232,7 +238,7 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
         }
 
         Visible = true;
-        PlaceOnSide(left: false, PanelTop, RightMargin);
+        PlaceInColumn(PanelTop, RightMargin);
         UpdatePotionDiscard();
         if (IsDiscardingPotion)
         {
@@ -499,6 +505,7 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
         }
 
         List<RowView> shown = new();
+        int shownCursor = 0;
         for (int i = 0; i < _rows.Count; i++)
         {
             RowView row = _rows[i];
@@ -511,10 +518,15 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
             bool isDoneRow = i == _rows.Count - 1;
             row.Label.Text = isDoneRow ? "Done — skip anything left" : Describe(_set.Rewards[i]);
             StyleRow(row, i == _cursor, dimmed: false);
+            if (i == _cursor)
+            {
+                shownCursor = shown.Count;
+            }
+
             shown.Add(row);
         }
 
-        float y = LayoutRows(shown, ContentTop);
+        float y = LayoutRowsScrolled(shown, ContentTop, ColumnMaxY, shownCursor);
         FinishLayout(y, _busy ? "…" : $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} take · {Keys("O", "Y")} jump to Done");
     }
 

@@ -31,7 +31,8 @@ internal sealed partial class CouchTeammateTreasure : CouchPanel
 
     public static bool IsActive => _instance != null && IsInstanceValid(_instance) && _instance.Visible;
 
-    protected override float PanelWidth => 460f;
+    /// <summary>Lives in the shared P2 column (<see cref="CouchPanel.ColumnWidth"/>).</summary>
+    protected override float PanelWidth => ColumnWidth;
 
     public static bool Handle(ulong? playerId, CouchHudCommand command)
     {
@@ -75,14 +76,14 @@ internal sealed partial class CouchTeammateTreasure : CouchPanel
             Rebuild(relics);
         }
 
-        PlaceOnSide(CouchConfig.EventPanelOnLeft, 130f);
+        PlaceInColumn(130f);
         SetTitle($"{SeatLabel(_teammate!)} · Treasure: pick a relic");
         for (int i = 0; i < _rows.Count; i++)
         {
             StyleRow(_rows[i], i == _cursor, dimmed: _sent);
         }
 
-        float y = LayoutRows(_rows, ContentTop);
+        float y = LayoutRowsScrolled(_rows, ContentTop, ColumnMaxY, _cursor);
         FinishLayout(y, _sent ? "Picked, waiting for the chest..." : "", $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} pick");
     }
 

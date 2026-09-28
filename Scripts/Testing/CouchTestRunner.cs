@@ -360,6 +360,7 @@ internal static class CouchTestRunner
             // aspect avoids a mid-run resize the game doesn't otherwise do outside the options screen.
             await CouchTestLayout.PinAsync(tree, layoutOptions.Aspect, CancellationToken.None);
             await StartCouchRunAsync(tree, scenario);
+            AssertNoStaleTeammateUi(scenario.Name);
             context = new CouchTestContext(tree, scenarioCts.Token, layoutOptions);
             Task scenarioTask = scenario.RunAsync(context);
             Task timeoutTask = Task.Delay(scenario.Timeout);
@@ -419,6 +420,38 @@ internal static class CouchTestRunner
         CouchTestScenarioResult result = new(scenario.Name, layoutOptions.Aspect, outcome, message, scenario.Seed, durationMs);
         List<CouchTestLayoutSnapshot> layoutSnapshots = context?.LayoutSnapshots.ToList() ?? new List<CouchTestLayoutSnapshot>();
         return (result, layoutSnapshots, canContinue);
+    }
+
+    /// <summary>
+    /// A fresh run must start with no teammate choice pending and no P2 out-of-combat panel visible. Catches a leak
+    /// from the previous scenario/pass — e.g. a run that ended (timed out, abandoned) while a teammate choice
+    /// (Smith, a card reward...) was still open, which used to leave <see cref="CouchTeammateChoices.Pending"/> and
+    /// its panel up into whatever ran next (regression guard for the run-cleanup fix in
+    /// <see cref="CouchTeammateChoices.ClearAll"/>, called from <c>RunManager.CleanUp</c>).
+    /// </summary>
+    private static void AssertNoStaleTeammateUi(string scenarioName)
+    {
+        if (CouchTeammateChoices.Pending.Count > 0)
+        {
+            throw new CouchTestExpectationFailedException(
+                $"'{scenarioName}' starting with {CouchTeammateChoices.Pending.Count} stale teammate choice(s) still pending from a previous scenario/pass.");
+        }
+
+        (string Name, bool Active)[] panels =
+        {
+            ("CouchTeammateChoicePanel", CouchTeammateChoicePanel.IsActive),
+            ("CouchTeammateRestSite", CouchTeammateRestSite.IsActive),
+            ("CouchTeammateTreasure", CouchTeammateTreasure.IsActive),
+            ("CouchTeammateShop", CouchTeammateShop.IsActive),
+            ("CouchTeammateRewards", CouchTeammateRewards.IsActive)
+        };
+        foreach ((string name, bool active) in panels)
+        {
+            if (active)
+            {
+                throw new CouchTestExpectationFailedException($"'{scenarioName}' starting with {name} still visible from a previous scenario/pass.");
+            }
+        }
     }
 
     private static void ObserveLateCompletion(Task task, string scenarioName)

@@ -77,6 +77,7 @@ internal static class LocalMultiControlRuntime
         _flowBlockSignalDedupeRoundPlayer.Clear();
         _flowBlockSignalWindowStartMs = 0L;
         LocalMerchantInventoryRuntime.Clear();
+        CouchTeammateChoices.ClearAll("RunManager.CleanUp");
         LocalSelfCoopContext.Disable("RunManager.CleanUp");
         LocalMultiControlLogger.Info("Local multi-control session cleanup completed after RunManager.CleanUp.");
     }
