@@ -16,14 +16,13 @@ retried with no limit while the net service reported loading, each retry in the 
 yet in game. If the reporter's log shows that line, this was it.
 
 ### A3. Found by the in-game test suite (2026-09-28)
-- **Couch treasure room always logs `[ERROR] Tried to add hand for player 2 twice!`**
-  (`NHandImageCollection.OnInputStateAdded`), on room entry, every time. Something fires `InputSynchronizer.StateAdded`
-  for P2 twice. It's harmless there, but it's a duplicate registration. The `treasure` scenario stays red on it until
-  it's fixed; don't allow-list it.
-- **`RestSiteSynchronizer.Dispose()` throws "A task may only be disposed if it is in a completion state"** while
-  abandoning to the menu in the second pass of `./deploy.sh test all --repeat 2`. It doesn't happen with
-  `rest_site --repeat 3` alone. It's in game code, but could be triggered by couch state left over from an earlier
-  scenario.
+- ~~Couch treasure room always logs `[ERROR] Tried to add hand for player 2 twice!`~~ (FIXED, 2026-09-28): the
+  `UpdateHandVisibility` patch was asking the input synchronizer for P2's screen type before P2 had ever sent any
+  input, which lazily creates their input state and re-fires the "hand added" event for a hand the room already
+  added. See CHANGELOG. `treasure` now passes.
+- ~~`RestSiteSynchronizer.Dispose()` throws "A task may only be disposed if it is in a completion state"~~ (FIXED,
+  2026-09-28): the hover-message task is now detached before `Dispose()` runs instead of being disposed mid-flight.
+  See CHANGELOG. `./deploy.sh test all --repeat 2` passes clean now.
 - The `treasure` protection proof is inconclusive: picks came out the same with `TreasureRoomRelicSynchronizerBeginPatch`
   disabled. Find a repro where the base game's auto-vote-on-behalf actually changes P2's pick.
 - Layout jitter: `CouchTeammateRelicBar` moved 5 px between runs at `combat/new-player-round`, and

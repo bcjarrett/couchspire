@@ -31,12 +31,26 @@ internal static class NHandImageCollectionUpdateVisibilityPatch
         bool hasLocalScreen = TryGetScreenType(synchronizer, LocalContext.NetId ?? 0UL, out NetScreenType localScreenType);
         foreach (NHandImage hand in hands)
         {
-            NetScreenType handScreenType = default;
-            bool hasHandScreen = TryGetScreenType(synchronizer, hand.Player.NetId, out handScreenType);
+            NetScreenType handScreenType;
+            bool hasHandScreen;
+            if (hand.Player.NetId == LocalContext.NetId)
+            {
+                handScreenType = localScreenType;
+                hasHandScreen = hasLocalScreen;
+            }
+            else
+            {
+                // Every hand here belongs to one of our own local players (couch co-op is always fake multiplayer:
+                // see LocalSelfCoopContext.LocalPlayerIds), matching vanilla's now-removed IsSinglePlayerOrFakeMultiplayer
+                // branch, which always showed teammates' hands instead of asking the synchronizer. Querying it here for a
+                // player who hasn't sent any real input yet (GetScreenType lazily creates their PeerInputState) fires
+                // StateAdded synchronously during Initialize(), after AddHand already ran for every player - "twice".
+                handScreenType = NetScreenType.SharedRelicPicking;
+                hasHandScreen = true;
+            }
+
             if (!hasHandScreen)
             {
-                // The release build has removed IsSinglePlayerOrFakeMultiplayer, so fall back directly to the local current screen state here,
-                // to avoid interrupting the whole UI creation because remote input state is missing during treasure room UI initialization.
                 if (!hasLocalScreen)
                 {
                     hand.Visible = false;

@@ -178,6 +178,26 @@ internal static class RestSiteSynchronizerChooseLocalOptionPatch
     }
 }
 
+[HarmonyPatch(typeof(RestSiteSynchronizer), nameof(RestSiteSynchronizer.Dispose))]
+internal static class RestSiteSynchronizerDisposePatch
+{
+    [HarmonyPrefix]
+    private static void Prefix(RestSiteSynchronizer __instance)
+    {
+        // Task.Dispose() throws "A task may only be disposed if it is in a completion state" if the hover-message
+        // task (a fire-and-forget Task.Delay/Task.Yield started by QueueHoverMessage) is still pending when Dispose
+        // runs - e.g. abandoning a run right after hovering a rest site option. The base game's Dispose() doesn't
+        // guard this. Detach it here so the original method's `_hoverMessageTask?.Dispose()` becomes a no-op; the
+        // orphaned task still completes on its own and needs no explicit disposal.
+        ref Task? hoverMessageTask = ref AccessTools.FieldRefAccess<RestSiteSynchronizer, Task?>(__instance, "_hoverMessageTask");
+        if (hoverMessageTask != null && !hoverMessageTask.IsCompleted)
+        {
+            LocalMultiControlLogger.Info("Rest site disposed while its hover-message task was still pending; detached it instead of disposing.");
+            hoverMessageTask = null;
+        }
+    }
+}
+
 [HarmonyPatch(typeof(NRestSiteRoom), "AfterSelectingOptionAsync")]
 internal static class NRestSiteRoomAfterSelectingOptionPatch
 {

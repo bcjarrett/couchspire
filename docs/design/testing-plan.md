@@ -309,9 +309,12 @@ Rules for every package:
 **First in-game pass (2026-09-28):** 10 of 11 scenarios pass (`treasure` is red on a real mod error; see `TODO.md`
 A3). The `shop`, `map` and `gold_mirror` protection proofs fail as they should; `treasure`'s is inconclusive.
 `rest_site` verifies the freeze fix. The suite found and fixed the rewards-merge flag leak (3a21a7f).
-**Still to do:**
-- `all --repeat 2` stops in pass 2 on a `RestSiteSynchronizer.Dispose()` exception (TODO A3).
-- The proposed layout baselines (commit c945915) are pending the maintainer's contact-sheet review.
+
+**Second in-game pass (2026-09-28):** all 13 scenarios pass, including `--repeat 2`. Fixed the treasure-room
+duplicate-hand error and the `RestSiteSynchronizer.Dispose()` exception (both TODO A3; see CHANGELOG). Layout
+baselines were blessed. Remaining known items are non-blocking: the `treasure` protection proof, cosmetic
+layout jitter/darkening on some checkpoints, and one pre-existing 1px `--repeat` mismatch on
+`combat/p2-played-card`.
 
 **Known weak spot:** `treasure` checks only that P2's chest gold *rose*. P2's amount comes from P2's own seeded roll, and nothing exposes it the way P1's chest display does.
 
