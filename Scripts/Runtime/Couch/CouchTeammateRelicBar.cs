@@ -127,7 +127,6 @@ internal sealed partial class CouchTeammateRelicBar : Control
         if (Visible)
         {
             Layout(teammate);
-            Modulate = new Color(1f, 1f, 1f, CouchLayout.DriverReadingTopUi() ? 0.15f : 1f);
         }
 
         ApplyFocus();

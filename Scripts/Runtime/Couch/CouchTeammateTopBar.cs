@@ -123,7 +123,6 @@ internal sealed partial class CouchTeammateTopBar : Control
         }
 
         Visible = true;
-        Modulate = new Color(1f, 1f, 1f, CouchLayout.DriverReadingTopUi() ? 0.15f : 1f);
         _seat!.Text = CouchSeats.FindByPlayer(teammate.NetId)?.Label ?? "P2";
         _hp!.Text = $"{teammate.Creature.CurrentHp}/{teammate.Creature.MaxHp}";
         _gold!.Text = teammate.Gold.ToString();

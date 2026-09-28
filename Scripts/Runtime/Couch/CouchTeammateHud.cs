@@ -326,7 +326,7 @@ internal sealed partial class CouchTeammateHud : Control
         RefreshCardText();
         UpdateTargeting();
         ListenForPlayedCards();
-        Modulate = new Color(1f, 1f, 1f, DriverIsBusy() || CouchLayout.DriverReadingTopUi() ? BusyAlpha : 1f);
+        Modulate = new Color(1f, 1f, 1f, DriverIsBusy() ? BusyAlpha : 1f);
     }
 
     /// <summary>
