@@ -11,7 +11,10 @@ internal static class CouchTestScenarioRegistry
 {
     private static readonly Func<ICouchTestScenario>[] Factories =
     {
-        () => new StartScenario()
+        () => new StartScenario(),
+        () => new CombatScenario(),
+        () => new ChoiceScenario(),
+        () => new RewardsScenarios()
     };
 
     /// <summary>Every registered scenario, in a fixed order (name, ordinal) so <c>all</c> is deterministic.</summary>

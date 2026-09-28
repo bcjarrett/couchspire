@@ -9,7 +9,7 @@ Useful commands for jumping around the run flow while reproducing and verifying 
 | `event THE_LEGENDS_WERE_TRUE` | trigger the treasure-map event |
 | `event CRYSTAL_SPHERE` | trigger the Crystal Sphere divination event |
 | `act 2` | jump straight to act 2 |
-| `room Event` / `room Treasure` / `room RestSite` / `room Combat` | change the current room type |
+| `room Event` / `room Treasure` / `room RestSite` / `room Monster` | change the current room type |
 | `travel` | toggle free travel on the map (jump to any node) |
 
 ## Notes
