@@ -304,13 +304,19 @@ Rules for every package:
 
 ### 8.2 Status and corrections (2026-09-28)
 
-**Merged on `testing-harness`:** WP0, WP1, WP2, WP3, WP4, WP5a (`combat`, `choice`), WP5b (`rewards`), WP5c (`rest_site`), WP5d (`shop`), WP6 (`docs/testing.md`, AGENTS.md), and the WP7 fix.
+**Merged on `testing-harness`:** WP0-WP4, WP5a-e (`combat`, `choice`, `rewards`, `rest_site`, `shop`, `treasure`, `map`), WP6 (`docs/testing.md`, AGENTS.md), and WP7 (the fix plus the `gold_mirror` scenario).
 
-**Still to do:**
-- WP5e: `treasure` and `map`.
-- The WP7 test, a `gold_mirror` scenario.
-- Bless and review the layout baselines for `combat`, `choice`, `rewards`, `rest_site` and `shop`. Until then they fail with "no baseline".
-- Verify in game: the rest-site freeze fix (7a96451); `shop`'s protection proof and two-run results diff (both unfinished); WP4's done-criteria (the 20 px relic-bar shift proof, `start,layout --repeat 3`), whose agent was stopped before reporting.
+**Not yet run in the game:** `treasure`, `map` and `gold_mirror` were written without the game, so their node paths and timing are untested. For the first session:
+1. `./deploy.sh test all --bless`, then review the new baselines in git.
+2. Run each new scenario; `rest_site` also verifies the freeze fix 7a96451.
+3. Protection proofs:
+   - `shop`: disable the teammate-shop block.
+   - `treasure`: disable `PostfixTreasureOpened` and `TreasureRoomRelicSynchronizerBeginPatch`.
+   - `map`: disable the `MapSelectionSynchronizerPatch` postfix; expect a timeout.
+   - `gold_mirror`: temporarily restore the async-method decrement from before 06b185a.
+4. WP4's 20 px relic-bar shift proof, then `./deploy.sh test all --repeat 3`.
+
+**Known weak spot:** `treasure` checks only that P2's chest gold *rose*. P2's amount comes from P2's own seeded roll, and nothing exposes it the way P1's chest display does.
 
 **Corrections to the plan above:**
 - §4: the debug `room <type>` command records a **null** encounter id in the map history. Abandoning such a run
@@ -328,6 +334,17 @@ Rules for every package:
 - §6.9 `combat`: the guaranteeing patch is `CombatManagerReadyEnemyTurnPatch`. `CombatManagerPatch` is a no-op
   in simultaneous mode.
 - Scenarios are discovered by reflection. There's no registry list to edit.
+- §6.5 **changed by the maintainer (2026-09-28):** layout snapshots are a non-blocking drift report. The relational
+  rules are the gate. `--strict-layout` restores failing on drift. Why: a golden snapshot checks "unchanged", not
+  "correct"; it breaks all at once on a game patch or intended tweak; it can't see the wrong player's data; and it
+  is tied to one screen size. **Planned, not done:**
+  - more rules (P2's panels don't cover P1's Proceed; text fits its panel; the HUD is right of the players list);
+  - content checks for the wrong-player bug class (P2's panel shows P2's seat, gold and HP);
+  - a rules-only 1280x800 Steam Deck pass.
+- §6.9 `map`: P2 never votes. `MapSelectionSynchronizerPatch` fills P2's vote with P1's destination and triggers the move.
+- §8 WP7: no shipped game flow reaches the bug (every event does relic *or* gold). The regression test uses a test-only
+  console command, run in the Crystal Sphere event, because the post-combat rewards screen keeps
+  `CombatRewardMergeContext` active, and that switches mirroring off.
 
 **Mod bugs the tests found:**
 - The rest-site entry check froze the game (unbounded same-frame retries; see `TODO.md` A/A2).

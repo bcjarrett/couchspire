@@ -29,6 +29,7 @@ Run Layer A after every build. Run `./deploy.sh test all` before asking for a pl
 ./deploy.sh test all --repeat 3      # fail if any run's results or layout differ from the first
 ./deploy.sh test rewards --bless     # rewrite layout baselines instead of comparing
 ./deploy.sh test shop --review       # also save checkpoint screenshots + contact-sheet.png
+./deploy.sh test all --strict-layout # also fail on drift from the layout baselines
 ```
 
 What it does:
@@ -76,6 +77,9 @@ Output goes to `test-results/<UTC timestamp>/` (gitignored):
 | `rest_site` | P1 rests, P2 smiths exactly one card; Proceed is blocked until P2 is done |
 | `shop` | P2 buys a card, a potion and a relic; P2 pays exact prices; P1 is unchanged; leaving is blocked |
 | `layout` | Map and combat checkpoints at 16:9 and 16:10 (layout vehicle) |
+| `treasure` | P1 opens the chest and picks by click, P2 through their panel; each gets exactly their own relic and chest gold |
+| `map` | P1 clicks the leftmost reachable node; the mod fills in P2's vote; the floor rises by 1 and a room is entered |
+| `gold_mirror` | In the Crystal Sphere event, a test-only `goldmirrorflow` command obtains a relic then gains gold in one flow; P2 must get the mirrored gold (guards 06b185a) |
 
 ## Writing a scenario
 
@@ -119,16 +123,21 @@ Output goes to `test-results/<UTC timestamp>/` (gitignored):
 
 ## Layout baselines
 
-Baselines live in `Tests/layout-baselines/<scenario>/<checkpoint>@<16x9|16x10>.json` and are committed. Each holds
-the whole-pixel rects of the mod UI roots and a few game anchors. A move or resize over 4 px, or a node appearing
-or disappearing, fails the scenario and names the node and the delta.
+The **layout rules** below decide pass/fail. They encode intent, so they survive intentional tweaks, game patches
+and seed changes.
 
-When you change layout on purpose:
-1. Run `./deploy.sh test <scenario> --bless`.
-2. Review the baseline diff in git. It is the record of the intended change.
-3. Commit it with the code change.
+**Baselines** are a drift report, not a gate. They live in `Tests/layout-baselines/<scenario>/<checkpoint>@<16x9|16x10>.json`
+(committed) and hold the whole-pixel rects of the mod UI roots and a few game anchors. A move over 4 px, or a node
+appearing or disappearing, is listed under "Layout drift" in `summary.txt` but doesn't fail the run. Pass
+`--strict-layout` to make drift fail (e.g. before a release). `--repeat` always compares snapshots between passes,
+because that's a determinism check.
 
-A new scenario or checkpoint starts with "no baseline; run with --bless".
+A baseline records "what it looked like", not "what's correct", so bless only after a human has looked:
+1. Run `./deploy.sh test <scenario> --bless --review`. This writes the proposed baselines (uncommitted) and a
+   `contact-sheet.png` of every checkpoint.
+2. Look at the contact sheet. The screens themselves must be right, not just rule-clean.
+3. Run it twice without `--bless`. Both runs must report no drift.
+4. Commit the baselines. Review baseline diffs in git like code.
 
 The layout rules (every checkpoint, both aspects):
 - Mod UI is inside the viewport and has non-zero size.

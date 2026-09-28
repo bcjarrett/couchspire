@@ -4,7 +4,7 @@
 #   ./deploy.sh mac                  Install into this Mac's game (mods folder inside the .app bundle).
 #   ./deploy.sh bazzite [user@host]  Copy to a Bazzite/Linux box over SSH (default host: $BAZZITE_HOST).
 #   ./deploy.sh logs [user@host]     Follow the remote game log, couch lines only.
-#   ./deploy.sh test [scenario|all] [--repeat N] [--bless] [--review]
+#   ./deploy.sh test [scenario|all] [--repeat N] [--bless] [--review] [--strict-layout]
 #                                    Run the in-game scenario runner (macOS only). Builds Debug, installs with no
 #                                    CouchSpire.cfg, resets the test save profile, launches, reports, and exits with
 #                                    the runner's exit code. See docs/design/testing-plan.md §6.8.
@@ -244,6 +244,7 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       repeat=""
       bless=0
       review=0
+      strict_layout=0
       if [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; then
         selection="$1"
         shift
@@ -264,6 +265,10 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
             ;;
           --review)
             review=1
+            shift
+            ;;
+          --strict-layout)
+            strict_layout=1
             shift
             ;;
           *)
@@ -319,6 +324,9 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       fi
       if [ "$review" -eq 1 ]; then
         game_args+=(--review)
+      fi
+      if [ "$strict_layout" -eq 1 ]; then
+        game_args+=(--strict-layout)
       fi
 
       echo "==> Launching: $game_bin ${game_args[*]}"

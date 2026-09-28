@@ -26,7 +26,8 @@ internal sealed record CouchTestCheckpointOptions(
     string OutDir,
     string BaselinesDir,
     bool Bless,
-    bool Review);
+    bool Review,
+    bool StrictLayout);
 
 /// <summary>A rect rounded to whole pixels (docs/design/testing-plan.md §6.5.2), as written to a snapshot/baseline file.</summary>
 internal readonly record struct CouchTestRect(int X, int Y, int W, int H)
@@ -135,6 +136,9 @@ internal static class CouchTestLayout
 
     private static readonly List<(string Label, string Path)> ReviewShots = new();
 
+    /// <summary>Snapshot mismatches this run that didn't fail it (no <c>--strict-layout</c>); listed in summary.txt.</summary>
+    public static readonly List<string> DriftNotes = new();
+
     public static readonly IReadOnlyList<string> KnownAspects = new[] { "16:9", "16:10" };
 
     // ---------------------------------------------------------------------------------------------------------
@@ -228,9 +232,16 @@ internal static class CouchTestLayout
         }
 
         string? snapshotFailure = RunSnapshot(options, checkpoint, snapshotNodes);
-        if (snapshotFailure != null)
+        if (snapshotFailure != null && options.StrictLayout)
         {
             failures.Add(snapshotFailure);
+        }
+        else if (snapshotFailure != null)
+        {
+            // Snapshots are a drift report, not a gate (docs/testing.md): the relational rules above decide pass/fail.
+            string note = $"{options.ScenarioName}/{checkpoint}@{options.Aspect}: {snapshotFailure}";
+            DriftNotes.Add(note);
+            CouchTestLog.Warn($"Layout drift (non-blocking; --strict-layout makes it fail): {note}");
         }
 
         if (options.Review)

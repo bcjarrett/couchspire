@@ -133,6 +133,7 @@ internal static class CouchTestRunner
         }
 
         bool bless = CommandLineHelper.HasArg("bless");
+        bool strictLayout = CommandLineHelper.HasArg("strict-layout");
         bool review = CommandLineHelper.HasArg("review");
 
         List<ICouchTestScenario> scenarios;
@@ -210,7 +211,7 @@ internal static class CouchTestRunner
             {
                 foreach (string aspect in scenario.Aspects)
                 {
-                    CouchTestCheckpointOptions layoutOptions = new(scenario.Name, aspect, outDir, baselinesDir, bless, review);
+                    CouchTestCheckpointOptions layoutOptions = new(scenario.Name, aspect, outDir, baselinesDir, bless, review, strictLayout);
                     (CouchTestScenarioResult result, List<CouchTestLayoutSnapshot> checkpointSnapshots, bool canContinue) =
                         await RunScenarioPassAsync(tree, scenario, layoutOptions);
                     results.Add(result);
@@ -279,6 +280,11 @@ internal static class CouchTestRunner
 
         List<CouchTestScenarioResult> finalResults = passResults.Count > 0 ? passResults[0] : new List<CouchTestScenarioResult>();
         int expectedCount = scenarios.Sum((scenario) => scenario.Aspects.Count);
+
+        if (CouchTestLayout.DriftNotes.Count > 0)
+        {
+            notes.Add($"Layout drift vs. baselines (non-blocking; rerun with --strict-layout to fail on it, or --bless after review):\n    " + string.Join("\n    ", CouchTestLayout.DriftNotes));
+        }
 
         CouchTestResultsWriter.Write(outDir, finalResults, notes);
         bool passed = !repeatMismatch && finalResults.Count == expectedCount && finalResults.All((result) => result.Outcome == CouchTestOutcome.Pass);
