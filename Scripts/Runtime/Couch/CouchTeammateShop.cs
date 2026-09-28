@@ -163,8 +163,13 @@ internal sealed partial class CouchTeammateShop : CouchPanel
             StyleRow(_rows[i], i == _cursor, dimmed: !available || _busy);
         }
 
-        y = LayoutRowsScrolled(_rows, y, ColumnMaxY, _cursor);
-        FinishLayout(y, AboutText(current), $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} buy");
+        string keys = $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} buy";
+        // Fold priority (senior review): the description is shown in full, wrapped, unless even the row list
+        // collapsed to just the cursor row wouldn't leave room for it above the floor - only then does it shrink.
+        string about = ShrinkFooterToFit(AboutText(current), keys, y, ColumnMaxY, MinRowHeightEstimate);
+        float footer = MeasureFooterHeight(about, keys);
+        y = LayoutRowsScrolled(_rows, y, RowsBudgetMaxY(y) - footer, _cursor);
+        FinishLayout(y, about, keys);
     }
 
     private MerchantInventory? TeammateInventory()

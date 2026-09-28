@@ -110,8 +110,11 @@ internal sealed partial class CouchTeammateRestSite : CouchPanel
             StyleRow(_rows[i], i == _cursor, dimmed: !enabled || _busy);
         }
 
-        float y = LayoutRowsScrolled(_rows, ContentTop, ColumnMaxY, _cursor);
-        FinishLayout(y, _busy ? "Doing it..." : "", $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} choose");
+        string status = _busy ? "Doing it..." : "";
+        string keys = $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} choose";
+        float footer = MeasureFooterHeight(status, keys);
+        float y = LayoutRowsScrolled(_rows, ContentTop, RowsBudgetMaxY(ContentTop) - footer, _cursor);
+        FinishLayout(y, status, keys);
     }
 
     /// <summary>

@@ -83,8 +83,11 @@ internal sealed partial class CouchTeammateTreasure : CouchPanel
             StyleRow(_rows[i], i == _cursor, dimmed: _sent);
         }
 
-        float y = LayoutRowsScrolled(_rows, ContentTop, ColumnMaxY, _cursor);
-        FinishLayout(y, _sent ? "Picked, waiting for the chest..." : "", $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} pick");
+        string status = _sent ? "Picked, waiting for the chest..." : "";
+        string keys = $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} pick";
+        float footer = MeasureFooterHeight(status, keys);
+        float y = LayoutRowsScrolled(_rows, ContentTop, RowsBudgetMaxY(ContentTop) - footer, _cursor);
+        FinishLayout(y, status, keys);
     }
 
     /// <summary>The relics on offer while the teammate hasn't picked yet; null otherwise.</summary>

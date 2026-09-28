@@ -14,17 +14,33 @@ namespace LocalMultiControl.Scripts.Runtime.Couch;
 /// The game waits for these as the teammate's remote choice; this panel answers through <see cref="CouchTeammateChoices"/>.
 /// Options are a vertical list of card names (<see cref="CouchPanel.LayoutRowsScrolled"/>) with one focused preview above
 /// it, rather than a horizontal strip of cards: that only fit in the column's narrower width once. For upgrade picks
-/// (Smith and the like) the preview is the card before and after upgrading, stacked vertically with a down arrow between,
-/// in place of the old side-by-side pair that needed a much wider panel.
+/// (Smith and the like) the preview is the card before and after upgrading, side by side with a right-pointing arrow
+/// between (<see cref="LayoutUpgradePreview"/>) - side by side rather than stacked specifically so the preview can stay
+/// at a readable scale within the column's live floor (a stacked pair needs roughly twice the vertical room).
 /// </summary>
 internal sealed partial class CouchTeammateChoicePanel : CouchPanel
 {
     /// <summary>
-    /// Scale for the focused preview card(s). Smaller than the shop's 0.32 (a single card): this panel can show two
-    /// cards stacked (an upgrade's before/after) above a scrolled row list, all above P1's Proceed button, so the
-    /// preview needs to be more compact to leave the rows any room.
+    /// The preview's normal, readable scale (senior review: individual cards were "tiny, about the old size" at the
+    /// dynamic 0.22-0.5 range this replaces). <see cref="ChooseCardScale"/> uses this unless even the row list
+    /// collapsed to just the cursor row wouldn't leave room for it - fold priority puts rows first, the preview
+    /// last, not the other way around. An upgrade pick's before/after pair is laid out <b>side by side</b>, not
+    /// stacked (<see cref="LayoutUpgradePreview"/>): two 300x422 cards (<see cref="NCard.defaultSize"/>) side by
+    /// side need roughly half the vertical room that stacking them does, which is what makes a readable scale reach
+    /// even in the column's typical floor-constrained budget - stacked, this same scale would need about twice the
+    /// preview's own height in room, on top of the row list.
     /// </summary>
-    private const float CardScale = 0.28f;
+    private const float ReadableCardScale = 0.46f;
+
+    /// <summary>Absolute last-resort floor below <see cref="ReadableCardScale"/>, only reached if the column floor
+    /// is so tight that even the cursor row can't fit next to a readable preview.</summary>
+    private const float MinPreviewScale = 0.30f;
+
+    /// <summary>Gap between the before/after cards in the side-by-side upgrade preview.</summary>
+    private const float SideBySideGap = 10f;
+
+    /// <summary>This choice's current preview scale, recomputed once per <see cref="Layout"/> call.</summary>
+    private float _cardScale = ReadableCardScale;
 
     private const string UpgradeArrowPath = "res://images/ui/cards/upgrade_preview/upgrade_arrow.png";
 
@@ -156,10 +172,8 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
     private void Layout(CouchTeammateChoice choice)
     {
         SetTitle($"{SeatLabel(choice.Player)} · {choice.Prompt}");
-        float y = ContentTop;
         bool isUpgrade = choice.Source == UpgradeSource;
         CardModel? focused = _cursor < choice.Options.Count ? choice.Options[_cursor] : null;
-        y = isUpgrade ? LayoutUpgradePreview(focused, y) : LayoutFocusedPreview(focused, y);
 
         for (int i = 0; i < _rows.Count; i++)
         {
@@ -171,18 +185,58 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
             StyleRow(_extraRows[i], _rows.Count + i == _cursor, dimmed: false);
         }
 
-        List<RowView> allRows = new(_rows.Count + _extraRows.Count);
-        allRows.AddRange(_rows);
-        allRows.AddRange(_extraRows);
-        y = LayoutRowsScrolled(allRows, y, ColumnMaxY, _cursor);
-
+        // The hint/counter text is fully known before layout (it only depends on cursor/pick state above), so the
+        // footer's real height can be measured and reserved before the preview and rows claim their space (fold-
+        // priority rule: title, cursor row and hint are never hidden).
         string counter = _rows.Count > 0 && _cursor < _rows.Count ? $"Card {_cursor + 1} of {_rows.Count}" : "";
         string picks = choice.MaxSelect > 1 ? $"{_picked.Count} picked ({choice.MinSelect}-{choice.MaxSelect})" : "";
         string keys = choice.MaxSelect > 1
             ? $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} toggle · {Keys("O", "Y")} confirm · {Keys("K", "B")} {(choice.CanClose || choice.MinSelect == 0 ? "cancel" : "clear")}"
             : $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} pick{(choice.CanClose || choice.MinSelect == 0 ? $" · {Keys("K", "B")} cancel" : "")}";
-        FinishLayout(y, string.Join("    ", new[] { counter, picks }.Where((string s) => s.Length > 0)), keys);
+        string line1 = string.Join("    ", new[] { counter, picks }.Where((string s) => s.Length > 0));
+        float footer = MeasureFooterHeight(line1, keys);
+        float budgetBottom = RowsBudgetMaxY(ContentTop) - footer;
+
+        // Fold priority (senior review): the preview stays at its normal, readable scale; only the row list gives
+        // up space (scrolling down to just the cursor row) when the column is tight. The preview shrinks below that
+        // only as a last resort, if even the cursor row alone wouldn't otherwise fit beside it.
+        _cardScale = ChooseCardScale(isUpgrade, ContentTop, budgetBottom);
+        float y = isUpgrade ? LayoutUpgradePreview(focused, ContentTop) : LayoutFocusedPreview(focused, ContentTop);
+
+        List<RowView> allRows = new(_rows.Count + _extraRows.Count);
+        allRows.AddRange(_rows);
+        allRows.AddRange(_extraRows);
+        y = LayoutRowsScrolled(allRows, y, budgetBottom, _cursor);
+
+        FinishLayout(y, line1, keys);
     }
+
+    /// <summary><see cref="ReadableCardScale"/>, unless even the cursor row wouldn't fit beside it in
+    /// <paramref name="budgetBottom"/> (the row list's own floor, already net of the footer) - then the largest
+    /// scale down to <see cref="MinPreviewScale"/> that does. Mirrors the heights
+    /// <see cref="LayoutFocusedPreview"/>/<see cref="LayoutUpgradePreview"/> actually produce.</summary>
+    private static float ChooseCardScale(bool isUpgrade, float y, float budgetBottom)
+    {
+        float scale = ReadableCardScale;
+        while (scale > MinPreviewScale)
+        {
+            float previewHeight = isUpgrade ? UpgradePreviewHeight(scale) : FocusedPreviewHeight(scale);
+            if (y + previewHeight + MinRowHeightEstimate <= budgetBottom)
+            {
+                return scale;
+            }
+
+            scale -= 0.02f;
+        }
+
+        return MinPreviewScale;
+    }
+
+    private static float FocusedPreviewHeight(float scale) => NCard.defaultSize.Y * scale + 14f;
+
+    /// <summary>Side by side (see <see cref="LayoutUpgradePreview"/>), so the preview's total height is just one
+    /// card's height plus a small pad - not two stacked - which is what lets <see cref="ReadableCardScale"/> fit.</summary>
+    private static float UpgradePreviewHeight(float scale) => NCard.defaultSize.Y * scale + 14f;
 
     /// <summary>The card under the cursor, alone, for picks that aren't an upgrade (transform, remove, enchant, reward grid...).</summary>
     private float LayoutFocusedPreview(CardModel? card, float y)
@@ -194,14 +248,19 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
             return y;
         }
 
-        Vector2 cardSize = NCard.defaultSize * CardScale;
+        _focusedPreview.Scale = new Vector2(_cardScale, _cardScale);
+        Vector2 cardSize = NCard.defaultSize * _cardScale;
         _focusedPreview.Position = new Vector2(PanelWidth * 0.5f - 10f, y + cardSize.Y * 0.5f + 4f);
         return y + cardSize.Y + 14f;
     }
 
     /// <summary>
-    /// For upgrade picks, the card under the cursor before and after upgrading, stacked vertically with a down arrow
-    /// between, as on the driver's smith screen (<c>NUpgradePreview</c>) but rotated for the column's width.
+    /// For upgrade picks, the card under the cursor before and after upgrading, side by side with a right-pointing
+    /// arrow between, as the driver's smith screen (<c>NUpgradePreview</c>) originally laid it out before the panel
+    /// briefly stacked them vertically to fit a narrower column. Side by side needs only one card's height of room
+    /// (see <see cref="UpgradePreviewHeight"/>), which is what lets <see cref="ReadableCardScale"/> actually fit
+    /// within the column's live floor (senior review regression: stacked, the same scale needed roughly twice the
+    /// vertical room and was unreachable in the typical floor-constrained budget).
     /// </summary>
     private float LayoutUpgradePreview(CardModel? card, float y)
     {
@@ -212,18 +271,32 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
             return y;
         }
 
-        Vector2 cardSize = NCard.defaultSize * CardScale;
-        float centerX = PanelWidth * 0.5f - 10f;
-        _before.Position = new Vector2(centerX, y + cardSize.Y * 0.5f);
-        float arrowY = y + cardSize.Y + 2f;
+        _before.Scale = new Vector2(_cardScale, _cardScale);
+        _after.Scale = new Vector2(_cardScale, _cardScale);
+        Vector2 cardSize = NCard.defaultSize * _cardScale;
+
+        // NCard.Position is its rendered footprint's CENTER, not a left edge (senior review round 4, settled by
+        // decompiled source, not just pixels this time): card holders set CardNode.Position = Vector2.Zero at the
+        // holder's own center (NCardHolder.ConnectSignals, NGridCardHolder.OnReturnedFromPool), which only makes
+        // sense if NCard draws its art centered on its own origin - i.e. from -size/2 to +size/2 in its own local
+        // space, PivotOffset notwithstanding (PivotOffset affects rotation/scale pivoting, not where the art itself
+        // sits relative to Position). Round 3's "left edge" conclusion rested on a test rule
+        // (NCardGlobalBounds) that made the same wrong top-left assumption, so it happened to agree with the buggy
+        // placement instead of catching it; both are fixed together here. Both cards are centered as a pair on the
+        // panel's own horizontal middle, giving equal side margins.
+        float centerX = PanelWidth * 0.5f;
+        float half = cardSize.X * 0.5f + SideBySideGap * 0.5f;
+        float leftCenterX = centerX - half;
+        float rightCenterX = centerX + half;
+        float centerY = y + cardSize.Y * 0.5f;
+        _before.Position = new Vector2(leftCenterX, centerY);
+        _after.Position = new Vector2(rightCenterX, centerY);
         if (_downArrow != null)
         {
-            _downArrow.Position = new Vector2(centerX - 11f, arrowY);
+            _downArrow.Position = new Vector2(centerX - 11f, centerY - 11f);
         }
 
-        float afterTop = arrowY + 22f + 2f;
-        _after.Position = new Vector2(centerX, afterTop + cardSize.Y * 0.5f);
-        return afterTop + cardSize.Y + 8f;
+        return y + cardSize.Y + 14f;
     }
 
     private void SetFocusedPreview(CardModel? card)
@@ -242,7 +315,7 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
         }
 
         _focusedPreview = CouchCards.Create(card, this);
-        _focusedPreview.Scale = new Vector2(CardScale, CardScale);
+        _focusedPreview.Scale = new Vector2(_cardScale, _cardScale);
         _focusedPreview.ZIndex = 3;
     }
 
@@ -278,7 +351,7 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
         _after.ShowUpgradePreview();
         foreach (NCard node in new[] { _before, _after })
         {
-            node.Scale = new Vector2(CardScale, CardScale);
+            node.Scale = new Vector2(_cardScale, _cardScale);
             node.ZIndex = 2;
         }
 
@@ -291,7 +364,8 @@ internal sealed partial class CouchTeammateChoicePanel : CouchPanel
                 ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                 StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
                 Size = new Vector2(22f, 22f),
-                RotationDegrees = 90f,
+                // Side by side now (see LayoutUpgradePreview), so the arrow points right, its unrotated default -
+                // the 90° rotation only made sense for the previous stacked (before-above-after) layout.
                 PivotOffset = new Vector2(11f, 11f),
                 MouseFilter = MouseFilterEnum.Ignore,
                 ZIndex = 2

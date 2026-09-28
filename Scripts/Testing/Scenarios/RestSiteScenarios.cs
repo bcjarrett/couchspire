@@ -100,6 +100,30 @@ internal sealed class RestSiteScenarios : CouchTestScenarioBase
         CouchTeammateChoice upgradeChoice = await context.WaitForPendingTeammateChoice(CouchTestContext.RestSiteUpgradeChoiceSource);
         await context.Checkpoint("p2-smith-card-choice-open");
 
+        // Senior-review regression guard (round 2): with no P1 picker open, P2's Smith panel must use the full
+        // column down to the live floor (a small, row-granularity allowance, not stop far short of it with empty
+        // column below), the floor itself must actually be near the viewport bottom when nothing real constrains
+        // it, and the before/after preview must render at a genuinely readable size. Logged once so a wrong floor
+        // traces to the exact button that produced it instead of being guessed at.
+        bool aRealP1ButtonCountsTowardFloor = context.LogColumnFloorCandidates("p2-smith-card-choice-open");
+        context.LogChoicePanelPreviewCardRect("p2-smith-card-choice-open");
+        (float panelBottomY, float floorY, float viewportHeight, bool rowsScrolled, float previewCardHeight) = context.TeammateChoicePanelPreviewInfo();
+        const float MaxGapFromFloor = 40f;
+        const float MinReadablePreviewCardHeight = 170f;
+        const float MinSoloFloorFraction = 0.85f;
+        context.Expect(
+            rowsScrolled == false || floorY - panelBottomY <= MaxGapFromFloor,
+            $"Expected P2's Smith panel to use the column down to the floor (within {MaxGapFromFloor}px) since its 13-card list needs to scroll, " +
+            $"found panel bottom {panelBottomY:0} vs. floor {floorY:0} (gap {floorY - panelBottomY:0}).");
+        context.Expect(
+            aRealP1ButtonCountsTowardFloor || floorY >= viewportHeight * MinSoloFloorFraction,
+            $"Expected the column floor to sit at least {MinSoloFloorFraction:P0} down the viewport, since no real P1 button is actually constraining it here " +
+            $"(P1 already finished resting, no picker open), found floor {floorY:0} of viewport height {viewportHeight:0} ({floorY / viewportHeight:P0}). " +
+            "See the 'Column floor candidates' log line just above this checkpoint for what CouchColumnFloor picked instead.");
+        context.Expect(
+            previewCardHeight >= MinReadablePreviewCardHeight,
+            $"Expected P2's Smith before/after preview cards to render at least {MinReadablePreviewCardHeight}px tall, found {previewCardHeight:0}px.");
+
         int seededCardOptionIndex = upgradeChoice.Options.ToList().FindIndex((card) => ReferenceEquals(card, p2SeededCard));
         context.Expect(seededCardOptionIndex >= 0, "Expected the seeded NEUTRALIZE card to be offered in P2's Smith upgrade choice.");
 

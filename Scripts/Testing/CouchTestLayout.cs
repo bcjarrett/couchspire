@@ -139,6 +139,25 @@ internal static class CouchTestLayout
     private const int SnapshotTolerancePx = 4;
     private const int StableFrameCount = 3;
 
+    /// <summary>The shared right-hand P2 column panels (docs/testing.md): checked by
+    /// <see cref="CheckColumnPanelCursorAndHint"/> for the cursor-row/hint-in-view rule. Not
+    /// <c>CouchTeammateHud</c>/<c>RelicBar</c>/<c>TopBar</c>/<c>Info</c>/<c>Event</c>, which don't use the shared
+    /// column or its row-cursor/hint layout.</summary>
+    private static readonly string[] ColumnPanelRootNames =
+    {
+        "CouchTeammateRewards", "CouchTeammateRestSite", "CouchTeammateShop", "CouchTeammateTreasure", "CouchTeammateChoicePanel"
+    };
+
+    private static readonly PropertyInfo? PanelHintProperty = AccessTools.Property(typeof(CouchPanel), "Hint");
+    private static readonly PropertyInfo? PanelBackgroundProperty = AccessTools.Property(typeof(CouchPanel), "Background");
+
+    // CouchTeammateChoicePanel's preview card(s) - checked against the panel frame too (senior review round 2: the
+    // side-by-side Smith preview overflowed the panel's own left edge without tripping any existing rule, since it
+    // never left the viewport, just the panel it's drawn inside of).
+    private static readonly FieldInfo? ChoicePanelBeforeField = AccessTools.Field(typeof(CouchTeammateChoicePanel), "_before");
+    private static readonly FieldInfo? ChoicePanelAfterField = AccessTools.Field(typeof(CouchTeammateChoicePanel), "_after");
+    private static readonly FieldInfo? ChoicePanelFocusedField = AccessTools.Field(typeof(CouchTeammateChoicePanel), "_focusedPreview");
+
     /// <summary>
     /// Bound for <see cref="WaitForStableRootsAsync"/> (used by <see cref="RunCheckpointAsync"/>) and for the
     /// screen-stability check <see cref="CouchTestContext.Settle"/> folds in. Generous on purpose: the combat entry
@@ -234,6 +253,7 @@ internal static class CouchTestLayout
         CheckContainment(modRects, viewport, failures);
         CheckOverlaps(modRects, anchors, failures, allowedNotes);
         CheckAnchoring(modRects, failures);
+        CheckColumnPanelCursorAndHint(roots, viewport, failures);
 
         if (allowedNotes.Count > 0)
         {
@@ -558,7 +578,7 @@ internal static class CouchTestLayout
         // overlapped CouchTeammateRelicBar when neither ever happens on screen.
         if (node is NCard card)
         {
-            return card.Visible ? card.GetGlobalTransform() * new Rect2(Vector2.Zero, NCard.defaultSize) : null;
+            return NCardGlobalBounds(card);
         }
 
         Rect2? bounds = null;
@@ -622,46 +642,31 @@ internal static class CouchTestLayout
             anchors["PlayersList"] = playersList;
         }
 
-        // A visible P2 mod panel must not cover P1's real Proceed button, wherever the current screen keeps it
-        // (rest site, treasure and shop are all IRoomWithProceedButton; the rewards screen keeps its own as a
-        // private field). Folded into the generic named-anchor overlap check below like the relic row/top bar/
-        // end-turn button, rather than a bespoke rule, so every mod panel is checked against it for free.
-        if (FindProceedButton() is Control proceedButton && GodotObject.IsInstanceValid(proceedButton)
+        // A visible P2 mod panel must not cover any of P1's real action buttons, wherever the current screen keeps
+        // them: Proceed (rest site, treasure and shop are all IRoomWithProceedButton; the rewards screen keeps its
+        // own as a private field), or a card-select overlay's confirm/cancel buttons (e.g. the Smith upgrade grid's
+        // ✓/back). Both come from the same mod-side helper the runtime column-floor measurement uses
+        // (CouchColumnFloor.FindActionButtons), so the test can never check a different button set than the one the
+        // column actually avoided. Folded into the generic named-anchor overlap check below like the relic row/top
+        // bar/end-turn button, rather than a bespoke rule, so every mod panel is checked against it for free.
+        if (CouchColumnFloor.FindProceedButton() is Control proceedButton && GodotObject.IsInstanceValid(proceedButton)
             && proceedButton.IsVisibleInTree() && proceedButton.Size.X > 0.5f && proceedButton.Size.Y > 0.5f)
         {
             anchors["P1ProceedButton"] = proceedButton.GetGlobalRect();
         }
 
+        int buttonIndex = 0;
+        foreach (Control button in CouchColumnFloor.FindCardSelectButtons())
+        {
+            if (!GodotObject.IsInstanceValid(button) || !button.IsVisibleInTree() || button.Size.X <= 0.5f || button.Size.Y <= 0.5f)
+            {
+                continue;
+            }
+
+            anchors[$"P1CardSelectButton{buttonIndex++}"] = button.GetGlobalRect();
+        }
+
         return anchors;
-    }
-
-    /// <summary>P1's real Proceed button on whichever screen is up, or null off those screens. <c>NRewardsScreen</c>
-    /// doesn't implement <c>IRoomWithProceedButton</c> (it's an overlay, not a room) and keeps its own button in a
-    /// private field, read via <c>AccessTools</c> the same way <c>CouchTestContext.Rewards.cs</c> already does for
-    /// it.</summary>
-    private static Control? FindProceedButton()
-    {
-        if (NRestSiteRoom.Instance is { } restSite)
-        {
-            return restSite.ProceedButton;
-        }
-
-        if (NRun.Instance?.TreasureRoom is { } treasure)
-        {
-            return treasure.ProceedButton;
-        }
-
-        if (NMerchantRoom.Instance is { } merchant)
-        {
-            return merchant.ProceedButton;
-        }
-
-        if (NOverlayStack.Instance?.Peek() is NRewardsScreen rewards)
-        {
-            return AccessTools.Field(typeof(NRewardsScreen), "_proceedButton")?.GetValue(rewards) as Control;
-        }
-
-        return null;
     }
 
     private static Rect2? UnionOf(IEnumerable<Control> controls)
@@ -794,6 +799,112 @@ internal static class CouchTestLayout
                     $"players list top y={playersList.Position.Y:0.#}, delta={delta:0.#}px (limit {AnchorTolerancePx:0}px).");
             }
         }
+    }
+
+    /// <summary>
+    /// New rule (approved spec): while a P2 column panel is visible, the row under its cursor and its hint line must
+    /// lie inside the viewport <i>and</i> inside the panel's own drawn frame (<c>CouchPanel.Background</c>, sized by
+    /// <c>FinishLayout</c>) — not just somewhere inside the aggregate bounding box every mod root is already checked
+    /// against (<see cref="CheckContainment"/>/<see cref="CheckOverlaps"/>), which can't catch a row or hint that
+    /// overflows past the frame's own bottom edge, since a bounding box always contains everything that was unioned
+    /// into it. <c>CouchButton.IsFocused</c>/<c>CouchPanel.Hint</c> are read via <c>AccessTools</c>/the field itself
+    /// (Hint is a protected property; <c>PanelHintProperty</c> crosses that boundary the same way
+    /// <c>CouchTestContext.Rewards.cs</c> already does for other mod internals).
+    /// </summary>
+    private static void CheckColumnPanelCursorAndHint(Dictionary<string, Control> roots, Vector2 viewport, List<string> failures)
+    {
+        foreach (string name in ColumnPanelRootNames)
+        {
+            if (!roots.TryGetValue(name, out Control? root))
+            {
+                continue;
+            }
+
+            Rect2? frame = PanelBackgroundProperty?.GetValue(root) is Control { Visible: true } background && background.Size.X > 0.5f && background.Size.Y > 0.5f
+                ? background.GetGlobalRect()
+                : null;
+
+            if (PanelHintProperty?.GetValue(root) is Label { Visible: true } hint && hint.Size.X > 0.5f && hint.Size.Y > 0.5f)
+            {
+                CheckWithinViewportAndFrame(name, "hint line", hint.GetGlobalRect(), viewport, frame, failures);
+            }
+
+            if (FindFocusedButton(root) is CouchButton cursorRow)
+            {
+                CheckWithinViewportAndFrame(name, "cursor row", cursorRow.GetGlobalRect(), viewport, frame, failures);
+            }
+
+            if (name == "CouchTeammateChoicePanel")
+            {
+                CheckPreviewCard(root, "before card", ChoicePanelBeforeField, viewport, frame, failures);
+                CheckPreviewCard(root, "after card", ChoicePanelAfterField, viewport, frame, failures);
+                CheckPreviewCard(root, "preview card", ChoicePanelFocusedField, viewport, frame, failures);
+            }
+        }
+    }
+
+    private static void CheckPreviewCard(Control root, string what, FieldInfo? field, Vector2 viewport, Rect2? frame, List<string> failures)
+    {
+        if (field?.GetValue(root) is NCard { Visible: true } card && NCardGlobalBounds(card) is Rect2 rect)
+        {
+            CheckWithinViewportAndFrame("CouchTeammateChoicePanel", what, rect, viewport, frame, failures);
+        }
+    }
+
+    /// <summary>
+    /// An <see cref="NCard"/>'s actual rendered footprint (see <see cref="VisualBounds"/>'s NCard case) - its own
+    /// <c>Size</c> is a much larger authoring canvas, not what's drawn. <c>NCard</c> draws its art centered on its
+    /// own origin, not from a top-left corner: card holders set <c>CardNode.Position = Vector2.Zero</c> at the
+    /// holder's own center (<c>NCardHolder.ConnectSignals</c>, <c>NGridCardHolder.OnReturnedFromPool</c> in the
+    /// decompiled source), which only holds together if the art spans -size/2 to +size/2 in the card's own local
+    /// space. <c>PivotOffset</c> is unrelated to this (it only affects how rotation/scale pivot, not where the art
+    /// itself sits relative to <c>Position</c>) - reading it (as this did in round 3, which normally reads (0, 0)
+    /// on <c>NCard</c>) produced a top-left-shaped model that happened to validate a real, wrong placement and flag
+    /// a correct one, backwards. Confirmed against real pixels (round 4): the rendered rect this computes converts
+    /// to screenshot coordinates matching exactly where a card's visible edge sits in a --review PNG (see
+    /// <c>CouchTestContext.LogChoicePanelPreviewCardRect</c>, which logs and converts it once for that check).
+    /// </summary>
+    private static Rect2? NCardGlobalBounds(NCard card)
+    {
+        if (!card.Visible)
+        {
+            return null;
+        }
+
+        Vector2 size = NCard.defaultSize * card.Scale;
+        return new Rect2(card.GlobalPosition - size * 0.5f, size);
+    }
+
+    private static void CheckWithinViewportAndFrame(string panelName, string what, Rect2 rect, Vector2 viewport, Rect2? frame, List<string> failures)
+    {
+        if (rect.Position.X < -ViewportTolerancePx || rect.Position.Y < -ViewportTolerancePx
+            || rect.End.X > viewport.X + ViewportTolerancePx || rect.End.Y > viewport.Y + ViewportTolerancePx)
+        {
+            failures.Add($"{panelName}'s {what} isn't fully inside the viewport: {FormatRect(rect)}, viewport {viewport.X:0}x{viewport.Y:0}.");
+        }
+
+        if (frame is Rect2 frameRect && !frameRect.Grow(AnchorTolerancePx).Encloses(rect))
+        {
+            failures.Add($"{panelName}'s {what} isn't fully inside its own panel frame: {what} {FormatRect(rect)}, frame {FormatRect(frameRect)}.");
+        }
+    }
+
+    private static CouchButton? FindFocusedButton(Node node)
+    {
+        if (node is CouchButton { Visible: true } button && button.IsFocused)
+        {
+            return button;
+        }
+
+        foreach (Node child in node.GetChildren())
+        {
+            if (FindFocusedButton(child) is CouchButton found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private static string FormatRect(Rect2 rect) => $"({rect.Position.X:0}, {rect.Position.Y:0}, {rect.Size.X:0}x{rect.Size.Y:0})";

@@ -39,11 +39,15 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
     private const float PanelTop = 150f;
 
     /// <summary>
-    /// Scale for the inline "choose a card" sub-view (a card reward's own pick), not the row icons. Shrunk from the
-    /// panel's pre-column 0.4 so up to a few cards fit side by side in the narrower shared column
-    /// (<see cref="CouchPanel.ColumnWidth"/>); verified against a --review screenshot.
+    /// Scale floor/ceiling for the inline "choose a card" sub-view (a card reward's own pick), not the row icons.
+    /// <see cref="LayoutChoice"/> picks the largest scale in this range that fits every offered card across the
+    /// column's width in one row, instead of the old fixed 0.26 — a typical 3-4 card reward now reads clearly larger
+    /// (approved spec problem 4), while a reward with more cards on offer still falls back toward the floor rather
+    /// than overflowing the column.
     /// </summary>
-    private const float CardScale = 0.26f;
+    private const float MinChoiceCardScale = 0.26f;
+
+    private const float MaxChoiceCardScale = 0.5f;
 
     private static readonly System.Reflection.MethodInfo? SelectRewardForPlayerMethod =
         AccessTools.Method(typeof(RewardsSetSynchronizer), "SelectRewardForPlayer", new[] { typeof(Player), typeof(int) });
@@ -460,7 +464,7 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
         foreach (CardModel card in _shownChoiceCards)
         {
             NCard node = CouchCards.Create(card, this);
-            node.Scale = new Vector2(CardScale, CardScale);
+            node.Scale = new Vector2(MinChoiceCardScale, MinChoiceCardScale);
             _choiceCards.Add(node);
         }
 
@@ -526,15 +530,25 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
             shown.Add(row);
         }
 
-        float y = LayoutRowsScrolled(shown, ContentTop, ColumnMaxY, shownCursor);
-        FinishLayout(y, _busy ? "…" : $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} take · {Keys("O", "Y")} jump to Done");
+        string status = _busy ? "…" : $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} take · {Keys("O", "Y")} jump to Done";
+        float footer = MeasureFooterHeight(status);
+        float y = LayoutRowsScrolled(shown, ContentTop, RowsBudgetMaxY(ContentTop) - footer, shownCursor);
+        FinishLayout(y, status);
     }
 
     private void LayoutChoice(CouchTeammateChoice choice)
     {
         SetTitle($"{SeatLabel()} · Choose a card");
-        Vector2 cardSize = NCard.defaultSize * CardScale;
-        float spacing = cardSize.X + 10f;
+
+        // Fill the column's width: the largest scale in [MinChoiceCardScale, MaxChoiceCardScale] that still fits
+        // every offered card, side by side with a small gap, inside the panel.
+        int count = Math.Max(1, _choiceCards.Count);
+        float available = PanelWidth - 40f;
+        float fitScale = (available / count - 14f) / NCard.defaultSize.X;
+        float scale = Mathf.Clamp(fitScale, MinChoiceCardScale, MaxChoiceCardScale);
+        Vector2 cardSize = NCard.defaultSize * scale;
+
+        float spacing = cardSize.X + 14f;
         float rowWidth = spacing * Math.Max(0, _choiceCards.Count - 1);
         float firstCenterX = PanelWidth * 0.5f - rowWidth * 0.5f - 8f;
         float centerY = ContentTop + cardSize.Y * 0.5f + 8f;
@@ -542,7 +556,7 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
         {
             bool isCursor = i == _choiceCursor;
             NCard node = _choiceCards[i];
-            CouchCards.Glide(node, new Vector2(firstCenterX + i * spacing, centerY + (isCursor ? 10f : 0f)), CardScale * (isCursor ? 1.12f : 1f));
+            CouchCards.Glide(node, new Vector2(firstCenterX + i * spacing, centerY + (isCursor ? 10f : 0f)), scale * (isCursor ? 1.12f : 1f));
             node.ZIndex = isCursor ? 2 : 0;
             CouchCards.SetGlow(node, isCursor ? NCardHighlight.playableColor : null);
         }
@@ -552,8 +566,9 @@ internal sealed partial class CouchTeammateRewards : CouchPanel
             StyleRow(_choiceExtras[i], _choiceCursor == _choiceCards.Count + i, dimmed: false);
         }
 
+        string keys = $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} pick · {Keys("K", "B")} back";
         float y = LayoutRows(_choiceExtras, centerY + cardSize.Y * 0.5f + 26f);
-        FinishLayout(y, $"{Keys("J/L", "D-pad")} move · {Keys("I", "A")} pick · {Keys("K", "B")} back");
+        FinishLayout(y, keys);
     }
 
     private string SeatLabel()

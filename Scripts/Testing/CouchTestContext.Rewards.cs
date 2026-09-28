@@ -29,6 +29,16 @@ internal sealed partial class CouchTestContext
         return field ?? throw new CouchTestExpectationFailedException($"API drift: {what} not found (run dotnet test Tests/CouchSpire.Tests).");
     }
 
+    private static MethodInfo RequireMethod(MethodInfo? method, string what)
+    {
+        return method ?? throw new CouchTestExpectationFailedException($"API drift: {what} not found (run dotnet test Tests/CouchSpire.Tests).");
+    }
+
+    private static PropertyInfo RequireProperty(PropertyInfo? property, string what)
+    {
+        return property ?? throw new CouchTestExpectationFailedException($"API drift: {what} not found (run dotnet test Tests/CouchSpire.Tests).");
+    }
+
     public NRewardsScreen RewardsScreen()
     {
         ThrowIfCancelled();

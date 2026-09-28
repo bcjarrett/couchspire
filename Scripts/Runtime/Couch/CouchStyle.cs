@@ -307,6 +307,10 @@ internal sealed partial class CouchButton : Control
 
     public NSelectionReticle? Reticle { get; private set; }
 
+    /// <summary>True while this row is under the panel's cursor (set by <see cref="SetState"/>). Read by the test
+    /// harness's layout rule that the cursor row always stays visible on screen (docs/testing.md).</summary>
+    public bool IsFocused => _focused;
+
     /// <summary>Which of the game's buttons to look like; set before adding the row.</summary>
     public CouchButtonKind Kind { get; set; } = CouchButtonKind.Event;
 
