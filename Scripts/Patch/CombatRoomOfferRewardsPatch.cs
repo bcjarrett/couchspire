@@ -122,7 +122,7 @@ internal static class CombatRoomOfferRewardsPatch
                 CouchTeammateRewards.Open(rewardScreen, teammateSet);
             }
 
-            await rewardScreen.ToSignal(rewardScreen, NRewardsScreen.SignalName.Completed);
+            await CombatRewardMergeContext.WaitForRewardsScreenDoneAsync(rewardScreen);
         }
         finally
         {

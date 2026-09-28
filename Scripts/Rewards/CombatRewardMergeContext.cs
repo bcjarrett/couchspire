@@ -1,4 +1,6 @@
 using System.Runtime.CompilerServices;
+using Godot;
+using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Rooms;
 
 namespace LocalMultiControl.Scripts.Rewards;
@@ -32,6 +34,20 @@ internal static class CombatRewardMergeContext
             MergedRooms.Add(room, new MergeMarker());
             return true;
         }
+    }
+
+    /// <summary>
+    /// Completes when the rewards screen finishes normally, or when it leaves the tree without finishing (the run is
+    /// abandoned, or the room changes, with rewards still open). Waiting for <c>Completed</c> alone never returned in
+    /// that case, so the merge counter stayed up and gold/relic/potion sharing stayed off until the game restarted.
+    /// </summary>
+    internal static Task WaitForRewardsScreenDoneAsync(NRewardsScreen screen)
+    {
+        TaskCompletionSource done = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        uint oneShot = (uint)GodotObject.ConnectFlags.OneShot;
+        screen.Connect(NRewardsScreen.SignalName.Completed, Callable.From(() => done.TrySetResult()), oneShot);
+        screen.Connect(Node.SignalName.TreeExiting, Callable.From(() => done.TrySetResult()), oneShot);
+        return done.Task;
     }
 
     internal static void Enter()

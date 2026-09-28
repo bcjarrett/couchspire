@@ -98,7 +98,7 @@ internal static class RewardsSetPatch
             }
 
             NRewardsScreen rewardScreen = NRewardsScreen.ShowScreen(displaySet, isTerminal: true, displayPlayer.RunState);
-            await rewardScreen.ToSignal(rewardScreen, NRewardsScreen.SignalName.Completed);
+            await CombatRewardMergeContext.WaitForRewardsScreenDoneAsync(rewardScreen);
         }
         finally
         {

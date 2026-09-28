@@ -164,7 +164,18 @@ internal sealed partial class CouchTestContext
     /// <item>the overlay stack top and count (<see cref="NOverlayStack"/>) are unchanged across 2 consecutive engine frames.</item>
     /// </list>
     /// </summary>
-    public async Task Settle(TimeSpan? timeout = null)
+    public Task Settle(TimeSpan? timeout = null) => SettleCore(requireNoPendingChoice: true, "Settle()", timeout);
+
+    /// <summary>
+    /// Like <see cref="Settle"/> (queue-idle, stable overlay for 2 frames), but does not require
+    /// <see cref="CouchTeammateChoices.Pending"/> to be empty. Use this between navigation presses while
+    /// intentionally leaving a teammate choice open (e.g. moving the panel cursor before answering it) — that
+    /// choice is expected to still be pending, so waiting on <see cref="Settle"/>'s own "no pending choice" rule
+    /// there would time out by design instead of settling.
+    /// </summary>
+    public Task SettleDuringPendingChoice(TimeSpan? timeout = null) => SettleCore(requireNoPendingChoice: false, "SettleDuringPendingChoice()", timeout);
+
+    private async Task SettleCore(bool requireNoPendingChoice, string what, TimeSpan? timeout)
     {
         _cancellationToken.ThrowIfCancellationRequested();
 
@@ -181,7 +192,7 @@ internal sealed partial class CouchTestContext
 
             bool queueIdle = !RunManager.Instance.IsInProgress
                 || (RunManager.Instance.ActionQueueSet.IsEmpty && !RunManager.Instance.ActionExecutor.IsRunning);
-            bool noPendingChoice = CouchTeammateChoices.Pending.Count == 0;
+            bool noPendingChoice = !requireNoPendingChoice || CouchTeammateChoices.Pending.Count == 0;
 
             IOverlayScreen? top = NOverlayStack.Instance?.Peek();
             int count = NOverlayStack.Instance?.ScreenCount ?? 0;
@@ -198,7 +209,7 @@ internal sealed partial class CouchTestContext
             if (DateTime.UtcNow > deadline)
             {
                 throw new CouchTestExpectationFailedException(
-                    $"Settle() timed out: queueIdle={queueIdle}, noPendingChoice={noPendingChoice}, " +
+                    $"{what} timed out: queueIdle={queueIdle}, noPendingChoice={noPendingChoice}, " +
                     $"overlayStableFrames={stableFrames}, overlayTop={top?.GetType().Name ?? "none"}, overlayCount={count}.");
             }
         }

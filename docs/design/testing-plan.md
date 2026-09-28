@@ -306,15 +306,12 @@ Rules for every package:
 
 **Merged on `testing-harness`:** WP0-WP4, WP5a-e (`combat`, `choice`, `rewards`, `rest_site`, `shop`, `treasure`, `map`), WP6 (`docs/testing.md`, AGENTS.md), and WP7 (the fix plus the `gold_mirror` scenario).
 
-**Not yet run in the game:** `treasure`, `map` and `gold_mirror` were written without the game, so their node paths and timing are untested. For the first session:
-1. `./deploy.sh test all --bless`, then review the new baselines in git.
-2. Run each new scenario; `rest_site` also verifies the freeze fix 7a96451.
-3. Protection proofs:
-   - `shop`: disable the teammate-shop block.
-   - `treasure`: disable `PostfixTreasureOpened` and `TreasureRoomRelicSynchronizerBeginPatch`.
-   - `map`: disable the `MapSelectionSynchronizerPatch` postfix; expect a timeout.
-   - `gold_mirror`: temporarily restore the async-method decrement from before 06b185a.
-4. WP4's 20 px relic-bar shift proof, then `./deploy.sh test all --repeat 3`.
+**First in-game pass (2026-09-28):** 10 of 11 scenarios pass (`treasure` is red on a real mod error; see `TODO.md`
+A3). The `shop`, `map` and `gold_mirror` protection proofs fail as they should; `treasure`'s is inconclusive.
+`rest_site` verifies the freeze fix. The suite found and fixed the rewards-merge flag leak (3a21a7f).
+**Still to do:**
+- `all --repeat 2` stops in pass 2 on a `RestSiteSynchronizer.Dispose()` exception (TODO A3).
+- The proposed layout baselines (commit c945915) are pending the maintainer's contact-sheet review.
 
 **Known weak spot:** `treasure` checks only that P2's chest gold *rose*. P2's amount comes from P2's own seeded roll, and nothing exposes it the way P1's chest display does.
 

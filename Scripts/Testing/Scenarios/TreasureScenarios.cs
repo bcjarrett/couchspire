@@ -92,6 +92,16 @@ internal sealed class TreasureScenarios : CouchTestScenarioBase
         await context.P2PickTreasureRelic(teammatePanel, p2TargetRelic);
         await context.WaitUntil(() => synchronizer.GetPlayerVote(context.P2).voteReceived, "P2's relic vote to register");
 
+        // Voting is only half the story: TreasureRoomRelicSynchronizer.AwardRelics (run synchronously once the last
+        // vote comes in) just fires a RelicsAwarded event; NTreasureRoomRelicCollection.AnimateRelicAwards is what
+        // actually calls RelicCmd.Obtain per player, at the end of a real, wall-clock-timed "grab" animation
+        // (Cmd.Wait delays outside the action queue, so Settle()'s queue-idle check never sees it). Wait for the
+        // relic counts themselves instead of Settle(), or this reads the inventories before the animation grants
+        // anything (confirmed on a run: both relics were still un-awarded when Settle() alone said things were idle).
+        await context.WaitUntil(
+            () => context.P1.Relics.Count > p1RelicsBefore && context.P2.Relics.Count > p2RelicsBefore,
+            "both players' picked relics to be awarded (the grab animation to finish)");
+
         await context.Settle();
         await context.Checkpoint("relics-picked");
 

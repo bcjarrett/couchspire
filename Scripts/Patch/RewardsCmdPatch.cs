@@ -110,6 +110,6 @@ internal static class RewardsCmdPatch
 
         bool isTerminal = true; // CombatRoom's reward screen is always terminal
         NRewardsScreen rewardScreen = NRewardsScreen.ShowScreen(displaySet, isTerminal, displayPlayer.RunState);
-        await rewardScreen.ToSignal(rewardScreen, NRewardsScreen.SignalName.Completed);
+        await CombatRewardMergeContext.WaitForRewardsScreenDoneAsync(rewardScreen);
     }
 }

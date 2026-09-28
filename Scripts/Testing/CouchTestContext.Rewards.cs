@@ -147,8 +147,11 @@ internal sealed partial class CouchTestContext
         CardModel picked = pendingChoice.Options[optionIndex];
         for (int i = 0; i < optionIndex; i++)
         {
+            // SettleDuringPendingChoice, not Settle: the choice we're navigating is still (correctly) pending until
+            // Accept below, and Settle() requires CouchTeammateChoices.Pending to be empty, so it would time out on
+            // every navigation press whenever optionIndex > 0.
             await P2Press(CouchHudCommand.Right);
-            await Settle();
+            await SettleDuringPendingChoice();
         }
 
         await P2Press(CouchHudCommand.Accept);

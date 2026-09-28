@@ -135,9 +135,12 @@ internal sealed class RestSiteScenarios : CouchTestScenarioBase
             }
         }
 
-        // P2 is left with Heal and Mend still on offer; skip them to finish P2's rest site.
-        await context.P2SkipRemainingRestSiteOptions(restSitePanel);
-        context.Expect(!CouchTeammateRestSite.IsActive, "Expected P2's rest site panel to close once P2 skips the rest.");
+        // A rest site allows exactly one action per visit (RestSiteSynchronizer.ChooseOption: choosing any option
+        // that succeeds clears every remaining option and completes the rest site, gated by
+        // Hook.ShouldDisableRemainingRestSiteOptions, which is on for a normal rest site). So once Smith resolves
+        // above, P2's rest site is already done — Heal and Mend were never still on offer, and P2's panel has
+        // already closed itself; there's nothing left to skip.
+        context.Expect(!CouchTeammateRestSite.IsActive, "Expected P2's rest site panel to already be closed: Smith completes the whole rest site (only one action per visit), it isn't left with Heal/Mend still on offer.");
 
         // Now P1's Proceed opens the map.
         await context.ClickAsync(proceedButton);

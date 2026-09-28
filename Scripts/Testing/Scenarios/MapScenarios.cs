@@ -45,14 +45,31 @@ internal sealed class MapScenarios : CouchTestScenarioBase
         await context.Checkpoint("map-open");
 
         int floorBefore = runState.TotalFloor;
-        NMapPoint targetPoint = context.LeftmostTravelableMapPoint(mapScreen);
-        MapCoord targetCoord = targetPoint.Point.coord;
+        MapCoord targetCoord = context.LeftmostTravelableMapPoint(mapScreen).Point.coord;
 
-        // P1 votes through the real map UI.
-        await context.ClickAsync(targetPoint);
-        await context.WaitUntil(
-            () => RunManager.Instance.MapSelectionSynchronizer.GetVote(context.P1)?.coord == targetCoord,
-            "P1's map vote to register");
+        // P1 votes through the real map UI. Retried: seen flaky on a --repeat run (the map screen can still be
+        // settling its own reveal animation right after the "map-open" checkpoint, which only waits for the mod's
+        // panels to stabilize, not the game's own NMapScreen; a click during that can miss). Re-fetch the point
+        // fresh each attempt rather than reusing the node, in case the first click's target got recreated.
+        int attempt = 0;
+        while (true)
+        {
+            attempt++;
+            NMapPoint targetPoint = context.LeftmostTravelableMapPoint(mapScreen);
+            await context.ClickAsync(targetPoint);
+            try
+            {
+                await context.WaitUntil(
+                    () => RunManager.Instance.MapSelectionSynchronizer.GetVote(context.P1)?.coord == targetCoord,
+                    "P1's map vote to register",
+                    TimeSpan.FromSeconds(5));
+                break;
+            }
+            catch (CouchTestExpectationFailedException) when (attempt < 3)
+            {
+                CouchTestLog.Info($"P1's map click didn't register a vote on attempt {attempt}; retrying.");
+            }
+        }
 
         // The mod auto-votes P2 to the same destination and moves as soon as both are in
         // (MapSelectionSynchronizerPatch); P2 never gets, or needs, a separate real vote for this.

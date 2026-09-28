@@ -8,6 +8,7 @@ using LocalMultiControl.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.AutoSlay;
 using MegaCrit.Sts2.Core.AutoSlay.Helpers;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Relics;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
@@ -265,13 +266,18 @@ internal static class CouchTestLayout
     // Rect gathering
     // ---------------------------------------------------------------------------------------------------------
 
-    /// <summary>Waits until every currently-visible mod root's <see cref="ContentBounds"/> stops moving across
+    /// <summary>Waits until every currently-visible mod root's <see cref="ContentBounds"/>, and every named anchor
+    /// from <see cref="CollectAnchors"/> (e.g. a combat room's own P1EndTurnButton, which can still be sliding into
+    /// place from its own entry animation independent of any mod panel), stops moving across
     /// <see cref="StableFrameCount"/> consecutive frames (see the class doc's determinism finding), or gives up after
-    /// <see cref="StabilizeTimeout"/> and measures whatever is there (logged, never silently swallowed).</summary>
+    /// <see cref="StabilizeTimeout"/> and measures whatever is there (logged, never silently swallowed). Confirmed
+    /// on a run: without also tracking anchors here, a --repeat pass could measure P1EndTurnButton mid-slide and
+    /// report a spurious snapshot mismatch against a pass that measured it after settling.</summary>
     private static async Task<Dictionary<string, Control>> WaitForStableRootsAsync(SceneTree tree, CancellationToken token)
     {
         Dictionary<string, Control> current = FindVisibleRoots(tree.Root);
         List<Rect2> previous = ContentRectsOf(current);
+        List<Rect2> previousAnchors = CollectAnchors().Values.ToList();
         int stableFrames = 0;
         DateTime deadline = DateTime.UtcNow + StabilizeTimeout;
 
@@ -283,9 +289,11 @@ internal static class CouchTestLayout
 
             current = FindVisibleRoots(tree.Root);
             List<Rect2> rects = ContentRectsOf(current);
-            bool stable = RectsApproximatelyEqual(previous, rects);
+            List<Rect2> anchors = CollectAnchors().Values.ToList();
+            bool stable = RectsApproximatelyEqual(previous, rects) && RectsApproximatelyEqual(previousAnchors, anchors);
             stableFrames = stable ? stableFrames + 1 : 0;
             previous = rects;
+            previousAnchors = anchors;
 
             if (stableFrames >= StableFrameCount)
             {
@@ -369,10 +377,30 @@ internal static class CouchTestLayout
             return null;
         }
 
+        // NCard is a special case, confirmed against a real run (rest_site's Smith upgrade choice, by
+        // pixel-scanning a --review screenshot and temporary per-child diagnostic logging, since removed): neither
+        // NCard's own Control.Size nor its children's is the card's visual footprint (both are a much larger
+        // authoring canvas, room for glow/VFX bleed) — recursing into them, as the generic case below does, let a
+        // child's raw Size dominate the union regardless of this fix. NCard.GetCurrentSize() ("takes scale into
+        // account") documents the true footprint as NCard.defaultSize * Scale, so measure exactly that (through the
+        // node's global transform, which folds in Scale and any ancestor transform) and stop there. Before this,
+        // CouchTeammateChoicePanel's cards measured at roughly 2.4x their actual on-screen width and in the wrong
+        // place, which made a windowed row of Smith-choice cards look like it overflowed the viewport and
+        // overlapped CouchTeammateRelicBar when neither ever happens on screen.
+        if (node is NCard card)
+        {
+            return card.Visible ? card.GetGlobalTransform() * new Rect2(Vector2.Zero, NCard.defaultSize) : null;
+        }
+
         Rect2? bounds = null;
         if (node is Control { Visible: true } control && control.Size.X > 0.5f && control.Size.Y > 0.5f)
         {
-            bounds = control.GetGlobalRect();
+            // Control.GetGlobalRect() returns the node's unscaled logical Size, not its actual drawn footprint.
+            // CouchCards.Glide shrinks teammate-panel cards via node.Scale (e.g. CouchTeammateChoicePanel's windowed
+            // options), so a plain GetGlobalRect() here overstates their real on-screen bounds and can report a
+            // panel as off-screen or overlapping a neighbor it never actually touches. Transform the local rect by
+            // the node's global transform (position + rotation + scale) instead, matching what's actually drawn.
+            bounds = control.GetGlobalTransform() * new Rect2(Vector2.Zero, control.Size);
         }
 
         foreach (Node child in node.GetChildren())

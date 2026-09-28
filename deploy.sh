@@ -36,6 +36,12 @@ build() {
 
 # Copy next to the destination, then rename over it. Overwriting a loaded DLL in place corrupts a running game
 # (the runtime memory-maps assemblies; methods compiled afterwards read garbage: "Bad IL range").
+# True if the Mac game is running. Matches the executable path (ps comm), not the command line: pgrep -f would also
+# match any shell whose command merely mentions the game's path.
+mac_game_running() {
+  ps -axo comm= | grep -q "/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2$"
+}
+
 install_atomic() {
   local src="$1" dir="$2" name
   name="$(basename "$1")"
@@ -201,7 +207,7 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
     mac)
       build
       install_mac user
-      if pgrep -f "SlayTheSpire2.app/Contents/MacOS" >/dev/null; then
+      if mac_game_running; then
         echo "==> The game is running: it keeps the old build until you quit and relaunch it."
       fi
       ;;
@@ -283,7 +289,7 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       acquire_test_lock "$lock_dir"
 
       # 2. Refuse if the game is already running.
-      if pgrep -f "SlayTheSpire2.app/Contents/MacOS" >/dev/null 2>&1; then
+      if mac_game_running; then
         echo "The game is running. Quit it first: only one test run may use the game install and default/1/ at a time." >&2
         exit 3
       fi

@@ -15,6 +15,21 @@ retried with no limit while the net service reported loading, each retry in the 
 (the log fills with `Object was deleted while awaiting a callback.`). Fixed in 7a96451, but only verified from the log, not
 yet in game. If the reporter's log shows that line, this was it.
 
+### A3. Found by the in-game test suite (2026-09-28)
+- **Couch treasure room always logs `[ERROR] Tried to add hand for player 2 twice!`**
+  (`NHandImageCollection.OnInputStateAdded`), on room entry, every time. Something fires `InputSynchronizer.StateAdded`
+  for P2 twice. It's harmless there, but it's a duplicate registration. The `treasure` scenario stays red on it until
+  it's fixed; don't allow-list it.
+- **`RestSiteSynchronizer.Dispose()` throws "A task may only be disposed if it is in a completion state"** while
+  abandoning to the menu in the second pass of `./deploy.sh test all --repeat 2`. It doesn't happen with
+  `rest_site --repeat 3` alone. It's in game code, but could be triggered by couch state left over from an earlier
+  scenario.
+- The `treasure` protection proof is inconclusive: picks came out the same with `TreasureRoomRelicSynchronizerBeginPatch`
+  disabled. Find a repro where the base game's auto-vote-on-behalf actually changes P2's pick.
+- Layout jitter: `CouchTeammateRelicBar` moved 5 px between runs at `combat/new-player-round`, and
+  `CouchTeammateRestSite`'s height varies by 16 px (453 vs 469). Some `--review` checkpoint screenshots come out blank
+  (`start/run-started`, one `layout/map`).
+
 ### A2. Follow-ups from the rest-site freeze (2026-09-27)
 - The loopback `IsGameLoading` flag can stay true for a long time. Test runs log `loading state updated: True` with no
   matching `False` (`NetLoadingHandle` is ref-counted). Find out whether that happens in normal play and what holds it.
