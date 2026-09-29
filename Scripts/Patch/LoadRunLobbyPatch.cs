@@ -26,72 +26,14 @@ internal static class LoadRunLobbyPatch
             return;
         }
 
-        // v0.111.0: LoadRunLobby no longer keeps ConnectedPlayerIds/_readyPlayers sets;
-        // membership and readiness both live in the public Players list of
-        // LoadRunLobbyPlayer structs, so we mirror the host's ready state onto
-        // every other local character there.
-        List<LoadRunLobbyPlayer> players = __instance.Players;
-        ulong localHostId = __instance.NetService.NetId;
-        bool isModded = __instance.NetService.LocalVersion.IsModded();
-
-        foreach (ulong playerId in localPlayerIdsInRun)
-        {
-            if (playerId == localHostId)
-            {
-                continue;
-            }
-
-            int index = players.FindIndex((player) => player.id == playerId);
-            if (index < 0)
-            {
-                LoadRunLobbyPlayer newPlayer = new LoadRunLobbyPlayer
-                {
-                    id = playerId,
-                    isModded = isModded,
-                    isReady = ready,
-                };
-                players.Add(newPlayer);
-                __instance.LobbyListener.PlayerConnected(newPlayer);
-                if (ready)
-                {
-                    __instance.LobbyListener.PlayerReadyChanged(playerId);
-                }
-
-                continue;
-            }
-
-            LoadRunLobbyPlayer existing = players[index];
-            if (existing.isReady == ready)
-            {
-                continue;
-            }
-
-            existing.isReady = ready;
-            players[index] = existing;
-            __instance.LobbyListener.PlayerReadyChanged(playerId);
-        }
-
+        // Other local co-op characters never go through the lobby's own join flow (they share this
+        // process with the host), so they never appear in ConnectedPlayerIds. BeginRunForAllPlayersIfAllReady's
+        // readiness gate only checks ConnectedPlayerIds, which contains just the host, and
+        // NMultiplayerLoadGameScreenPatch already skips the "not everyone is here" popup - so the run
+        // begins as soon as the host readies, with no mirroring needed here.
         if (ready)
         {
-            InvokeBeginRunIfAllPlayersReady(__instance);
             ModLog.Info($"Local co-op save load auto-ready: players={string.Join(",", localPlayerIdsInRun)}");
         }
-    }
-
-    private static void InvokeBeginRunIfAllPlayersReady(LoadRunLobby lobby)
-    {
-        if (AccessTools.Method(typeof(LoadRunLobby), "BeginRunForAllPlayersIfAllReady") is { } beginRunNew)
-        {
-            beginRunNew.Invoke(lobby, new object[] { });
-            return;
-        }
-
-        if (AccessTools.Method(typeof(LoadRunLobby), "BeginRunIfAllPlayersReady") is { } beginRunLegacy)
-        {
-            beginRunLegacy.Invoke(lobby, new object[] { });
-            return;
-        }
-
-        ModLog.Warn("Save-load auto-start failed: BeginRunIfAllPlayersReady/BeginRunForAllPlayersIfAllReady not found.");
     }
 }

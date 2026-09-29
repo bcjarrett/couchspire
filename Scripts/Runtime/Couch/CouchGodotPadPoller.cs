@@ -6,16 +6,18 @@ using MegaCrit.Sts2.Core.ControllerInput;
 namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
-/// Replaces <see cref="GodotControllerInputStrategy.ProcessInput"/> during couch runs. The game turns stick and
-/// trigger axes into button actions with <c>Input.IsActionJustPressed</c>, which merges every joypad into one.
+/// Replaces <see cref="GodotControllerInputStrategy.ProcessInput"/> during couch runs. The game turns stick
+/// directions into d-pad button actions with <c>Input.IsActionJustPressed</c>, which merges every joypad into one.
 /// This reads each joypad's axes separately, routes each transition through <see cref="CouchInputRouter"/>, and
 /// emits only what passes, tagged with <see cref="CouchEventDevice.GodotAnalogBase"/> + device id.
 /// Joypad buttons don't need this: their events already carry the device and are routed by the input gate.
+/// v0.107.1 dropped the beta's <c>_analogToDigitalInput</c> (which also covered triggers, one analog action to
+/// several digital ones); the game now only remaps stick directions, one-to-one, via <c>_megaInputMap</c>.
 /// </summary>
 internal static class CouchGodotPadPoller
 {
-    private static readonly AccessTools.FieldRef<GodotControllerInputStrategy, Dictionary<StringName, StringName[]>> AnalogToDigitalRef =
-        AccessTools.FieldRefAccess<GodotControllerInputStrategy, Dictionary<StringName, StringName[]>>("_analogToDigitalInput");
+    private static readonly AccessTools.FieldRef<GodotControllerInputStrategy, Dictionary<StringName, StringName>> AnalogToDigitalRef =
+        AccessTools.FieldRefAccess<GodotControllerInputStrategy, Dictionary<StringName, StringName>>("_megaInputMap");
 
     private static readonly MethodInfo? UpdateControllerConfigMethod =
         AccessTools.Method(typeof(GodotControllerInputStrategy), "UpdateControllerConfig");
@@ -55,11 +57,11 @@ internal static class CouchGodotPadPoller
             }
         }
 
-        Dictionary<StringName, StringName[]> analogToDigital = AnalogToDigitalRef(strategy);
+        Dictionary<StringName, StringName> analogToDigital = AnalogToDigitalRef(strategy);
         foreach (int device in Input.GetConnectedJoypads())
         {
             HashSet<StringName> down = Down(device);
-            foreach (KeyValuePair<StringName, StringName[]> mapping in analogToDigital)
+            foreach (KeyValuePair<StringName, StringName> mapping in analogToDigital)
             {
                 bool isDown = IsPastDeadzone(device, mapping.Key);
                 if (isDown == down.Contains(mapping.Key))
@@ -83,7 +85,7 @@ internal static class CouchGodotPadPoller
         return false;
     }
 
-    private static void Emit(int device, StringName rawAction, StringName[] targets, bool pressed)
+    private static void Emit(int device, StringName rawAction, StringName target, bool pressed)
     {
         bool isTrigger = rawAction.ToString().Contains("trigger", StringComparison.Ordinal);
         CouchInputKind kind = !pressed
@@ -94,10 +96,7 @@ internal static class CouchGodotPadPoller
             return;
         }
 
-        foreach (StringName target in targets)
-        {
-            Input.ParseInputEvent(new InputEventAction { Action = target, Pressed = pressed, Device = CouchEventDevice.GodotAnalogBase + device });
-        }
+        Input.ParseInputEvent(new InputEventAction { Action = target, Pressed = pressed, Device = CouchEventDevice.GodotAnalogBase + device });
     }
 
     private static bool IsPastDeadzone(int device, StringName rawAction)

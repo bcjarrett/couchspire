@@ -30,14 +30,16 @@ internal static class CouchSteamPoller
     private static readonly AccessTools.FieldRef<SteamControllerInputStrategy, Dictionary<StringName, InputDigitalActionHandle_t>> DigitalHandleCacheRef =
         AccessTools.FieldRefAccess<SteamControllerInputStrategy, Dictionary<StringName, InputDigitalActionHandle_t>>("_digitalActionHandleCache");
 
-    private static readonly AccessTools.FieldRef<SteamControllerInputStrategy, bool> AttemptedHandleCacheRebuildRef =
-        AccessTools.FieldRefAccess<SteamControllerInputStrategy, bool>("_attemptedHandleCacheRebuild");
-
     private static readonly AccessTools.FieldRef<SteamControllerInputStrategy, InputAnalogActionHandle_t> JoystickActionHandleRef =
         AccessTools.FieldRefAccess<SteamControllerInputStrategy, InputAnalogActionHandle_t>("_joystickActionHandle");
 
     private static readonly AccessTools.FieldRef<SteamControllerInputStrategy, Vector2> LStickPositionRef =
-        AccessTools.FieldRefAccess<SteamControllerInputStrategy, Vector2>("_lStickPosition");
+        AccessTools.FieldRefAccess<SteamControllerInputStrategy, Vector2>("_joystickPosition");
+
+    /// <summary>Mirrors the one-shot rebuild-if-empty guard the beta strategy kept as its own
+    /// <c>_attemptedHandleCacheRebuild</c> field; v0.107.1 dropped that field (it now only rebuilds the map on an
+    /// input-type change), so this poller tracks the same "have we tried it yet" guard itself.</summary>
+    private static bool _attemptedHandleCacheRebuild;
 
     private static readonly AccessTools.FieldRef<SteamControllerInputStrategy, List<string>> PressedInputsRef =
         AccessTools.FieldRefAccess<SteamControllerInputStrategy, List<string>>("_pressedInputs");
@@ -242,9 +244,9 @@ internal static class CouchSteamPoller
             return false;
         }
 
-        if (handleCache.Count == 0 && !AttemptedHandleCacheRebuildRef(strategy))
+        if (handleCache.Count == 0 && !_attemptedHandleCacheRebuild)
         {
-            AttemptedHandleCacheRebuildRef(strategy) = true;
+            _attemptedHandleCacheRebuild = true;
             UpdateInputMapMethod?.Invoke(strategy, null);
         }
 

@@ -145,7 +145,7 @@ internal static class CouchRemotePlay
             return false;
         }
 
-        if (!owner.CanUseOrRemovePotions)
+        if (!owner.CanRemovePotions)
         {
             reason = "potions are locked right now";
             return false;
@@ -245,7 +245,7 @@ internal static class CouchRemotePlay
             return false;
         }
 
-        if (!teammate.CanUseOrRemovePotions)
+        if (!teammate.CanRemovePotions)
         {
             reason = "potions are locked right now";
             return false;

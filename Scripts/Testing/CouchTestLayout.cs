@@ -212,11 +212,12 @@ internal static class CouchTestLayout
                 () => tree.Root.GetVisibleRect().Size == expected,
                 token,
                 TimeSpan.FromSeconds(10),
-                () => $"Viewport did not settle to {pass.ExpectedViewport} for aspect {pass.Label} after ApplyDisplaySettings (got {tree.Root.GetVisibleRect().Size}).");
+                $"Viewport did not settle to {pass.ExpectedViewport} for aspect {pass.Label} after ApplyDisplaySettings.");
         }
         catch (AutoSlayTimeoutException ex)
         {
-            throw new CouchTestExpectationFailedException(ex.Message);
+            throw new CouchTestExpectationFailedException(
+                $"{ex.Message} (got {tree.Root.GetVisibleRect().Size}).");
         }
 
         CouchTestLog.Info($"Display pinned: aspect={pass.Label}, window={pass.WindowSize}, viewport={tree.Root.GetVisibleRect().Size}.");

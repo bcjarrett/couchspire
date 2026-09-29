@@ -1,4 +1,3 @@
-using System.Reflection;
 using HarmonyLib;
 using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Combat;
@@ -10,22 +9,21 @@ namespace CouchSpire.Scripts.Patch;
 /// When one local character readies for the enemy turn, mirror that readiness onto every other local character so
 /// the game's own all-players-ready check passes.
 ///
-/// v0.111.0: CombatManager moved its per-combat ready sets into an internal <c>CombatTurnState</c> object
-/// (<c>_turnState</c>) guarded by <c>ReadyLock</c>, and the player→enemy transition is now driven by a
-/// <c>BeginEnemyTurnSignalSource</c> TaskCompletionSource awaited by the turn loop. Because the type is internal,
-/// everything below goes through reflection. We no longer invoke <c>AfterAllPlayersReadyToBeginEnemyTurn</c> directly
-/// — under the new turn loop that would run the transition twice; completing the signal is the correct (idempotent) way.
+/// v0.107.1's <c>CombatManager</c> keeps <c>_playersReadyToBeginEnemyTurn</c> (a <c>HashSet&lt;Player&gt;</c>) and
+/// <c>_playerReadyLock</c> directly as its own fields and calls <c>AfterAllPlayersReadyToBeginEnemyTurn</c> itself,
+/// synchronously, once every player is in the set — no separate <c>CombatTurnState</c>/signal-source indirection
+/// (that only exists in the v0.111.0 beta this mod previously targeted). So the prefix only needs to add the other
+/// local players to that set before the original method's own count check runs; the original then drives the
+/// transition itself, exactly as it would for a real second player.
 /// </summary>
 [HarmonyPatch(typeof(CombatManager), nameof(CombatManager.SetReadyToBeginEnemyTurn))]
 internal static class CombatManagerReadyEnemyTurnPatch
 {
-    private static readonly FieldInfo? TurnStateField = AccessTools.Field(typeof(CombatManager), "_turnState");
-    private static PropertyInfo? _readyLockProperty;
-    private static PropertyInfo? _readySetProperty;
-    private static PropertyInfo? _signalSourceProperty;
-    private static PropertyInfo? _isInProgressProperty;
-    private static bool _membersResolved;
-    private static bool _missingLogged;
+    private static readonly AccessTools.FieldRef<CombatManager, HashSet<Player>> ReadySetRef =
+        AccessTools.FieldRefAccess<CombatManager, HashSet<Player>>("_playersReadyToBeginEnemyTurn");
+
+    private static readonly AccessTools.FieldRef<CombatManager, System.Threading.Lock> ReadyLockRef =
+        AccessTools.FieldRefAccess<CombatManager, System.Threading.Lock>("_playerReadyLock");
 
     [HarmonyPrefix]
     private static void Prefix(CombatManager __instance, Player player)
@@ -41,14 +39,11 @@ internal static class CombatManagerReadyEnemyTurnPatch
             return;
         }
 
-        object? turnState = GetTurnState(__instance, out HashSet<Player>? readySet, out Lock? readyLock);
-        if (turnState == null || readySet == null)
-        {
-            return;
-        }
+        HashSet<Player> readySet = ReadySetRef(__instance);
+        System.Threading.Lock readyLock = ReadyLockRef(__instance);
 
         List<Player> pendingPlayers;
-        using (EnterScope(readyLock))
+        using (readyLock.EnterScope())
         {
             pendingPlayers = state.Players
                 .Where((candidate) => candidate.NetId != player.NetId)
@@ -64,104 +59,6 @@ internal static class CombatManagerReadyEnemyTurnPatch
         {
             ModLog.Info(
                 $"Local co-op auto-filled enemy-turn ready state: trigger={player.NetId}, mirrored={string.Join(",", pendingPlayers.Select((candidate) => candidate.NetId))}");
-        }
-    }
-
-    [HarmonyPostfix]
-    private static void Postfix(CombatManager __instance, Func<Task>? actionDuringEnemyTurn)
-    {
-        if (!LocalSelfCoopContext.IsEnabled)
-        {
-            return;
-        }
-
-        CombatState? state = __instance.DebugOnlyGetState();
-        if (state == null || state.CurrentSide != CombatSide.Player || __instance.EndingPlayerTurnPhaseTwo)
-        {
-            return;
-        }
-
-        object? turnState = GetTurnState(__instance, out HashSet<Player>? readySet, out Lock? readyLock);
-        if (turnState == null || readySet == null)
-        {
-            return;
-        }
-
-        TaskCompletionSource<Func<Task>?>? signalSource;
-        bool allReady;
-        using (EnterScope(readyLock))
-        {
-            allReady = readySet.Count >= state.Players.Count;
-            signalSource = _signalSourceProperty?.GetValue(turnState) as TaskCompletionSource<Func<Task>?>;
-        }
-
-        // The game already completed the signal on the normal path; TrySetResult is a no-op then.
-        if (allReady && signalSource != null && signalSource.TrySetResult(actionDuringEnemyTurn))
-        {
-            ModLog.Info("Detected that the enemy turn is not progressing; triggering a local fallback to advance it.");
-        }
-    }
-
-    private static object? GetTurnState(CombatManager combatManager, out HashSet<Player>? readySet, out Lock? readyLock)
-    {
-        readySet = null;
-        readyLock = null;
-
-        object? turnState = TurnStateField?.GetValue(combatManager);
-        if (turnState == null)
-        {
-            return null;
-        }
-
-        if (!_membersResolved)
-        {
-            Type turnStateType = turnState.GetType();
-            _readyLockProperty = AccessTools.Property(turnStateType, "ReadyLock");
-            _readySetProperty = AccessTools.Property(turnStateType, "PlayersReadyToBeginEnemyTurn");
-            _signalSourceProperty = AccessTools.Property(turnStateType, "BeginEnemyTurnSignalSource");
-            _isInProgressProperty = AccessTools.Property(turnStateType, "IsInProgress");
-            _membersResolved = true;
-        }
-
-        if (_readySetProperty == null || _signalSourceProperty == null)
-        {
-            if (!_missingLogged)
-            {
-                _missingLogged = true;
-                ModLog.Warn("CombatTurnState members not found (PlayersReadyToBeginEnemyTurn/BeginEnemyTurnSignalSource); enemy-turn auto-ready disabled.");
-            }
-
-            return null;
-        }
-
-        if (_isInProgressProperty?.GetValue(turnState) is false)
-        {
-            return null;
-        }
-
-        readySet = _readySetProperty.GetValue(turnState) as HashSet<Player>;
-        readyLock = _readyLockProperty?.GetValue(turnState) as Lock;
-        return turnState;
-    }
-
-    private static IDisposable EnterScope(Lock? readyLock)
-    {
-        return new LockHolder(readyLock);
-    }
-
-    private sealed class LockHolder : IDisposable
-    {
-        private readonly Lock? _lock;
-
-        internal LockHolder(Lock? readyLock)
-        {
-            _lock = readyLock;
-            _lock?.Enter();
-        }
-
-        public void Dispose()
-        {
-            _lock?.Exit();
         }
     }
 }

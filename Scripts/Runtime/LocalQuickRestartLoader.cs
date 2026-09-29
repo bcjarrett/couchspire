@@ -51,7 +51,7 @@ internal static class LocalQuickRestartLoader
             NAudioManager.Instance?.StopMusic();
 
             NGame game = NGame.Instance ?? throw new InvalidOperationException("NGame.Instance is null.");
-            game.RemoteCursorContainer.Initialize(lobby.InputSynchronizer, lobby.PlayerIds);
+            game.RemoteCursorContainer.Initialize(lobby.InputSynchronizer, lobby.ConnectedPlayerIds);
             game.ReactionContainer.InitializeNetworking(netService);
 
             SerializablePlayer localPlayer = saveData.Players.First((player) => player.NetId == primaryPlayerId);
@@ -85,7 +85,7 @@ internal static class LocalQuickRestartLoader
     {
         internal static readonly NoopLoadRunLobbyListener Instance = new NoopLoadRunLobbyListener();
 
-        public void PlayerConnected(LoadRunLobbyPlayer player)
+        public void PlayerConnected(ulong playerId)
         {
         }
 

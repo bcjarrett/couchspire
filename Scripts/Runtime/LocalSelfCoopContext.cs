@@ -243,7 +243,7 @@ internal static class LocalSelfCoopContext
         int index = lobby.Players.FindIndex((player) => player.id == _localPlayerIds[1]);
         if (index >= 0 && !lobby.Players[index].isReady)
         {
-            StartRunLobbyPlayer lobbyPlayer = lobby.Players[index];
+            LobbyPlayer lobbyPlayer = lobby.Players[index];
             lobbyPlayer.isReady = true;
             lobby.Players[index] = lobbyPlayer;
             characterSelectScreen.PlayerChanged(lobbyPlayer, false);
@@ -275,7 +275,7 @@ internal static class LocalSelfCoopContext
         bool changed = false;
         for (int i = 0; i < lobby.Players.Count; i++)
         {
-            StartRunLobbyPlayer player = lobby.Players[i];
+            LobbyPlayer player = lobby.Players[i];
             if (player.maxMultiplayerAscensionUnlocked >= MaxLocalAscensionLevel)
             {
                 continue;
@@ -351,7 +351,7 @@ internal static class LocalSelfCoopContext
                 return;
             }
 
-            StartRunLobbyPlayer localPlayer = lobby.Players[localPlayerIndex];
+            LobbyPlayer localPlayer = lobby.Players[localPlayerIndex];
             if (AccessTools.Field(typeof(NCharacterSelectScreen), "_charButtonContainer")?.GetValue(ActiveCharacterSelectScreen)
                 is not Control charButtonContainer)
             {
@@ -362,7 +362,7 @@ internal static class LocalSelfCoopContext
             NCharacterSelectButton? selectedButton = null;
             foreach (NCharacterSelectButton button in buttons)
             {
-                foreach (StartRunLobbyPlayer player in lobby.Players)
+                foreach (LobbyPlayer player in lobby.Players)
                 {
                     button.OnRemotePlayerDeselected(player.id);
                 }
@@ -375,7 +375,7 @@ internal static class LocalSelfCoopContext
                 }
             }
 
-            foreach (StartRunLobbyPlayer player in lobby.Players.Where((player) => player.id != localPlayer.id))
+            foreach (LobbyPlayer player in lobby.Players.Where((player) => player.id != localPlayer.id))
             {
                 buttons.FirstOrDefault((button) => button.Character == player.character)?.OnRemotePlayerSelected(player.id);
             }

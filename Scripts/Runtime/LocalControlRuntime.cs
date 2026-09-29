@@ -975,7 +975,7 @@ internal static class LocalControlRuntime
 
             if (targetEvent.LayoutType == EventLayoutType.Combat && targetEvent.Node == null)
             {
-                synchronizer.GenerateInternalCombatStateIfNecessary(targetEvent);
+                targetEvent.GenerateInternalCombatState(runState);
             }
 
             bool isPreFinished = runState.CurrentRoom is EventRoom currentEventRoom && currentEventRoom.IsPreFinished;
