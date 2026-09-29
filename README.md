@@ -49,6 +49,7 @@ cp -r /tmp/sts2-src/MegaCrit/Sts2/. src/
 - [TODO](TODO.md): known issues
 - [docs/architecture.md](docs/architecture.md): how the mod works internally
 - [docs/console-commands.md](docs/console-commands.md): dev-console commands for testing
+- [docs/testing.md](docs/testing.md): running and writing automated tests (patch-target check, in-game scenarios)
 - [docs/design/](docs/design/): design documents
 
 ## License

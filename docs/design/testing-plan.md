@@ -1,6 +1,6 @@
 # Automated testing plan
 
-Status: **in progress.** How to run and write tests: [docs/testing.md](../testing.md). Progress and corrections to this plan: §8.2. The game facts below were checked against decompiled game source v0.111.0 (`src/`).
+Status: **done.** How to run and write tests: [docs/testing.md](../testing.md). Progress and corrections to this plan: §8.2. The game facts below were checked against decompiled game source v0.111.0 (`src/`).
 
 ## 1. Why
 

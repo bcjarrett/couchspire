@@ -80,6 +80,7 @@ Output goes to `test-results/<UTC timestamp>/` (gitignored):
 | `treasure` | P1 opens the chest and picks by click, P2 through their panel; each gets exactly their own relic and chest gold |
 | `map` | P1 clicks the leftmost reachable node; the mod fills in P2's vote; the floor rises by 1 and a room is entered |
 | `gold_mirror` | In the Crystal Sphere event, a test-only `goldmirrorflow` command obtains a relic then gains gold in one flow; P2 must get the mirrored gold (guards 06b185a) |
+| `simultaneous_smith` | P1 and P2 smith at the same time — P1 through the real full-screen upgrade grid, P2 through their column panel — each picks only their own card, and P2's panel never overlaps P1's grid or its confirm/cancel buttons |
 
 ## Writing a scenario
 
