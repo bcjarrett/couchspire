@@ -4,7 +4,7 @@ Rules for automated coding agents (and humans) working in this repository. Goal:
 
 ## 1. Scope & hard constraints
 
-- Modify only mod code and mod metadata: `Scripts/`, `Tests/`, `*.csproj`, `*.json`, `*.cfg.example`, `deploy.sh`, docs.
+- Modify only mod code and mod metadata: `Scripts/`, `Tests/`, `*.csproj`, `*.json`, `*.cfg.example`, `deploy.sh`, `Makefile`, `tools/`, `.github/`, docs.
 - `src/` is decompiled game source — **read-only reference, never committed** (gitignored). Regenerate it after each game patch (see §5).
 - No destructive git operations (`reset --hard`, force-push, `checkout --` over user changes).
 - Language: **English** for all new code comments, commits, logs, and documentation.
@@ -22,15 +22,18 @@ dotnet test Tests/CouchSpire.Tests                 # Layer A: offline Harmony/Ac
 ```
 
 - The build copies the DLL to the repo root: `CouchSpire.dll`. **Always deploy/ship the root artifact**, not `.godot/mono/temp/...`.
-- Deploy with `./deploy.sh mac` or `./deploy.sh bazzite [user@host]`: it builds, then installs `CouchSpire.dll` + `CouchSpire.json` (+ `CouchSpire.cfg` if present) into `<game>/mods/CouchSpire/`. No pck export — this is a dll-only mod.
+- Deploy with `./deploy.sh local` (macOS or Linux) or `./deploy.sh remote [user@host]` (a Linux machine, e.g. a Steam
+  Deck or Bazzite box, over SSH): it builds, then installs `CouchSpire.dll` + `CouchSpire.json` (+ `CouchSpire.cfg`
+  if present) into `<game>/mods/CouchSpire/`. No pck export — this is a dll-only mod. Override the local game
+  install dir with `STS2_DIR` (matches `Sts2Paths.props`' `Sts2Dir`).
 - If the copy fails with *permission denied*, the game is running and holds the DLL lock; retry after it closes.
 
 ## 3. Runtime verification
 
-- Log file: `%APPDATA%\SlayTheSpire2\logs\godot.log` (Windows), `~/.local/share/SlayTheSpire2/logs/godot.log` (Linux); `./deploy.sh logs` follows the remote log.
+- Log file: `%APPDATA%\SlayTheSpire2\logs\godot.log` (Windows), `~/Library/Application Support/SlayTheSpire2/logs/godot.log` (macOS), `~/.local/share/SlayTheSpire2/logs/godot.log` (Linux); `./deploy.sh logs` follows the remote log.
 - Log via `Log.Info` with the unified prefix `[CouchSpire]` (`Log.Debug` is invisible by default). Add logs for anything you fix.
 - On startup the mod logs `Applying Harmony patches.` → build marker → `Mod initialized.`; any Harmony exception between those lines means a patch target broke.
-- Automated tests: `dotnet test Tests/CouchSpire.Tests` (offline patch-target check) after every build, and `./deploy.sh test all` (in-game scenarios, macOS) before asking for a playtest or pushing. See `docs/testing.md`. Run `./deploy.sh mac` afterwards to restore the normal build.
+- Automated tests: `dotnet test Tests/CouchSpire.Tests` (offline patch-target check) after every build, and `./deploy.sh test all` (in-game scenarios, macOS only for now) before asking for a playtest or pushing. See `docs/testing.md`. Run `./deploy.sh local` afterwards to restore the normal build.
 - Only `./deploy.sh test` may launch the game for tests: it holds a lock, resets only the `default/1/` test profile, and never touches `steam/` saves. Don't kill a game you didn't start.
 - The maintainer still playtests what scenarios don't cover. Provide focused, step-by-step test scripts and read the log after each round.
 
@@ -67,23 +70,23 @@ When the game updates and the mod breaks:
 
 ## 7. Release flow
 
-Versioning is automated by `semantic-release` (`.releaserc.json`) on a self-hosted GitHub
-Actions runner — it has no game install, so it only handles versioning, not building:
+Versioning is automated by `semantic-release` (`.releaserc.json`) on a hosted GitHub Actions
+runner (`ubuntu-latest`) — it has no game install, so it only handles versioning, not building:
 
 1. Write commits using [Conventional Commits](https://www.conventionalcommits.org/) (`fix:`,
    `feat:`, `feat!:`/`BREAKING CHANGE:`, `docs:`, `chore:`, ...) — the commit-analyzer plugin
-   decides the version bump from these. Update `COUCH.md` / `PLAYER_GUIDE.md` if player-facing
-   behavior changed. Do **not** hand-edit `CouchSpire.json`'s `version` or the `Entry.cs` build
-   marker's `CouchSpire X.Y.Z` prefix — CI does that automatically on merge.
+   decides the version bump from these. Update `docs/couch-coop.md` / `docs/player-guide.md` if
+   player-facing behavior changed. Do **not** hand-edit `CouchSpire.json`'s `version` or the
+   `Entry.cs` build marker's `CouchSpire X.Y.Z` prefix — CI does that automatically on merge.
 2. `CONFIG=Release ./deploy.sh ...` and playtest the installed build locally.
-3. `make pr` (build + format-check, then opens a PR to `master`).
+3. `make pr` (build + format-check + Layer A tests, then opens a PR to `master`).
 4. Merge the PR. This triggers the `Release` workflow: semantic-release computes the version,
    updates `CHANGELOG.md` and the version fields above, commits that back to `master`, tags it,
    and creates the GitHub Release (notes only — no DLL asset yet).
 5. `make attach-release` (locally, on `master`): builds the real DLL and attaches it to the
    Release CI just created.
-6. `tools/upload-steam-workshop.sh vX.Y.Z` (locally) to push it to the Steam Workshop — see
-   `steam-workshop/README.md`. Not part of CI: SteamCMD needs a Steam Guard session the runner
+6. `make steam-upload TAG=vX.Y.Z` (locally) to push it to the Steam Workshop — see
+   `steam-workshop/README.md`. Not part of CI: SteamCMD needs a Steam Guard session a CI runner
    doesn't have.
 
 To update the Workshop listing's compatibility note without a new release (e.g. confirming the
@@ -92,5 +95,5 @@ commit with a `docs:`/`chore:` message (no version bump), and re-run step 6 for 
 
 ## 8. Documentation map
 
-- `README.md` — project front door; `COUCH.md` — couch co-op setup, settings, tests; `PLAYER_GUIDE.md` — how a run plays; `CHANGELOG.md` — history; `TODO.md` — open issues.
-- `docs/architecture.md`, `docs/console-commands.md`, `docs/testing.md` (running and writing tests), `docs/design/*` — developer docs.
+- `README.md` — project front door; `docs/couch-coop.md` — couch co-op setup, settings, tests; `docs/player-guide.md` — how a run plays; `CHANGELOG.md` — history; [GitHub Issues](https://github.com/bcjarrett/couchspire/issues) — open issues.
+- `docs/architecture.md`, `docs/console-commands.md`, `docs/testing.md` (running and writing tests, plus a reference appendix for the harness) — developer docs.

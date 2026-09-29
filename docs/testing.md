@@ -180,7 +180,7 @@ for a global log-line event feed.
 **Mod entry points a scenario drives through** — `NMultiplayerHostSubmenuPatch.OnLocalSelfCoopPressed` (starting a
 couch run), `LocalSelfCoopContext.SetLobbyEditingPlayer`/`NCharacterSelectScreen.SelectCharacter` (character picks),
 `CouchTeammateUi.Handle` (P2's HUD input), `CouchRemotePlay` (P2's combat actions), `CouchTeammateChoices` (P2's
-choices), `LocalMultiControlRuntime.SwitchControlledPlayerTo` (a driver swap), `CouchScreenshots` (screenshots).
+choices), `LocalControlRuntime.SwitchControlledPlayerTo` (a driver swap), `CouchScreenshots` (screenshots).
 
 **Deliberately not used** (each would bypass what the tests are meant to catch):
 - `TestMode.IsOn` — flips reward code to auto-select paths, skipping the mod's real choice patches.
