@@ -1,4 +1,4 @@
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// Couch co-op switches, read once at startup from <c>CouchSpire.cfg</c> next to the mod DLL (<c>key = value</c> lines,

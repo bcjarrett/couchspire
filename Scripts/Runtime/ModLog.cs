@@ -1,10 +1,10 @@
 using MegaCrit.Sts2.Core.Logging;
 
-namespace LocalMultiControl.Scripts.Runtime;
+namespace CouchSpire.Scripts.Runtime;
 
-internal static class LocalMultiControlLogger
+internal static class ModLog
 {
-    private const string Prefix = "[LocalMultiControl]";
+    private const string Prefix = "[CouchSpire]";
 
     public static void Info(string message)
     {

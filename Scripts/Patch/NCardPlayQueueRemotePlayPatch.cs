@@ -1,11 +1,11 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 /// <summary>
 /// Couch co-op: a teammate's card play (sent as a remote request) would be shown waiting in the play queue by

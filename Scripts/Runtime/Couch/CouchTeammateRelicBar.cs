@@ -8,7 +8,7 @@ using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.HoverTips;
 using MegaCrit.Sts2.Core.Nodes.Relics;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// The teammate's relics on the main screen, right-aligned across from the driver's own relic row (which the top bar

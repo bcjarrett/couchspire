@@ -9,7 +9,7 @@ using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// Shows the teammate's deck changes outside combat the way the game shows the driver's: a transformed card morphs

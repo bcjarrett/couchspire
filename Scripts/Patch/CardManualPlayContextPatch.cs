@@ -1,11 +1,11 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(CardModel), "EnqueueManualPlay", new[] { typeof(Creature) })]
 internal static class CardManualPlayContextPatch
@@ -38,7 +38,7 @@ internal static class CardManualPlayContextPatch
             return;
         }
 
-        LocalMultiControlRuntime.AlignContextForActionOwner(owner.NetId, "card-enqueue-manual-play");
+        LocalControlRuntime.AlignContextForActionOwner(owner.NetId, "card-enqueue-manual-play");
     }
 
     [HarmonyFinalizer]

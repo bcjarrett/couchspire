@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Runtime;
+namespace CouchSpire.Scripts.Runtime;
 
 internal static class LocalMerchantInventoryRuntime
 {
@@ -49,7 +49,7 @@ internal static class LocalMerchantInventoryRuntime
         {
             inventory = BuildDualPoolInventory(player);
             perPlayer[player.NetId] = inventory;
-            LocalMultiControlLogger.Info($"Generated player-specific shop inventory: player={player.NetId}");
+            ModLog.Info($"Generated player-specific shop inventory: player={player.NetId}");
         }
 
         return inventory;
@@ -66,7 +66,7 @@ internal static class LocalMerchantInventoryRuntime
         int playerSlotIndex = runState.GetPlayerSlotIndex(player);
         if (playerSlotIndex < 0 || playerSlotIndex >= room.Inventories.Count)
         {
-            LocalMultiControlLogger.Warn(
+            ModLog.Warn(
                 $"Shop inventory binding failed: player slot index out of range. player={player.NetId}, slot={playerSlotIndex}, inventoryCount={room.Inventories.Count}");
             return;
         }
@@ -104,7 +104,7 @@ internal static class LocalMerchantInventoryRuntime
         }
 
         NRun.Instance?.SetCurrentRoom(refreshedRoomNode);
-        LocalMultiControlLogger.Info($"Shop UI switched to the current player's inventory: player={playerId}");
+        ModLog.Info($"Shop UI switched to the current player's inventory: player={playerId}");
     }
 
     private static MerchantInventory BuildDualPoolInventory(Player player)

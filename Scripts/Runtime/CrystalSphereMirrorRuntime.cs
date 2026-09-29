@@ -2,7 +2,7 @@ using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Rooms;
 
-namespace LocalMultiControl.Scripts.Runtime;
+namespace CouchSpire.Scripts.Runtime;
 
 internal static class CrystalSphereMirrorRuntime
 {

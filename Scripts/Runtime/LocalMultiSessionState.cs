@@ -1,7 +1,7 @@
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Runtime;
+namespace CouchSpire.Scripts.Runtime;
 
 internal sealed class LocalMultiSessionState
 {
@@ -32,7 +32,7 @@ internal sealed class LocalMultiSessionState
 
         if (runState.Players.Count < 2)
         {
-            LocalMultiControlLogger.Info($"Player count for this run={runState.Players.Count}; local multi-control session is not enabled when there are fewer than 2 players.");
+            ModLog.Info($"Player count for this run={runState.Players.Count}; local co-op session is not enabled when there are fewer than 2 players.");
             return;
         }
 
@@ -61,15 +61,15 @@ internal sealed class LocalMultiSessionState
 
         _activeIndex = 0;
         IsInitialized = true;
-        LocalMultiControlLogger.Info(
-            $"Local multi-control session initialized, player list: {string.Join(",", _orderedPlayerIds)}, currently controlled player: {_orderedPlayerIds[_activeIndex]}");
+        ModLog.Info(
+            $"Local co-op session initialized, player list: {string.Join(",", _orderedPlayerIds)}, currently controlled player: {_orderedPlayerIds[_activeIndex]}");
     }
 
     public void Reset(string reason)
     {
         if (IsInitialized || _orderedPlayerIds.Count > 0)
         {
-            LocalMultiControlLogger.Info($"Resetting local multi-control session, reason: {reason}");
+            ModLog.Info($"Resetting local co-op session, reason: {reason}");
         }
 
         IsInitialized = false;
@@ -86,7 +86,7 @@ internal sealed class LocalMultiSessionState
 
         int previousIndex = _activeIndex;
         _activeIndex = (_activeIndex + 1) % _orderedPlayerIds.Count;
-        LocalMultiControlLogger.Info($"Switching controlled player (next): {_orderedPlayerIds[previousIndex]} -> {_orderedPlayerIds[_activeIndex]}");
+        ModLog.Info($"Switching controlled player (next): {_orderedPlayerIds[previousIndex]} -> {_orderedPlayerIds[_activeIndex]}");
         return true;
     }
 
@@ -100,7 +100,7 @@ internal sealed class LocalMultiSessionState
         int index = _orderedPlayerIds.IndexOf(playerId);
         if (index < 0)
         {
-            LocalMultiControlLogger.Warn($"Failed to set the current controlled player: player {playerId} is not in the session.");
+            ModLog.Warn($"Failed to set the current controlled player: player {playerId} is not in the session.");
             return false;
         }
 
@@ -111,7 +111,7 @@ internal sealed class LocalMultiSessionState
 
         ulong previousPlayerId = _orderedPlayerIds[_activeIndex];
         _activeIndex = index;
-        LocalMultiControlLogger.Info($"Switching controlled player (explicit): {previousPlayerId} -> {_orderedPlayerIds[_activeIndex]}");
+        ModLog.Info($"Switching controlled player (explicit): {previousPlayerId} -> {_orderedPlayerIds[_activeIndex]}");
         return true;
     }
 
@@ -119,13 +119,13 @@ internal sealed class LocalMultiSessionState
     {
         if (!IsInitialized)
         {
-            LocalMultiControlLogger.Warn($"Ignoring {actionName}, reason: session not initialized.");
+            ModLog.Warn($"Ignoring {actionName}, reason: session not initialized.");
             return false;
         }
 
         if (_orderedPlayerIds.Count < 2)
         {
-            LocalMultiControlLogger.Warn($"Ignoring {actionName}, reason: fewer than 2 players.");
+            ModLog.Warn($"Ignoring {actionName}, reason: fewer than 2 players.");
             return false;
         }
 

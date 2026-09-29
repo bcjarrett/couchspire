@@ -1,6 +1,6 @@
 using Godot;
 
-namespace LocalMultiControl.Scripts.Runtime;
+namespace CouchSpire.Scripts.Runtime;
 
 internal static class LocalManualPlayGuard
 {
@@ -25,7 +25,7 @@ internal static class LocalManualPlayGuard
         int nextDepth = Interlocked.Increment(ref _depth);
         if (nextDepth == 1)
         {
-            LocalMultiControlLogger.Info($"Entering manual card-play critical section: source={source}");
+            ModLog.Info($"Entering manual card-play critical section: source={source}");
         }
     }
 
@@ -37,7 +37,7 @@ internal static class LocalManualPlayGuard
             Volatile.Write(ref _depth, 0);
             // There is a narrow async window between the end of target selection and the action actually being enqueued; add a brief hold period here to cover it.
             Volatile.Write(ref _holdUntilMs, Time.GetTicksMsec() + 180UL);
-            LocalMultiControlLogger.Info($"Exiting manual card-play critical section: source={source}");
+            ModLog.Info($"Exiting manual card-play critical section: source={source}");
         }
     }
 }

@@ -1,14 +1,14 @@
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NEventRoom), "RefreshEventState")]
 internal static class NEventRoomPatch
@@ -33,7 +33,7 @@ internal static class NEventRoomPatch
 
         if (NOverlayStack.Instance?.ScreenCount > 0)
         {
-            LocalMultiControlLogger.Info("Event flow complete; waiting for the reward/choice popup to close before auto-switching players.");
+            ModLog.Info("Event flow complete; waiting for the reward/choice popup to close before auto-switching players.");
             return;
         }
 
@@ -41,7 +41,7 @@ internal static class NEventRoomPatch
         {
             if (RunManager.Instance.IsInProgress)
             {
-                LocalMultiControlRuntime.TryRunPendingEventAutoSwitch("event-auto-next");
+                LocalControlRuntime.TryRunPendingEventAutoSwitch("event-auto-next");
             }
         }).CallDeferred();
     }
@@ -75,7 +75,7 @@ internal static class NEventRoomPatch
 
         if (NOverlayStack.Instance?.ScreenCount > 0)
         {
-            LocalMultiControlLogger.Info($"Event complete; waiting for the popup to close before auto-switching to the next player: {eventModel.Owner.NetId} -> {pendingEvent.Owner.NetId}");
+            ModLog.Info($"Event complete; waiting for the popup to close before auto-switching to the next player: {eventModel.Owner.NetId} -> {pendingEvent.Owner.NetId}");
             return false;
         }
 
@@ -86,8 +86,8 @@ internal static class NEventRoomPatch
                 return;
             }
 
-            LocalMultiControlLogger.Info($"Event auto-switched to the next player pending selection: {eventModel.Owner.NetId} -> {pendingEvent.Owner.NetId}");
-            LocalMultiControlRuntime.SwitchControlledPlayerTo(pendingEvent.Owner.NetId, "event-finished-next-player");
+            ModLog.Info($"Event auto-switched to the next player pending selection: {eventModel.Owner.NetId} -> {pendingEvent.Owner.NetId}");
+            LocalControlRuntime.SwitchControlledPlayerTo(pendingEvent.Owner.NetId, "event-finished-next-player");
         }).CallDeferred();
         return true;
     }
@@ -137,8 +137,8 @@ internal static class NEventRoomOptionButtonPatch
             return true;
         }
 
-        LocalMultiControlLogger.Info($"Detected another player has not yet finished the event; intercepted Proceed and switched to player={pendingEvent.Owner.NetId}");
-        LocalMultiControlRuntime.SwitchControlledPlayerTo(pendingEvent.Owner.NetId, "event-proceed-next-player");
+        ModLog.Info($"Detected another player has not yet finished the event; intercepted Proceed and switched to player={pendingEvent.Owner.NetId}");
+        LocalControlRuntime.SwitchControlledPlayerTo(pendingEvent.Owner.NetId, "event-proceed-next-player");
         return false;
     }
 }

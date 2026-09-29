@@ -1,13 +1,13 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Rewards;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Rewards;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Rewards;
 using MegaCrit.Sts2.Core.Rewards;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 /// <summary>
 /// Prepends a player label (e.g. "[Player 1] ") to the reward button's description text.

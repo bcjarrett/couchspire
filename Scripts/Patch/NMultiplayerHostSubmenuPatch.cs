@@ -1,6 +1,6 @@
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
@@ -9,7 +9,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.MainMenu;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 using MegaCrit.Sts2.Core.Saves;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NMultiplayerHostSubmenu), nameof(NMultiplayerHostSubmenu._Ready))]
 internal static class NMultiplayerHostSubmenuPatch
@@ -24,7 +24,7 @@ internal static class NMultiplayerHostSubmenuPatch
         {
             if (__instance.GetNodeOrNull<NSubmenuButton>(LocalSelfCoopButtonName) != null)
             {
-                LocalMultiControlLogger.Info("Multiplayer menu entry already exists; skipping duplicate injection.");
+                ModLog.Info("Multiplayer menu entry already exists; skipping duplicate injection.");
                 return;
             }
 
@@ -33,7 +33,7 @@ internal static class NMultiplayerHostSubmenuPatch
             NSubmenuButton? customButton = __instance.GetNodeOrNull<NSubmenuButton>("CustomRunButton");
             if (standardButton == null)
             {
-                LocalMultiControlLogger.Warn("StandardButton not found; cannot inject the local multi-character entry.");
+                ModLog.Warn("StandardButton not found; cannot inject the local multi-character entry.");
                 return;
             }
 
@@ -50,11 +50,11 @@ internal static class NMultiplayerHostSubmenuPatch
             container.MoveChild(button, targetIndex);
 
             ArrangeFourButtonsHorizontally(standardButton, dailyButton, customButton, button);
-            LocalMultiControlLogger.Info("Multiplayer menu injected a card-style entry: single-player multi-character (four cards side by side).");
+            ModLog.Info("Multiplayer menu injected a card-style entry: single-player multi-character (four cards side by side).");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Error($"Failed to inject the \"single-player multi-character\" entry: {exception}");
+            ModLog.Error($"Failed to inject the \"single-player multi-character\" entry: {exception}");
         }
     }
 
@@ -131,19 +131,19 @@ internal static class NMultiplayerHostSubmenuPatch
 
     private static void OnLocalSelfCoopPressed(NMultiplayerHostSubmenu submenu)
     {
-        LocalMultiControlLogger.Info("Entering the single-player multi-character flow.");
+        ModLog.Info("Entering the single-player multi-character flow.");
         LocalSelfCoopSaveTag.ClearCurrentProfile();
         // Only delete when there is a save: on a profile with no saves/ folder yet, the game logs an Error.
         if (SaveManager.Instance.HasMultiplayerRunSave)
         {
             SaveManager.Instance.DeleteCurrentMultiplayerRun();
-            LocalMultiControlLogger.Info("Cleared historical multiplayer saves to avoid interference from old-format validation.");
+            ModLog.Info("Cleared historical multiplayer saves to avoid interference from old-format validation.");
         }
 
         NSubmenuStack? stack = GetStack(submenu);
         if (stack == null)
         {
-            LocalMultiControlLogger.Warn("Cannot open character select: NSubmenuStack not found.");
+            ModLog.Warn("Cannot open character select: NSubmenuStack not found.");
             return;
         }
 
@@ -157,12 +157,12 @@ internal static class NMultiplayerHostSubmenuPatch
         characterSelectScreen.InitializeMultiplayerAsHost(netService, LocalSelfCoopContext.PlayerCount);
         if (!LocalSelfCoopContext.BootstrapLocalPlayers(characterSelectScreen))
         {
-            LocalMultiControlLogger.Warn("Local co-op lobby setup failed.");
+            ModLog.Warn("Local co-op lobby setup failed.");
         }
 
         stack.Push(characterSelectScreen);
         NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(LocalModText.EnteredLocalSelfCoopHint));
-        LocalMultiControlLogger.Info("Navigated to the local multi-character team's character select screen.");
+        ModLog.Info("Navigated to the local multi-character team's character select screen.");
     }
 
     private static NSubmenuStack? GetStack(NSubmenu submenu)

@@ -4,7 +4,7 @@ using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Runtime;
+namespace CouchSpire.Scripts.Runtime;
 
 internal static class LocalControlSwitchGuard
 {
@@ -15,7 +15,7 @@ internal static class LocalControlSwitchGuard
             return false;
         }
 
-        LocalMultiControlRuntime.SwitchControlledPlayerTo(playerId, source);
+        LocalControlRuntime.SwitchControlledPlayerTo(playerId, source);
         return true;
     }
 
@@ -39,13 +39,13 @@ internal static class LocalControlSwitchGuard
 
         if (combatUi.Hand.InCardPlay || combatUi.Hand.IsInCardSelection || (NTargetManager.Instance?.IsInSelection ?? false))
         {
-            LocalMultiControlLogger.Info($"Switch ignored ({source}): a card play or selection is in progress.");
+            ModLog.Info($"Switch ignored ({source}): a card play or selection is in progress.");
             return false;
         }
 
         if (RunManager.Instance.ActionQueueSynchronizer.CombatState != ActionSynchronizerCombatState.PlayPhase)
         {
-            LocalMultiControlLogger.Info(
+            ModLog.Info(
                 $"Switch ignored ({source}): combat sync phase is {RunManager.Instance.ActionQueueSynchronizer.CombatState}.");
             return false;
         }

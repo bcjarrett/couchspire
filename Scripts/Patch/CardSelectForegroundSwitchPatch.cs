@@ -1,7 +1,7 @@
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Commands;
@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 internal static class CardSelectForegroundSwitchPatch
 {
@@ -73,7 +73,7 @@ internal static class CardSelectForegroundSwitchPatch
             return;
         }
 
-        ulong currentPlayerId = LocalMultiControlRuntime.SessionState.CurrentControlledPlayerId
+        ulong currentPlayerId = LocalControlRuntime.SessionState.CurrentControlledPlayerId
             ?? LocalContext.NetId
             ?? LocalSelfCoopContext.PrimaryPlayerId;
         if (currentPlayerId == player.NetId)
@@ -83,35 +83,35 @@ internal static class CardSelectForegroundSwitchPatch
 
         if (TryGetRejectReason(out string reason))
         {
-            LocalMultiControlRuntime.RecordFlowBlockSignal(
+            LocalControlRuntime.RecordFlowBlockSignal(
                 "foreground_switch_rejected_due_to_state",
                 reason,
                 player.NetId,
                 source,
                 round: -1);
-            LocalMultiControlLogger.Info(
+            ModLog.Info(
                 $"Combat card-selection foreground switch skipped: source={source}, target={player.NetId}, reason={reason}");
             return;
         }
 
-        LocalMultiControlLogger.Info(
+        ModLog.Info(
             $"Detected a combat card-selection request from a backgrounded player; preparing to defer a foreground switch for manual selection: source={source}, current={currentPlayerId}, target={player.NetId}");
         Callable.From(delegate
         {
             if (TryGetRejectReason(out string deferredReason))
             {
-                LocalMultiControlRuntime.RecordFlowBlockSignal(
+                LocalControlRuntime.RecordFlowBlockSignal(
                     "foreground_switch_rejected_due_to_state",
                     $"{deferredReason}-deferred",
                     player.NetId,
                     source,
                     round: -1);
-                LocalMultiControlLogger.Info(
+                ModLog.Info(
                     $"Combat card-selection deferred foreground switch canceled: source={source}, target={player.NetId}, reason={deferredReason}");
                 return;
             }
 
-            LocalMultiControlRuntime.SwitchControlledPlayerTo(player.NetId, $"combat-choice-{source}");
+            LocalControlRuntime.SwitchControlledPlayerTo(player.NetId, $"combat-choice-{source}");
         }).CallDeferred();
     }
 

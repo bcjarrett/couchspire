@@ -71,7 +71,7 @@ The opt-in cross-character card group was removed with the switch to two-player 
 
 ### ~~Issue 2: Treasure chest deadlock~~ (RESOLVED by earlier redesign)
 Current flow: per-character voting with auto-switch (TreasureRoomRelicSynchronizerPatch)
-plus `_localPlayerId` re-sync on switch (LocalMultiControlRuntime:486). Vanilla's
+plus `_localPlayerId` re-sync on switch (LocalControlRuntime:486). Vanilla's
 IsSingleplayerOrFakeMultiplayer auto-random-vote path is inactive (loopback Type=Host), and
 the old "pick while not active" crash is a benign warning in v0.111.
 

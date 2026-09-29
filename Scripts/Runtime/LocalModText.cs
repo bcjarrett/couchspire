@@ -1,4 +1,4 @@
-namespace LocalMultiControl.Scripts.Runtime;
+namespace CouchSpire.Scripts.Runtime;
 
 /// <summary>Player-facing strings. English only.</summary>
 internal static class LocalModText

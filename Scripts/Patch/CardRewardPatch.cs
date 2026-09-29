@@ -1,11 +1,11 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Rewards;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(CardReward), "OnSelect")]
 internal static class CardRewardPatch
@@ -44,7 +44,7 @@ internal static class CardRewardPatch
 
         LocalContext.NetId = __instance.Player.NetId;
         loopback.SetCurrentSenderId(__instance.Player.NetId);
-        LocalMultiControlLogger.Info($"Card reward switched to the reward's owning player: player={__instance.Player.NetId}");
+        ModLog.Info($"Card reward switched to the reward's owning player: player={__instance.Player.NetId}");
     }
 
     [HarmonyPostfix]

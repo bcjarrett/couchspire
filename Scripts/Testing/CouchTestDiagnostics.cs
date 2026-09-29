@@ -1,16 +1,16 @@
 #if COUCHSPIRE_TESTS
 using System.Text;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Testing;
+namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
 /// The timeout diagnostic dump from docs/design/testing-plan.md §6.5: overlay stack, current room, driver, action
 /// queue state, and both players' pending choices and visible mod panels. Logged in full (prefix
-/// "[LocalMultiControl] [CouchTest]") and returned truncated for the scenario result's message field.
+/// "[CouchSpire] [CouchTest]") and returned truncated for the scenario result's message field.
 /// </summary>
 internal static class CouchTestDiagnostics
 {

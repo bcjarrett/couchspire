@@ -2,7 +2,7 @@ using Godot;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 internal enum CouchRouteDecision
 {
@@ -56,8 +56,8 @@ internal static class CouchInputRouter
 
     private static bool InRun =>
         RunManager.Instance.IsInProgress
-        && LocalMultiControlRuntime.SessionState.IsInitialized
-        && LocalMultiControlRuntime.SessionState.OrderedPlayerIds.Count >= 2;
+        && LocalControlRuntime.SessionState.IsInitialized
+        && LocalControlRuntime.SessionState.OrderedPlayerIds.Count >= 2;
 
     /// <summary>The local co-op character select screen is up (before the run starts).</summary>
     private static bool InLobby =>
@@ -70,7 +70,7 @@ internal static class CouchInputRouter
     private static IReadOnlyList<ulong> SeatPlayerIds()
     {
         return RunManager.Instance.IsInProgress
-            ? LocalMultiControlRuntime.SessionState.OrderedPlayerIds
+            ? LocalControlRuntime.SessionState.OrderedPlayerIds
             : LocalSelfCoopContext.LocalPlayerIds;
     }
 

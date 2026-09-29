@@ -1,7 +1,7 @@
 #if COUCHSPIRE_TESTS
-using LocalMultiControl.Scripts.Rewards;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Rewards;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Rewards;
 using MegaCrit.Sts2.Core.Rooms;
 
-namespace LocalMultiControl.Scripts.Testing.Scenarios;
+namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
 /// docs/design/testing-plan.md §6.9, row 4: post-combat rewards. `win` triggers

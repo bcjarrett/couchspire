@@ -8,7 +8,7 @@ using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// The teammate's own rest site options (rest, smith, and anything relics add). Every player has their own options in

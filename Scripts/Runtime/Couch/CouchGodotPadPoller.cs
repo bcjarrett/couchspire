@@ -3,7 +3,7 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.ControllerInput;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// Replaces <see cref="GodotControllerInputStrategy.ProcessInput"/> during couch runs. The game turns stick and

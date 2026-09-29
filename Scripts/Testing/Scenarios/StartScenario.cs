@@ -1,16 +1,16 @@
 #if COUCHSPIRE_TESTS
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Characters;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Testing.Scenarios;
+namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
 /// docs/design/testing-plan.md §6.9, row 1: a couch run starts from the menu with the expected session order,
 /// driver, characters, combat-sync suppression, and save tag. No room/combat interaction — this only checks that the
-/// run starts correctly. Guaranteed by <c>NMultiplayerHostSubmenuPatch.cs</c>, <c>LocalMultiControlRuntime.cs</c>,
+/// run starts correctly. Guaranteed by <c>NMultiplayerHostSubmenuPatch.cs</c>, <c>LocalControlRuntime.cs</c>,
 /// and <c>LocalSelfCoopSaveTag.cs</c>.
 /// </summary>
 internal sealed class StartScenario : CouchTestScenarioBase
@@ -42,7 +42,7 @@ internal sealed class StartScenario : CouchTestScenarioBase
 
         context.Expect(
             RunManager.Instance.CombatStateSynchronizer.IsDisabled,
-            "Expected CombatStateSynchronizer.IsDisabled to be true for a couch co-op run (LocalMultiControlRuntime.OnRunLaunched).");
+            "Expected CombatStateSynchronizer.IsDisabled to be true for a couch co-op run (LocalControlRuntime.OnRunLaunched).");
 
         bool tagRead = LocalSelfCoopSaveTag.TryReadCurrentProfile(out List<ulong> taggedPlayers);
         context.Expect(tagRead, "Expected a local co-op save tag (v3:players=...) to be present after starting a couch run.");

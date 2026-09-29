@@ -1,8 +1,8 @@
 #if COUCHSPIRE_TESTS
-using LocalMultiControl.Scripts.Rewards;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Rewards;
+using CouchSpire.Scripts.Runtime;
 
-namespace LocalMultiControl.Scripts.Testing.Scenarios;
+namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
 /// docs/design/testing-plan.md §8 WP7: guards the gold-mirror suppression leak fixed in commit 06b185a.

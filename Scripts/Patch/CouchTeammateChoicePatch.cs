@@ -1,5 +1,5 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.CardSelection;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Commands;
@@ -9,7 +9,7 @@ using MegaCrit.Sts2.Core.Entities.RestSite;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Models;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 /// <summary>
 /// Couch co-op: record what a teammate is asked to choose during simultaneous combat, so the answer can be sent back

@@ -2,7 +2,7 @@ using Godot;
 using MegaCrit.Sts2.Core.Platform.Steam;
 using Steamworks;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// Input diagnostics for couch co-op (enable with <c>COUCHSPIRE_PROBE=1</c>). Dumps what each input path can

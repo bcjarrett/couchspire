@@ -2,7 +2,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch]
 internal static class SynchronizationOwnershipLogPatch
@@ -46,6 +46,6 @@ internal static class SynchronizationOwnershipLogPatch
     {
         ulong? contextId = LocalContext.NetId;
         object? localId = AccessTools.Field(synchronizer.GetType(), "_localPlayerId")?.GetValue(synchronizer);
-        LocalMultiControl.Scripts.Runtime.LocalMultiControlLogger.Info($"{operation} owning player: context={contextId?.ToString() ?? "null"}, syncLocal={localId?.ToString() ?? "null"}");
+        CouchSpire.Scripts.Runtime.ModLog.Info($"{operation} owning player: context={contextId?.ToString() ?? "null"}, syncLocal={localId?.ToString() ?? "null"}");
     }
 }

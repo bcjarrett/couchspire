@@ -1,14 +1,14 @@
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.TreasureRelicPicking;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(TreasureRoomRelicSynchronizer), nameof(TreasureRoomRelicSynchronizer.OnPicked))]
 internal static class TreasureRoomRelicSynchronizerPatch
@@ -72,7 +72,7 @@ internal static class TreasureRoomRelicSynchronizerPatch
             int selectedIndex = index.Value;
             if (selectedIndex < 0 || selectedIndex >= currentRelics.Count)
             {
-                LocalMultiControlLogger.Warn($"Treasure room vote index out of range; ignored: index={selectedIndex}, relicCount={currentRelics.Count}");
+                ModLog.Warn($"Treasure room vote index out of range; ignored: index={selectedIndex}, relicCount={currentRelics.Count}");
                 return false;
             }
 
@@ -92,13 +92,13 @@ internal static class TreasureRoomRelicSynchronizerPatch
             AccessTools.Method(typeof(TreasureRoomRelicSynchronizer), "EndRelicVoting")?.Invoke(__instance, null);
             SkipAutoSwitchOnce.Add(__instance);
             RemoveOverflowPlan(__instance);
-            LocalMultiControlLogger.Info(
+            ModLog.Info(
                 $"Treasure room fast resolution for 5+ players: player={player.NetId}, relic={selectedRelic.Id.Entry}, awarded per the resolution result and ended the room.");
             return false;
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Treasure room overflow vote takeover failed; falling back to the original flow: {exception.Message}");
+            ModLog.Warn($"Treasure room overflow vote takeover failed; falling back to the original flow: {exception.Message}");
             RemoveOverflowPlan(__instance);
             return true;
         }
@@ -221,15 +221,15 @@ internal static class TreasureRoomRelicSynchronizerPatch
             ulong nextPlayerId = players.Players[nextSlot].NetId;
             Callable.From(delegate
             {
-                LocalMultiControlRuntime.SwitchControlledPlayerTo(nextPlayerId, source);
+                LocalControlRuntime.SwitchControlledPlayerTo(nextPlayerId, source);
             }).CallDeferred();
 
-            LocalMultiControlLogger.Info($"Treasure room auto-switched to the next unselected player after selection completed: {currentPlayerId} -> {nextPlayerId}");
+            ModLog.Info($"Treasure room auto-switched to the next unselected player after selection completed: {currentPlayerId} -> {nextPlayerId}");
             return true;
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Treasure room auto-switch to an unselected player failed: {exception.Message}");
+            ModLog.Warn($"Treasure room auto-switch to an unselected player failed: {exception.Message}");
             return false;
         }
     }
@@ -272,7 +272,7 @@ internal static class TreasureRoomRelicSynchronizerBeginPatch
                 }
 
                 TreasureRoomRelicSynchronizerPatch.RemoveOverflowPlan(__instance);
-                LocalMultiControlLogger.Info("Treasure room disabled auto-vote-on-behalf; switched to per-player manual selection.");
+                ModLog.Info("Treasure room disabled auto-vote-on-behalf; switched to per-player manual selection.");
                 return;
             }
 
@@ -293,11 +293,11 @@ internal static class TreasureRoomRelicSynchronizerBeginPatch
             }
 
             TreasureRoomRelicSynchronizerPatch.SetOverflowPlan(__instance, plan);
-            LocalMultiControlLogger.Info($"Treasure room special-case for 5+ players enabled: only slot 1 participates in the event, the other {plan.Followers.Count} players will directly copy slot 1's relic.");
+            ModLog.Info($"Treasure room special-case for 5+ players enabled: only slot 1 participates in the event, the other {plan.Followers.Count} players will directly copy slot 1's relic.");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Failed to disable treasure room auto-vote-on-behalf: {exception.Message}");
+            ModLog.Warn($"Failed to disable treasure room auto-vote-on-behalf: {exception.Message}");
         }
     }
 }

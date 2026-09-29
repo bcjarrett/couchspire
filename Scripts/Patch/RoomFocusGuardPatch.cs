@@ -1,6 +1,6 @@
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Nodes;
@@ -9,7 +9,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.TreasureRoomRelic;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NRestSiteRoom), nameof(NRestSiteRoom._Ready))]
 internal static class NRestSiteRoomReadyGuardPatch
@@ -26,13 +26,13 @@ internal static class NRestSiteRoomReadyGuardPatch
             int localOptions = SafeCountLocalOptions();
             bool isLoading = LocalSelfCoopContext.NetService?.IsGameLoading ?? false;
             string controlledPlayer = LocalContext.NetId?.ToString() ?? "null";
-            LocalMultiControlLogger.Warn(
+            ModLog.Warn(
                 $"Rest site initialization went out of range; intercepted and continuing the flow: error={__exception.Message}, players={playerCount}, controlled={controlledPlayer}, roomOptions={roomOptions}, localOptions={localOptions}, loading={isLoading}");
 
             if (playerCount > 4)
             {
                 NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(LocalModText.RestSiteFocusHint));
-                LocalMultiControlLogger.Warn($"[needs fix] Rest site with 5+ players may not show options on the first frame; showed a manual-switch hint. players={playerCount}");
+                ModLog.Warn($"[needs fix] Rest site with 5+ players may not show options on the first frame; showed a manual-switch hint. players={playerCount}");
             }
 
             Callable.From(delegate
@@ -67,7 +67,7 @@ internal static class NRestSiteRoomReadyGuardPatch
         {
             if (attempt >= MaxRecoveryAttempts)
             {
-                LocalMultiControlLogger.Warn(
+                ModLog.Warn(
                     $"Rest site out-of-range recovery failed: loading state never settled, manual player switch required. attempts={attempt + 1}, localOptions={SafeCountLocalOptions()}");
                 return;
             }
@@ -90,7 +90,7 @@ internal static class NRestSiteRoomReadyGuardPatch
 
         if (!switchedToPrimary)
         {
-            LocalMultiControlRuntime.SwitchControlledPlayerTo(LocalSelfCoopContext.PrimaryPlayerId, $"rest-site-finalizer-recover-{attempt}");
+            LocalControlRuntime.SwitchControlledPlayerTo(LocalSelfCoopContext.PrimaryPlayerId, $"rest-site-finalizer-recover-{attempt}");
             switchedToPrimary = true;
         }
 
@@ -100,14 +100,14 @@ internal static class NRestSiteRoomReadyGuardPatch
         int localOptions = SafeCountLocalOptions();
         if (localOptions > 0)
         {
-            LocalMultiControlLogger.Info(
+            ModLog.Info(
                 $"Rest site out-of-range recovery succeeded: options are now visible. attempt={attempt}, roomOptions={roomOptions}, localOptions={localOptions}, controlled={LocalContext.NetId?.ToString() ?? "null"}");
             return;
         }
 
         if (attempt >= MaxRecoveryAttempts)
         {
-            LocalMultiControlLogger.Warn(
+            ModLog.Warn(
                 $"Rest site out-of-range recovery ended: options still not shown, please switch players manually. attempts={attempt + 1}, roomOptions={roomOptions}, localOptions={localOptions}, controlled={LocalContext.NetId?.ToString() ?? "null"}");
             return;
         }
@@ -157,7 +157,7 @@ internal static class NTreasureRoomRelicCollectionFocusGuardPatch
     {
         if (__exception is ArgumentOutOfRangeException)
         {
-            LocalMultiControlLogger.Warn($"Treasure room focus control went out of range; intercepted and skipped focus for this frame: {__exception.Message}");
+            ModLog.Warn($"Treasure room focus control went out of range; intercepted and skipped focus for this frame: {__exception.Message}");
             return null;
         }
 
@@ -174,7 +174,7 @@ internal static class NTreasureRoomRelicHolderFocusGuardPatch
         if (__exception is InvalidOperationException exception &&
             exception.Message.Contains("Model was accessed before it was set", StringComparison.Ordinal))
         {
-            LocalMultiControlLogger.Warn("Treasure room relic model was not ready when focus arrived; skipped Focus for this frame.");
+            ModLog.Warn("Treasure room relic model was not ready when focus arrived; skipped Focus for this frame.");
             return null;
         }
 

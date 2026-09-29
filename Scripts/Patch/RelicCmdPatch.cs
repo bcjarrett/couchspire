@@ -1,6 +1,6 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Rewards;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Rewards;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -8,7 +8,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(RelicCmd), nameof(RelicCmd.Obtain), new[] { typeof(RelicModel), typeof(Player), typeof(int) })]
 internal static class RelicCmdObtainPatch
@@ -62,7 +62,7 @@ internal static class RelicCmdObtainPatch
         // In the combat-reward-merge flow, each player has already independently generated their reward, so no mirroring is needed
         if (CombatRewardMergeContext.IsActive)
         {
-            LocalMultiControlLogger.Info($"Skipping relic mirror during the combat-reward-merge flow: relic={obtainedRelic.Id.Entry}, owner={player.NetId}");
+            ModLog.Info($"Skipping relic mirror during the combat-reward-merge flow: relic={obtainedRelic.Id.Entry}, owner={player.NetId}");
             return obtainedRelic;
         }
 
@@ -75,7 +75,7 @@ internal static class RelicCmdObtainPatch
 
         if (PaelsWingPatch.TryConsumePendingOwner(player.NetId))
         {
-            LocalMultiControlLogger.Info($"Relic produced by a Pael's Wing sacrifice is not shared-mirrored: relic={obtainedRelic.Id.Entry}, owner={player.NetId}");
+            ModLog.Info($"Relic produced by a Pael's Wing sacrifice is not shared-mirrored: relic={obtainedRelic.Id.Entry}, owner={player.NetId}");
             return obtainedRelic;
         }
 
@@ -83,7 +83,7 @@ internal static class RelicCmdObtainPatch
         if (skipChainMirror)
         {
             NonSharedChainRelics.Add(obtainedRelic);
-            LocalMultiControlLogger.Info($"Chain relic handled as a special case, not shared-mirrored: relic={obtainedRelic.Id.Entry}, owner={player.NetId}");
+            ModLog.Info($"Chain relic handled as a special case, not shared-mirrored: relic={obtainedRelic.Id.Entry}, owner={player.NetId}");
             return obtainedRelic;
         }
 
@@ -99,11 +99,11 @@ internal static class RelicCmdObtainPatch
                 RelicModel mirroredRelic = RelicModel.FromSerializable(obtainedRelic.ToSerializable());
                 otherPlayer.AddRelicInternal(mirroredRelic);
                 await mirroredRelic.AfterObtained();
-                LocalMultiControlLogger.Info($"Local multi-control shared relic sync: {obtainedRelic.Id.Entry}, {player.NetId} -> {otherPlayer.NetId}");
+                ModLog.Info($"Local co-op shared relic sync: {obtainedRelic.Id.Entry}, {player.NetId} -> {otherPlayer.NetId}");
             }
             catch (Exception exception)
             {
-                LocalMultiControlLogger.Warn($"Shared relic sync failed (obtain): target={otherPlayer.NetId}, error={exception.Message}");
+                ModLog.Warn($"Shared relic sync failed (obtain): target={otherPlayer.NetId}, error={exception.Message}");
             }
         }
 
@@ -175,11 +175,11 @@ internal static class RelicCmdRemovePatch
             {
                 otherPlayer.RemoveRelicInternal(mirroredRelic);
                 await mirroredRelic.AfterRemoved();
-                LocalMultiControlLogger.Info($"Local multi-control shared relic sync removal: {removedRelic.Id.Entry}, owner={otherPlayer.NetId}");
+                ModLog.Info($"Local co-op shared relic sync removal: {removedRelic.Id.Entry}, owner={otherPlayer.NetId}");
             }
             catch (Exception exception)
             {
-                LocalMultiControlLogger.Warn($"Shared relic sync failed (remove): target={otherPlayer.NetId}, error={exception.Message}");
+                ModLog.Warn($"Shared relic sync failed (remove): target={otherPlayer.NetId}, error={exception.Message}");
             }
         }
     }

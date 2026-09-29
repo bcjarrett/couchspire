@@ -1,10 +1,10 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Players;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(CombatManager), nameof(CombatManager.SetReadyToEndTurn))]
 internal static class CombatManagerPatch
@@ -26,7 +26,7 @@ internal static class CombatManagerPatch
         if (canBackOut)
         {
             canBackOut = false;
-            LocalMultiControlLogger.Info($"Local co-op mode disables turn rollback: player={player.NetId}");
+            ModLog.Info($"Local co-op mode disables turn rollback: player={player.NetId}");
         }
     }
 }

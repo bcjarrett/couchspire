@@ -1,10 +1,10 @@
 using System.Reflection;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NCombatCardPile), nameof(NCombatCardPile.Initialize))]
 internal static class NCombatCardPilePatch
@@ -39,7 +39,7 @@ internal static class NCombatCardPilePatch
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Failed to clean up pile listener while switching players: {exception.Message}");
+            ModLog.Warn($"Failed to clean up pile listener while switching players: {exception.Message}");
         }
     }
 }

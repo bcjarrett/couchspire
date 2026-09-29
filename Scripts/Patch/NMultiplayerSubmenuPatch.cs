@@ -1,12 +1,12 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect;
 using MegaCrit.Sts2.Core.Nodes.Screens.MainMenu;
 using MegaCrit.Sts2.Core.Saves;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NMultiplayerSubmenu), "StartLoad")]
 internal static class NMultiplayerSubmenuPatch
@@ -20,7 +20,7 @@ internal static class NMultiplayerSubmenuPatch
         }
 
         ulong primaryPlayerId = playerIds[0];
-        LocalMultiControlLogger.Info($"Detected a local multi-control save marker; attempting to continue the game: {string.Join(",", playerIds)}");
+        ModLog.Info($"Detected a local co-op save marker; attempting to continue the game: {string.Join(",", playerIds)}");
         LocalSelfCoopContext.UseSavedPlayerIds(playerIds);
 
         ReadSaveResult<SerializableRun> readSaveResult = SaveManager.Instance.LoadAndCanonicalizeMultiplayerRunSave(primaryPlayerId);
@@ -40,13 +40,13 @@ internal static class NMultiplayerSubmenuPatch
                 NModalContainer.Instance.ShowBackstop();
             }
 
-            LocalMultiControlLogger.Warn("Failed to read the local multi-control save; showed the corrupted-save popup.");
+            ModLog.Warn("Failed to read the local co-op save; showed the corrupted-save popup.");
             return false;
         }
 
         if (!LocalSelfCoopContext.IsSaveOwnedByLocalSelfCoop(readSaveResult.SaveData))
         {
-            LocalMultiControlLogger.Warn("Detected that save player IDs don't match the local multi-control marker; falling back to the native multiplayer load flow.");
+            ModLog.Warn("Detected that save player IDs don't match the local co-op marker; falling back to the native multiplayer load flow.");
             LocalSelfCoopSaveTag.ClearCurrentProfile();
             return true;
         }
@@ -54,7 +54,7 @@ internal static class NMultiplayerSubmenuPatch
         NSubmenuStack? stack = AccessTools.Field(typeof(NSubmenu), "_stack")?.GetValue(__instance) as NSubmenuStack;
         if (stack == null)
         {
-            LocalMultiControlLogger.Warn("Submenu stack not found; falling back to the native multiplayer load flow.");
+            ModLog.Warn("Submenu stack not found; falling back to the native multiplayer load flow.");
             return true;
         }
 
@@ -63,7 +63,7 @@ internal static class NMultiplayerSubmenuPatch
         NMultiplayerLoadGameScreen loadGameScreen = stack.GetSubmenuType<NMultiplayerLoadGameScreen>();
         loadGameScreen.InitializeAsHost(netService, readSaveResult.SaveData);
         stack.Push(loadGameScreen);
-        LocalMultiControlLogger.Info("Opened the multiplayer load screen using the local loopback service.");
+        ModLog.Info("Opened the multiplayer load screen using the local loopback service.");
         return false;
     }
 }

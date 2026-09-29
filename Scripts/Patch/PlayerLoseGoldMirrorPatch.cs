@@ -1,10 +1,10 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Gold;
 using MegaCrit.Sts2.Core.Entities.Players;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(PlayerCmd), nameof(PlayerCmd.LoseGold))]
 internal static class PlayerLoseGoldMirrorPatch
@@ -44,7 +44,7 @@ internal static class PlayerLoseGoldMirrorPatch
                 await PlayerCmd.LoseGold(amount, otherPlayer, goldLossType);
             }
 
-            LocalMultiControlLogger.Info(
+            ModLog.Info(
                 $"Crystal Sphere event gold expenditure mirrored to the other players: amount={amount}, owner={sourcePlayer.NetId}, mirrored={string.Join(",", otherPlayers.Select((player) => player.NetId))}");
         }
         finally

@@ -1,10 +1,10 @@
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NCombatRoom), "OnCombatSetUp")]
 internal static class NCombatRoomPatch
@@ -17,17 +17,17 @@ internal static class NCombatRoomPatch
             return;
         }
 
-        LocalMultiControlRuntime.SwitchControlledPlayerTo(LocalSelfCoopContext.PrimaryPlayerId, "combat-setup");
-        LocalMultiControlRuntime.RefreshSharedTopBarForCombat("combat-setup");
-        LocalMultiControlRuntime.RefreshCombatEnergyForCurrentPlayer("combat-setup");
+        LocalControlRuntime.SwitchControlledPlayerTo(LocalSelfCoopContext.PrimaryPlayerId, "combat-setup");
+        LocalControlRuntime.RefreshSharedTopBarForCombat("combat-setup");
+        LocalControlRuntime.RefreshCombatEnergyForCurrentPlayer("combat-setup");
         Callable.From(delegate
         {
-            LocalMultiControlRuntime.RefreshSharedTopBarForCombat("combat-setup-deferred");
-            LocalMultiControlRuntime.RefreshCombatEnergyForCurrentPlayer("combat-setup-deferred");
+            LocalControlRuntime.RefreshSharedTopBarForCombat("combat-setup-deferred");
+            LocalControlRuntime.RefreshCombatEnergyForCurrentPlayer("combat-setup-deferred");
 
             Callable.From(delegate
             {
-                LocalMultiControlRuntime.RefreshCombatEnergyForCurrentPlayer("combat-setup-deferred-2");
+                LocalControlRuntime.RefreshCombatEnergyForCurrentPlayer("combat-setup-deferred-2");
             }).CallDeferred();
         }).CallDeferred();
     }

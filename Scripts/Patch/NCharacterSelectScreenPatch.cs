@@ -1,5 +1,5 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models.Characters;
@@ -7,7 +7,7 @@ using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NCharacterSelectScreen), nameof(NCharacterSelectScreen.OnSubmenuOpened))]
 internal static class NCharacterSelectScreenOpenPatch
@@ -52,7 +52,7 @@ internal static class NCharacterSelectScreenSelectCharacterPatch
             return true;
         }
 
-        LocalMultiControlLogger.Warn("Local multi-control currently disables the random character: risk of missing random resources detected.");
+        ModLog.Warn("Local co-op currently disables the random character: risk of missing random resources detected.");
         NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(LocalModText.RandomCharacterNotSupported));
         return false;
     }

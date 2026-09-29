@@ -10,7 +10,7 @@ using MegaCrit.Sts2.Core.Multiplayer.Transport;
 using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Runtime;
+namespace CouchSpire.Scripts.Runtime;
 
 internal sealed class LocalLoopbackHostGameService : INetHostGameService
 {
@@ -28,7 +28,7 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
     {
         _currentSenderId = hostPlayerId;
         IsConnected = true;
-        LocalMultiControlLogger.Info($"Created local loopback network service, initial sender={_currentSenderId}");
+        ModLog.Info($"Created local loopback network service, initial sender={_currentSenderId}");
     }
 
     public ulong NetId => _currentSenderId;
@@ -69,14 +69,14 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
             return;
         }
 
-        LocalMultiControlLogger.Info($"sender switch: {_currentSenderId} -> {playerId}");
+        ModLog.Info($"sender switch: {_currentSenderId} -> {playerId}");
         _currentSenderId = playerId;
     }
 
     public void SendMessage<T>(T message, ulong playerId) where T : INetMessage
     {
         AlignSenderWithLocalContext();
-        LocalMultiControlLogger.Info($"Local loopback directed message send: {typeof(T).Name}, sender={_currentSenderId}, target={playerId}");
+        ModLog.Info($"Local loopback directed message send: {typeof(T).Name}, sender={_currentSenderId}, target={playerId}");
     }
 
     public void SendMessage<T>(T message) where T : INetMessage
@@ -84,7 +84,7 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
         AlignSenderWithLocalContext();
         if (message is not PeerInputMessage)
         {
-            LocalMultiControlLogger.Info($"Local loopback broadcast message: {typeof(T).Name}, sender={_currentSenderId}");
+            ModLog.Info($"Local loopback broadcast message: {typeof(T).Name}, sender={_currentSenderId}");
         }
 
         TryDispatchSyntheticLocalPlayerSync(message);
@@ -116,18 +116,18 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
         if (_isBufferingMessages && message.ShouldBuffer)
         {
             _bufferedDispatches.Add(() => DispatchLoopback(message, senderId));
-            LocalMultiControlLogger.Info($"Local loopback message entered buffer: {typeof(T).Name}, sender={senderId}, buffered={_bufferedDispatches.Count}");
+            ModLog.Info($"Local loopback message entered buffer: {typeof(T).Name}, sender={senderId}, buffered={_bufferedDispatches.Count}");
             return;
         }
 
         Type messageType = typeof(T);
         if (!_handlers.TryGetValue(messageType, out List<Delegate>? handlers) || handlers.Count == 0)
         {
-            LocalMultiControlLogger.Info($"Local loopback message dispatch: {messageType.Name}, sender={senderId}, handlers=0");
+            ModLog.Info($"Local loopback message dispatch: {messageType.Name}, sender={senderId}, handlers=0");
             return;
         }
 
-        LocalMultiControlLogger.Info($"Local loopback message dispatch: {messageType.Name}, sender={senderId}, handlers={handlers.Count}");
+        ModLog.Info($"Local loopback message dispatch: {messageType.Name}, sender={senderId}, handlers={handlers.Count}");
         foreach (Delegate handler in handlers)
         {
             if (handler is MessageHandlerDelegate<T> typedHandler)
@@ -149,7 +149,7 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
         }
 
         IsConnected = false;
-        LocalMultiControlLogger.Info($"Local loopback network disconnected: reason={reason}, now={now}");
+        ModLog.Info($"Local loopback network disconnected: reason={reason}, now={now}");
         Disconnected?.Invoke(new NetErrorInfo(reason, selfInitiated: true));
     }
 
@@ -161,7 +161,7 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
     public void SetGameLoading(bool isLoading)
     {
         IsGameLoading = isLoading;
-        LocalMultiControlLogger.Info($"Local loopback loading state updated: {isLoading}");
+        ModLog.Info($"Local loopback loading state updated: {isLoading}");
     }
 
     public void SetBufferMessages(bool bufferMessages)
@@ -174,13 +174,13 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
         _isBufferingMessages = bufferMessages;
         if (bufferMessages)
         {
-            LocalMultiControlLogger.Info("Local loopback started buffering messages");
+            ModLog.Info("Local loopback started buffering messages");
             return;
         }
 
         List<Action> bufferedDispatches = new(_bufferedDispatches);
         _bufferedDispatches.Clear();
-        LocalMultiControlLogger.Info($"Local loopback flushed buffered messages: count={bufferedDispatches.Count}");
+        ModLog.Info($"Local loopback flushed buffered messages: count={bufferedDispatches.Count}");
         foreach (Action dispatch in bufferedDispatches)
         {
             dispatch();
@@ -189,12 +189,12 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
 
     public string? GetRawLobbyIdentifier()
     {
-        return "local-self-coop";
+        return "couchspire-local";
     }
 
     public void DisconnectClient(ulong peerId, NetError reason, bool now = false)
     {
-        LocalMultiControlLogger.Warn($"Local loopback request to disconnect client was ignored: peer={peerId}, reason={reason}, now={now}");
+        ModLog.Warn($"Local loopback request to disconnect client was ignored: peer={peerId}, reason={reason}, now={now}");
         ClientDisconnected?.Invoke(peerId, new NetErrorInfo(reason, selfInitiated: true));
     }
 
@@ -205,7 +205,7 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
 
     public void SetPeerReadyForBroadcasting(ulong peerId)
     {
-        LocalMultiControlLogger.Info($"Local loopback set broadcast ready (placeholder): peer={peerId}");
+        ModLog.Info($"Local loopback set broadcast ready (placeholder): peer={peerId}");
         ClientConnected?.Invoke(peerId);
     }
 
@@ -240,7 +240,7 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
 
         if (dispatchCount > 0)
         {
-            LocalMultiControlLogger.Info($"Local loopback injected additional player sync messages: count={dispatchCount}");
+            ModLog.Info($"Local loopback injected additional player sync messages: count={dispatchCount}");
         }
     }
 

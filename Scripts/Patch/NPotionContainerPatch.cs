@@ -1,12 +1,12 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Potions;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NPotionContainer), nameof(NPotionContainer.AnimatePotion))]
 internal static class NPotionContainerPatch
@@ -25,12 +25,12 @@ internal static class NPotionContainerPatch
             ulong targetPlayerId = LocalContext.NetId ?? LocalSelfCoopContext.PrimaryPlayerId;
             if (!TryBindPotionContainerToPlayer(__instance, runState, targetPlayerId))
             {
-                LocalMultiControlLogger.Warn($"Potion bar initialization failed: target player {targetPlayerId} not found.");
+                ModLog.Warn($"Potion bar initialization failed: target player {targetPlayerId} not found.");
             }
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Failed to rebuild potion bar: {exception.Message}");
+            ModLog.Warn($"Failed to rebuild potion bar: {exception.Message}");
         }
     }
 
@@ -46,7 +46,7 @@ internal static class NPotionContainerPatch
         NPotionHolder? holder = holders?.FirstOrDefault((node) => node.Potion != null && node.Potion.Model == potion);
         if (holder?.Potion == null)
         {
-            LocalMultiControlLogger.Warn($"Skipping potion animation: potion {potion.Id.Entry} does not exist in the current view");
+            ModLog.Warn($"Skipping potion animation: potion {potion.Id.Entry} does not exist in the current view");
             return false;
         }
 
@@ -92,7 +92,7 @@ internal static class NPotionContainerPatch
             AccessTools.Method(typeof(NPotionContainer), "Add")?.Invoke(potionContainer, new object[] { ownedPotion, true });
         }
 
-        LocalMultiControlLogger.Info($"Potion bar rebuilt for the target player: player={targetPlayer.NetId}, slotCount={targetPlayer.MaxPotionCount}");
+        ModLog.Info($"Potion bar rebuilt for the target player: player={targetPlayer.NetId}, slotCount={targetPlayer.MaxPotionCount}");
         return true;
     }
 }

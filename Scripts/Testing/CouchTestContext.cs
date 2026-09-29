@@ -1,8 +1,8 @@
 #if COUCHSPIRE_TESTS
 using System.Threading;
 using Godot;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.AutoSlay;
 using MegaCrit.Sts2.Core.AutoSlay.Helpers;
 using MegaCrit.Sts2.Core.Context;
@@ -12,7 +12,7 @@ using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Testing;
+namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
 /// Raised by <see cref="CouchTestContext.Expect"/> (and a few internal checks) to abort the current scenario.

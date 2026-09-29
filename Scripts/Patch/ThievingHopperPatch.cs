@@ -1,10 +1,10 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Models.Monsters;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(ThievingHopper), "ThieveryMove")]
 internal static class ThievingHopperPatch
@@ -20,7 +20,7 @@ internal static class ThievingHopperPatch
         Creature? selectedTarget = LocalContext.GetMe(targets);
         if (selectedTarget == null)
         {
-            ulong? currentPlayerId = LocalMultiControlRuntime.SessionState.CurrentControlledPlayerId;
+            ulong? currentPlayerId = LocalControlRuntime.SessionState.CurrentControlledPlayerId;
             if (currentPlayerId.HasValue)
             {
                 selectedTarget = targets.FirstOrDefault(
@@ -30,6 +30,6 @@ internal static class ThievingHopperPatch
 
         selectedTarget ??= targets.FirstOrDefault((creature) => creature.IsAlive) ?? targets[0];
         targets = new List<Creature> { selectedTarget };
-        LocalMultiControlLogger.Info($"Thieving Hopper card-steal target narrowed to a single player: target={selectedTarget.Player?.NetId ?? selectedTarget.PetOwner?.NetId ?? 0UL}");
+        ModLog.Info($"Thieving Hopper card-steal target narrowed to a single player: target={selectedTarget.Player?.NetId ?? selectedTarget.PetOwner?.NetId ?? 0UL}");
     }
 }

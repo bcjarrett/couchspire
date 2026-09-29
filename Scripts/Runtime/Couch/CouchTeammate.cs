@@ -3,7 +3,7 @@ using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// Simultaneous-combat rules: during combat the driver (<see cref="LocalContext.NetId"/>) keeps the main screen and
@@ -44,7 +44,7 @@ internal static class CouchTeammate
         }
 
         RunState? runState = RunManager.Instance.DebugOnlyGetState();
-        return LocalMultiControlRuntime.SessionState.OrderedPlayerIds
+        return LocalControlRuntime.SessionState.OrderedPlayerIds
             .Where((ulong id) => id != LocalContext.NetId)
             .Select((ulong id) => runState?.GetPlayer(id))
             .FirstOrDefault((Player? p) => p != null && p.Creature.IsAlive);

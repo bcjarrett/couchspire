@@ -1,5 +1,5 @@
 #if COUCHSPIRE_TESTS
-namespace LocalMultiControl.Scripts.Testing;
+namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
 /// Mod log lines that signal a real problem even when logged below Error level (docs/design/testing-plan.md §6.5).
@@ -16,10 +16,10 @@ internal static class CouchTestLogPatterns
         // Scripts/Patch/UsePotionActionWatchdogPatch.cs:31
         ("waited for selection over", "potion-use watchdog fired: a potion action waited too long for its selection"),
 
-        // Scripts/Runtime/LocalMultiControlRuntime.cs (RecordFlowBlockSignal)
+        // Scripts/Runtime/LocalControlRuntime.cs (RecordFlowBlockSignal)
         ("Flow-block watchdog:", "flow-block watchdog fired: repeated signals that a player's turn/flow is stuck"),
 
-        // Scripts/Runtime/LocalMultiControlRuntime.cs (ApplyControlContext)
+        // Scripts/Runtime/LocalControlRuntime.cs (ApplyControlContext)
         ("Control context switch rolled back:", "a control-context switch had to be rolled back after a combat UI refresh failure"),
 
         // Scripts/Runtime/Couch/CouchInputRouter.cs:210
@@ -40,7 +40,7 @@ internal static class CouchTestLogPatterns
         // internals were renamed/removed.
         ("CombatTurnState members not found", "patch drift: CombatManager's internal turn-state members were not found by reflection"),
 
-        // Scripts/Runtime/LocalMultiControlRuntime.cs (AlignContextForActionOwner)
+        // Scripts/Runtime/LocalControlRuntime.cs (AlignContextForActionOwner)
         ("Detected manual card-play context drift", "the mod detected and corrected a wrong action-owner context (a real wrong-player symptom upstream)"),
     };
 

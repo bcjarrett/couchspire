@@ -1,6 +1,6 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Rewards;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Rewards;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Nodes.Screens;
@@ -9,7 +9,7 @@ using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.TestSupport;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 /// <summary>
 /// Post-combat reward rework: independently generates rewards for each player (using the base game's RewardsSet logic),
@@ -32,7 +32,7 @@ internal static class RewardsCmdPatch
 
         if (!CombatRewardMergeContext.TryMarkRoomMerged(room))
         {
-            LocalMultiControlLogger.Info($"Detected a duplicate post-combat reward call; ignored: player={player.NetId}, room={room.RoomType}");
+            ModLog.Info($"Detected a duplicate post-combat reward call; ignored: player={player.NetId}, room={room.RoomType}");
             __result = Task.CompletedTask;
             return false;
         }
@@ -89,13 +89,13 @@ internal static class RewardsCmdPatch
             }
 
             mergedRewards.AddRange(perPlayerSet.Rewards);
-            LocalMultiControlLogger.Info(
+            ModLog.Info(
                 $"Per-player independent reward generated: player={player.NetId}, rewardCount={perPlayerSet.Rewards.Count}");
         }
 
         // Switch to the first surviving player's control context to display the reward screen
         Player? displayPlayer = allPlayers.FirstOrDefault((p) => p.Creature?.IsDead != true) ?? allPlayers[0];
-        LocalMultiControlRuntime.SwitchControlledPlayerTo(displayPlayer.NetId, "merged-rewards-offer");
+        LocalControlRuntime.SwitchControlledPlayerTo(displayPlayer.NetId, "merged-rewards-offer");
         RewardsSet displaySet = new RewardsSet(displayPlayer).WithCustomRewards(mergedRewards);
 
         if (TestMode.IsOn)

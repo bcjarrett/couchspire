@@ -30,7 +30,7 @@ export DOTNET_CLI_TELEMETRY_OPTOUT=1
 
 build() {
   echo "==> Building $MOD_ID ($CONFIG)"
-  dotnet build "$ROOT/LocalMultiControl.csproj" -c "$CONFIG" -nologo -v quiet
+  dotnet build "$ROOT/CouchSpire.csproj" -c "$CONFIG" -nologo -v quiet
   test -f "$ROOT/$MOD_ID.dll"
 }
 
@@ -235,7 +235,7 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       ;;
     logs)
       host="$(remote_host "${2:-}" logs)"
-      ssh -t "$host" "tail -n 200 -F \"$REMOTE_LOG\" | grep --line-buffered -E '\\[Couch\\]|LocalMultiControl.*(Harmony|Mod |loaded)|ERROR|Exception'"
+      ssh -t "$host" "tail -n 200 -F \"$REMOTE_LOG\" | grep --line-buffered -E '\\[Couch\\]|CouchSpire.*(Harmony|Mod |loaded)|ERROR|Exception'"
       ;;
     test)
       if [ "$(uname -s)" != "Darwin" ]; then

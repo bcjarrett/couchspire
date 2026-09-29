@@ -2,7 +2,7 @@
 using System.Reflection;
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Entities.RestSite;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Cards;
@@ -12,7 +12,7 @@ using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 
-namespace LocalMultiControl.Scripts.Testing;
+namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
 /// Rest-site-area helpers for the <c>rest_site</c> scenario (docs/design/testing-plan.md §6.9). P1 rests through the
@@ -307,7 +307,7 @@ internal sealed partial class CouchTestContext
     /// <summary>
     /// One-time model-vs-pixels validation (senior review round 4): logs the left ("before") preview card's
     /// computed global rect from <see cref="CouchColumnFloor"/>'s sibling model in
-    /// <see cref="LocalMultiControl.Scripts.Testing.CouchTestLayout.NCardGlobalBounds"/>-equivalent terms (mirrored
+    /// <see cref="CouchSpire.Scripts.Testing.CouchTestLayout.NCardGlobalBounds"/>-equivalent terms (mirrored
     /// here rather than called directly, since that method is private), converted to the actual screenshot pixel
     /// space (the mod's logical UI runs at <c>ExpectedViewport</c>, e.g. 1920x1080, but the saved PNG is the
     /// window's own size, e.g. 1600x900) - so the number in the log can be checked by eye against where the card's

@@ -25,12 +25,12 @@ Requirements: .NET SDK 9 (`brew install dotnet@9` on macOS) and a Slay the Spire
 ./deploy.sh logs user@bazzite     # follow the couch lines of the remote game log
 ```
 
-The game path is detected per OS in `LocalMultiControl.csproj`. Override it with `-p:Sts2Dir=...`. A manual install copies `CouchSpire.dll` and `CouchSpire.json` to `<game>/mods/CouchSpire/`.
+The game path is detected per OS in `CouchSpire.csproj`. Override it with `-p:Sts2Dir=...`. A manual install copies `CouchSpire.dll` and `CouchSpire.json` to `<game>/mods/CouchSpire/`.
 
 Style gate:
 
 ```bash
-dotnet format LocalMultiControl.csproj --verify-no-changes
+dotnet format CouchSpire.csproj --verify-no-changes
 ```
 
 For game-API reference, decompile `sts2.dll` into `src/`. It is gitignored and read-only:

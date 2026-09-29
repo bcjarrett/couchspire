@@ -1,11 +1,11 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(RelicSelectCmd), "ShouldSelectLocalRelic")]
 internal static class RelicSelectCmdPatch
@@ -30,7 +30,7 @@ internal static class RelicSelectCmdPatch
         }
 
         __result = true;
-        LocalMultiControlLogger.Info($"Local co-op mode forces local handling of relic selection: player={player.NetId}");
+        ModLog.Info($"Local co-op mode forces local handling of relic selection: player={player.NetId}");
         return false;
     }
 }

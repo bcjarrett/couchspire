@@ -1,6 +1,6 @@
 using Godot;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 internal enum CouchDeviceSource
 {

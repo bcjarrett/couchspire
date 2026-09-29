@@ -1,12 +1,12 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer.Game.PeerInput;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Screens.TreasureRoomRelic;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NHandImageCollection), "UpdateHandVisibility")]
 internal static class NHandImageCollectionUpdateVisibilityPatch
@@ -85,7 +85,7 @@ internal static class NHandImageCollectionUpdateVisibilityPatch
         }
         catch (InvalidOperationException exception) when (exception.Message.Contains("PeerInputState for non-existent player"))
         {
-            LocalMultiControlLogger.Warn($"Treasure room gesture layer skipping player with missing input state: player={playerId}");
+            ModLog.Warn($"Treasure room gesture layer skipping player with missing input state: player={playerId}");
             screenType = default;
             return false;
         }

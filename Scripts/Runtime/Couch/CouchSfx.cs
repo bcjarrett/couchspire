@@ -1,7 +1,7 @@
 using MegaCrit.Sts2.Core.Audio.Debug;
 using MegaCrit.Sts2.Core.Commands;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// Sounds for the teammate's own UI and for what happens to the teammate. The game plays most feedback sounds only for

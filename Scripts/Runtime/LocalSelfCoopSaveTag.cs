@@ -1,6 +1,6 @@
 using MegaCrit.Sts2.Core.Saves;
 
-namespace LocalMultiControl.Scripts.Runtime;
+namespace CouchSpire.Scripts.Runtime;
 
 /// <summary>
 /// A marker file next to the multiplayer save that says the run belongs to local co-op, and which two player ids it
@@ -20,17 +20,17 @@ internal static class LocalSelfCoopSaveTag
             List<ulong> ids = playerIds.Where((id) => id != 0).Distinct().ToList();
             if (ids.Count != LocalSelfCoopContext.PlayerCount)
             {
-                LocalMultiControlLogger.Warn($"Save tag not written: expected {LocalSelfCoopContext.PlayerCount} player ids, got [{string.Join(",", ids)}].");
+                ModLog.Warn($"Save tag not written: expected {LocalSelfCoopContext.PlayerCount} player ids, got [{string.Join(",", ids)}].");
                 return;
             }
 
             string serialized = $"{V3Prefix}players={string.Join(",", ids)}";
             CreateFileIo().WriteFile(SaveTagFileName, serialized);
-            LocalMultiControlLogger.Info($"Save tag written: {serialized}");
+            ModLog.Info($"Save tag written: {serialized}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Save tag write failed: {exception.Message}");
+            ModLog.Warn($"Save tag write failed: {exception.Message}");
         }
     }
 
@@ -42,12 +42,12 @@ internal static class LocalSelfCoopSaveTag
             if (fileIo.FileExists(SaveTagFileName))
             {
                 fileIo.DeleteFile(SaveTagFileName);
-                LocalMultiControlLogger.Info("Save tag cleared.");
+                ModLog.Info("Save tag cleared.");
             }
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Save tag clear failed: {exception.Message}");
+            ModLog.Warn($"Save tag clear failed: {exception.Message}");
         }
     }
 
@@ -67,7 +67,7 @@ internal static class LocalSelfCoopSaveTag
             playerIds = ParseIds(ExtractPlayersSection(content));
             if (playerIds.Count != LocalSelfCoopContext.PlayerCount)
             {
-                LocalMultiControlLogger.Warn($"Save tag ignored: CouchSpire runs have {LocalSelfCoopContext.PlayerCount} players (tag: {content}).");
+                ModLog.Warn($"Save tag ignored: CouchSpire runs have {LocalSelfCoopContext.PlayerCount} players (tag: {content}).");
                 playerIds.Clear();
                 return false;
             }
@@ -76,7 +76,7 @@ internal static class LocalSelfCoopSaveTag
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Save tag read failed: {exception.Message}");
+            ModLog.Warn($"Save tag read failed: {exception.Message}");
             return false;
         }
     }

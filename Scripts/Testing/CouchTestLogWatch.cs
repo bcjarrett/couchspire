@@ -1,7 +1,7 @@
 #if COUCHSPIRE_TESTS
 using MegaCrit.Sts2.Core.Logging;
 
-namespace LocalMultiControl.Scripts.Testing;
+namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
 /// Subscribes to <see cref="Log.LogCallback"/> for the lifetime of one scenario (docs/design/testing-plan.md §6.5).

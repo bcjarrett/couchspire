@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.AutoSlay;
 using MegaCrit.Sts2.Core.AutoSlay.Helpers;
 using MegaCrit.Sts2.Core.Nodes;
@@ -24,7 +24,7 @@ using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Settings;
 
-namespace LocalMultiControl.Scripts.Testing;
+namespace CouchSpire.Scripts.Testing;
 
 /// <summary>One aspect ratio pass a scenario can run at (docs/design/testing-plan.md §6.5.3, §8.1 spike facts).</summary>
 internal readonly record struct CouchTestAspectPass(string Label, AspectRatioSetting Setting, Vector2I WindowSize, Vector2I ExpectedViewport);
@@ -393,7 +393,7 @@ internal static class CouchTestLayout
     /// itself once its own animation finishes (confirmed in the decompiled source: none of their durations are
     /// shortened by FastMode.Instant either), so its mere presence in the tree means it's still showing;</item>
     /// <item>the mod's own "Controlled Character: Player N" notice (<see cref="NFullscreenTextVfx"/>, created by
-    /// <c>LocalMultiControlRuntime</c> from <see cref="LocalMultiControl.Scripts.Runtime.LocalModText.ControlledSlot"/>)
+    /// <c>LocalControlRuntime</c> from <see cref="CouchSpire.Scripts.Runtime.LocalModText.ControlledSlot"/>)
     /// — same self-freeing shape (a 500ms <c>Task.Delay</c> then <c>QueueFreeSafely</c>);</item>
     /// <item>two game tweens confirmed against a real run to leave the screen visibly mid-fade well after
     /// <see cref="NOverlayStack"/>'s own top/count already read as settled, which is exactly the kind of thing the

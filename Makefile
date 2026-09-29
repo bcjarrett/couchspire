@@ -1,6 +1,6 @@
 .PHONY: check build format pr attach-release steam-upload
 
-PROJECT := LocalMultiControl.csproj
+PROJECT := CouchSpire.csproj
 
 # Build + format-check. Run before opening a release PR — this is the "test" step; the
 # self-hosted CI runner has no game install, so it can only do versioning/tagging, not this.

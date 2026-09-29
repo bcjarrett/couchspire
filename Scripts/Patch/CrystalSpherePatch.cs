@@ -1,10 +1,10 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Models.Cards;
 using MegaCrit.Sts2.Core.Models.Events;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(CrystalSphere), "PaymentPlan")]
 internal static class CrystalSpherePaymentPlanPatch
@@ -41,7 +41,7 @@ internal static class CrystalSpherePaymentPlanPatch
                 await CardPileCmd.AddCurseToDeck<Debt>(otherPlayer);
             }
 
-            LocalMultiControlLogger.Info(
+            ModLog.Info(
                 $"Crystal Sphere event debt card has been synced to the other players: owner={owner.NetId}, mirrored={string.Join(",", otherPlayers.Select((player) => player.NetId))}");
         }
         finally

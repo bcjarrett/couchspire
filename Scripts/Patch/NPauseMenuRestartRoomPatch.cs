@@ -1,6 +1,6 @@
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.PauseMenu;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NPauseMenu), nameof(NPauseMenu._Ready))]
 internal static class NPauseMenuRestartRoomPatch
@@ -48,7 +48,7 @@ internal static class NPauseMenuRestartRoomPatch
             NPauseMenuButton? restartRoomButton = saveAndQuitButton.Duplicate((int)duplicateFlags) as NPauseMenuButton;
             if (restartRoomButton == null)
             {
-                LocalMultiControlLogger.Warn("Failed to duplicate the ESC menu restart button.");
+                ModLog.Warn("Failed to duplicate the ESC menu restart button.");
                 return;
             }
 
@@ -63,11 +63,11 @@ internal static class NPauseMenuRestartRoomPatch
             buttonContainer.AddChild(restartRoomButton);
             buttonContainer.MoveChild(restartRoomButton, saveAndQuitButton.GetIndex());
             RefreshFocusNeighbors(buttonContainer);
-            LocalMultiControlLogger.Info("Injected the ESC restart room button.");
+            ModLog.Info("Injected the ESC restart room button.");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Error($"Failed to inject the ESC restart room button: {exception}");
+            ModLog.Error($"Failed to inject the ESC restart room button: {exception}");
         }
     }
 
@@ -122,11 +122,11 @@ internal static class NPauseMenuRestartRoomPatch
             LocalSelfCoopSaveTag.MarkCurrentProfile(LocalSelfCoopContext.LocalPlayerIds);
             LocalSelfCoopContext.Disable("pause-restart-room");
 
-            LocalMultiControlLogger.Info("Received an ESC restart room request; preparing to return to the main menu and quick-load.");
+            ModLog.Info("Received an ESC restart room request; preparing to return to the main menu and quick-load.");
             NGame? game = NGame.Instance;
             if (game == null)
             {
-                LocalMultiControlLogger.Warn("Quick restart failed: NGame.Instance is null.");
+                ModLog.Warn("Quick restart failed: NGame.Instance is null.");
                 _isRestarting = false;
                 return;
             }
@@ -141,7 +141,7 @@ internal static class NPauseMenuRestartRoomPatch
         catch (Exception exception)
         {
             _isRestarting = false;
-            LocalMultiControlLogger.Error($"ESC restart room failed: {exception}");
+            ModLog.Error($"ESC restart room failed: {exception}");
         }
         finally
         {

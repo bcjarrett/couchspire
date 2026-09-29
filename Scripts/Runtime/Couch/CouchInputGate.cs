@@ -1,6 +1,6 @@
 using Godot;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// First stop for every input event. Godot calls <c>_Input</c> in reverse tree order, so this node keeps

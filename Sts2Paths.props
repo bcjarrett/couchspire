@@ -1,6 +1,6 @@
 <Project>
   <!--
-    Slay the Spire 2 install/data directory detection, shared by LocalMultiControl.csproj
+    Slay the Spire 2 install/data directory detection, shared by CouchSpire.csproj
     (Godot.NET.Sdk) and Tests/CouchSpire.Tests (plain Microsoft.NET.Sdk).
     Must stay Godot-agnostic: only plain MSBuild functions/properties here.
   -->

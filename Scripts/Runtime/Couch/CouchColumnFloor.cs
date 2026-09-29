@@ -9,14 +9,14 @@ using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// Finds P1's real, currently-visible action buttons — Proceed (rest site/treasure/shop/rewards) and the confirm/
 /// cancel buttons of a full-screen card-select overlay (e.g. the Smith upgrade grid) — so the shared P2 column can
 /// end a small margin above whichever sits highest, instead of the old hand-tuned clearance constants. This is the
 /// one place both the runtime panels (<see cref="CouchPanel.ColumnMaxY"/>) and the test's layout rule
-/// (<see cref="LocalMultiControl.Scripts.Testing.CouchTestLayout"/>) look these buttons up, so they can never drift
+/// (<see cref="CouchSpire.Scripts.Testing.CouchTestLayout"/>) look these buttons up, so they can never drift
 /// apart.
 /// </summary>
 internal static class CouchColumnFloor
@@ -203,7 +203,7 @@ internal static class CouchColumnFloor
     }
 
     /// <summary>One candidate button and whether it actually counted, for the one-time diagnostic
-    /// <see cref="LocalMultiControl.Scripts.Testing.CouchTestContext"/> logs at a checkpoint under review
+    /// <see cref="CouchSpire.Scripts.Testing.CouchTestContext"/> logs at a checkpoint under review
     /// (senior review round 2: "log which button CouchColumnFloor picked, its node path, IsVisibleInTree, and its
     /// global rect").</summary>
     public readonly record struct FloorCandidate(string Path, bool VisibleInTree, float Alpha, Rect2 GlobalRect, bool CountsTowardFloor);

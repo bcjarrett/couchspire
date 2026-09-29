@@ -1,9 +1,9 @@
 using Godot;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
-/// Logging for couch co-op code: the base mod's <c>[LocalMultiControl]</c> prefix plus <c>[Couch]</c>,
+/// Logging for couch co-op code: the base mod's <c>[CouchSpire]</c> prefix plus <c>[Couch]</c>,
 /// throttling for per-frame paths, and a short in-memory history for the debug overlay.
 /// </summary>
 internal static class CouchLog
@@ -18,19 +18,19 @@ internal static class CouchLog
 
     public static void Info(string message)
     {
-        LocalMultiControlLogger.Info($"[Couch] {message}");
+        ModLog.Info($"[Couch] {message}");
     }
 
     public static void Warn(string message)
     {
-        LocalMultiControlLogger.Warn($"[Couch] {message}");
+        ModLog.Warn($"[Couch] {message}");
     }
 
     public static void Probe(string message)
     {
         if (CouchConfig.ProbeEnabled)
         {
-            LocalMultiControlLogger.Info($"[Couch][Probe] {message}");
+            ModLog.Info($"[Couch][Probe] {message}");
         }
     }
 

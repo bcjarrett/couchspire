@@ -1,8 +1,8 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 /// <summary>
 /// Couch co-op: the driver can't leave the reward screen while the teammate is still taking rewards in their panel.

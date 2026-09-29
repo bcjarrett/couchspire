@@ -37,6 +37,6 @@ P2's keyboard block (for testing without a second controller) is listed in [COUC
 
 ## Troubleshooting
 
-- Log file: `%APPDATA%\SlayTheSpire2\logs\godot.log` on Windows, `~/.local/share/SlayTheSpire2/logs/godot.log` on Linux. Mod lines are prefixed `[LocalMultiControl]` and `[Couch]`.
+- Log file: `%APPDATA%\SlayTheSpire2\logs\godot.log` on Windows, `~/.local/share/SlayTheSpire2/logs/godot.log` on Linux. Mod lines are prefixed `[CouchSpire]` and `[Couch]`.
 - If something breaks, note the **act, room/screen, and exact steps**, and include the log when you report it.
 - Known issues are tracked in [TODO.md](TODO.md).

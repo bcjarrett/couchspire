@@ -1,8 +1,8 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.ControllerInput;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 /// <summary>
 /// Couch co-op: poll every Steam Input controller instead of only the first one.

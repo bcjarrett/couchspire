@@ -13,7 +13,7 @@
 set -euo pipefail
 
 MOD_ID="CouchSpire"
-PROJECT="LocalMultiControl.csproj"
+PROJECT="CouchSpire.csproj"
 MANIFEST="$MOD_ID.json"
 
 die() {

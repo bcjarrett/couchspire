@@ -1,8 +1,8 @@
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Rewards;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Rewards;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Nodes;
@@ -12,7 +12,7 @@ using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.TestSupport;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 // NOTE: since the Silken Tress fix, the PRIMARY merge point for post-combat rewards is
 // CombatRoomOfferRewardsPatch (CombatRoom.OfferRoomEndRewards), which generates each player's
@@ -36,7 +36,7 @@ internal static class RewardsSetPatch
         {
             if (!CombatRewardMergeContext.TryMarkRoomMerged(combatRoom))
             {
-                LocalMultiControlLogger.Info($"Detected a duplicate post-combat reward Offer call; ignored: player={__instance.Player.NetId}");
+                ModLog.Info($"Detected a duplicate post-combat reward Offer call; ignored: player={__instance.Player.NetId}");
                 __result = Task.CompletedTask;
                 return false;
             }
@@ -80,11 +80,11 @@ internal static class RewardsSetPatch
                 }
 
                 mergedRewards.AddRange(perPlayerSet.Rewards);
-                LocalMultiControlLogger.Info($"Per-player independent reward generated (Offer): player={player.NetId}, rewardCount={perPlayerSet.Rewards.Count}");
+                ModLog.Info($"Per-player independent reward generated (Offer): player={player.NetId}, rewardCount={perPlayerSet.Rewards.Count}");
             }
 
             Player displayPlayer = allPlayers.FirstOrDefault((p) => p.Creature?.IsDead != true) ?? allPlayers[0];
-            LocalMultiControlRuntime.SwitchControlledPlayerTo(displayPlayer.NetId, "merged-rewards-offer-from-rewardsset");
+            LocalControlRuntime.SwitchControlledPlayerTo(displayPlayer.NetId, "merged-rewards-offer-from-rewardsset");
             RewardsSet displaySet = new RewardsSet(displayPlayer).WithCustomRewards(mergedRewards);
 
             if (TestMode.IsOn)
@@ -139,11 +139,11 @@ internal static class RewardsSetPatch
                 return;
             }
 
-            LocalMultiControlLogger.Warn("No UI host for the teammate rewards panel; falling back to the main screen.");
+            ModLog.Warn("No UI host for the teammate rewards panel; falling back to the main screen.");
         }
 
-        LocalMultiControlRuntime.SwitchControlledPlayerTo(rewardsSet.Player.NetId, "rewards-offer");
-        LocalMultiControlLogger.Info($"Opening reward screen: player={rewardsSet.Player.NetId}, count={rewardsSet.Rewards.Count}");
+        LocalControlRuntime.SwitchControlledPlayerTo(rewardsSet.Player.NetId, "rewards-offer");
+        ModLog.Info($"Opening reward screen: player={rewardsSet.Player.NetId}, count={rewardsSet.Rewards.Count}");
         Task rewardsSetTask = RunManager.Instance.RewardsSetSynchronizer.BeginRewardsSet(rewardsSet);
 
         if (TestMode.IsOn)

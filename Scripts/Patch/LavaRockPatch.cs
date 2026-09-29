@@ -1,12 +1,12 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.Relics;
 using MegaCrit.Sts2.Core.Models.Relics;
 using MegaCrit.Sts2.Core.Rewards;
 using MegaCrit.Sts2.Core.Rooms;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(LavaRock), nameof(LavaRock.TryModifyRewards))]
 internal static class LavaRockPatch
@@ -60,8 +60,8 @@ internal static class LavaRockPatch
         lavaRock.Status = RelicStatus.Disabled;
 
         __result = true;
-        LocalMultiControlLogger.Info(
-            $"Local multi-control triggered the boss's extra relic per player for Lava Rock: rewardPlayer={player.NetId}, added={extraRelicCount}");
+        ModLog.Info(
+            $"Local co-op triggered the boss's extra relic per player for Lava Rock: rewardPlayer={player.NetId}, added={extraRelicCount}");
         return false;
     }
 }

@@ -1,12 +1,12 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(CardSelectCmd), "ShouldSelectLocalCard")]
 internal static class CardSelectCmdPatch
@@ -36,7 +36,7 @@ internal static class CardSelectCmdPatch
             return true;
         }
 
-        // Under local multi-control, all local players are treated as "local manual selection" to avoid event card removal/transformation falling into remote-wait-then-random-or-stuck behavior.
+        // Under local co-op, all local players are treated as "local manual selection" to avoid event card removal/transformation falling into remote-wait-then-random-or-stuck behavior.
         __result = RunManager.Instance.NetService.Type != NetGameType.Replay;
         return false;
     }
@@ -62,7 +62,7 @@ internal static class CardSelectCmdPatch
 
         if (!__result)
         {
-            LocalMultiControlLogger.Info($"Deck card selection forced to local manual selection: player={player.NetId}");
+            ModLog.Info($"Deck card selection forced to local manual selection: player={player.NetId}");
         }
 
         __result = true;

@@ -1,13 +1,13 @@
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Context;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Map;
 using MegaCrit.Sts2.Core.Models.Cards;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(OneOffSynchronizer), nameof(OneOffSynchronizer.DoLocalTreasureRoomRewards))]
 internal static class OneOffSynchronizerSpoilsMapPatch
@@ -69,14 +69,14 @@ internal static class OneOffSynchronizerSpoilsMapPatch
                 int gainedGold = await spoilsMap.OnQuestComplete();
                 totalGold += gainedGold;
                 syncedCount++;
-                LocalMultiControlLogger.Info($"Treasure room triggered spoils map resolution: player={player.NetId}, gold={gainedGold}");
+                ModLog.Info($"Treasure room triggered spoils map resolution: player={player.NetId}, gold={gainedGold}");
             }
 
-            LocalMultiControlLogger.Info($"Treasure room spoils map batch processing complete: processed={syncedCount}, players={runState.Players.Count}");
+            ModLog.Info($"Treasure room spoils map batch processing complete: processed={syncedCount}, players={runState.Players.Count}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Treasure room spoils map batch processing failed: {exception.Message}");
+            ModLog.Warn($"Treasure room spoils map batch processing failed: {exception.Message}");
         }
 
         return totalGold;

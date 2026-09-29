@@ -1,4 +1,4 @@
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// Sends teammate commands to whichever teammate UI is up: the card picker, the rewards panel, the event, rest site,

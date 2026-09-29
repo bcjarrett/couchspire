@@ -1,12 +1,12 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(PotionModel), nameof(PotionModel.EnqueueManualUse))]
 internal static class PotionManualUseTargetPatch
@@ -32,6 +32,6 @@ internal static class PotionManualUseTargetPatch
         }
 
         target = controlledPlayer.Creature;
-        LocalMultiControlLogger.Info($"Potion default target now follows the currently controlled player: potion={__instance.Id.Entry}, owner={__instance.Owner.NetId}, target={controlledPlayer.NetId}");
+        ModLog.Info($"Potion default target now follows the currently controlled player: potion={__instance.Id.Entry}, owner={__instance.Owner.NetId}, target={controlledPlayer.NetId}");
     }
 }

@@ -1,12 +1,12 @@
 #if COUCHSPIRE_TESTS
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Entities.Merchant;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Rooms;
 
-namespace LocalMultiControl.Scripts.Testing.Scenarios;
+namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
 /// docs/design/testing-plan.md §6.9, row `shop`: each player gets their own <see cref="MerchantInventory"/>

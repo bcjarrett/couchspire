@@ -12,7 +12,7 @@ using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Saves;
 using MegaCrit.Sts2.Core.Unlocks;
 
-namespace LocalMultiControl.Scripts.Runtime;
+namespace CouchSpire.Scripts.Runtime;
 
 /// <summary>
 /// Session-level state for a two-player local co-op run: the two local player ids, the loopback net service, and the
@@ -58,7 +58,7 @@ internal static class LocalSelfCoopContext
 
         ulong secondary = primary == ulong.MaxValue ? 1UL : primary + 1UL;
         ApplyLocalPlayerIds(new List<ulong> { primary, secondary });
-        LocalMultiControlLogger.Info($"Local player ids: {string.Join(",", _localPlayerIds)}");
+        ModLog.Info($"Local player ids: {string.Join(",", _localPlayerIds)}");
         return PrimaryPlayerId;
     }
 
@@ -68,13 +68,13 @@ internal static class LocalSelfCoopContext
         List<ulong> ids = playerIds.Where((id) => id != 0).Distinct().ToList();
         if (ids.Count != PlayerCount)
         {
-            LocalMultiControlLogger.Warn($"Ignoring saved player ids [{string.Join(",", playerIds)}]: need exactly {PlayerCount}.");
+            ModLog.Warn($"Ignoring saved player ids [{string.Join(",", playerIds)}]: need exactly {PlayerCount}.");
             return false;
         }
 
         ApplyLocalPlayerIds(ids);
         CurrentLobbyEditingPlayerId = PrimaryPlayerId;
-        LocalMultiControlLogger.Info($"Local player ids restored from save: {string.Join(",", _localPlayerIds)}");
+        ModLog.Info($"Local player ids restored from save: {string.Join(",", _localPlayerIds)}");
         return true;
     }
 
@@ -92,7 +92,7 @@ internal static class LocalSelfCoopContext
         ActiveCharacterSelectScreen = null;
         netService.SetCurrentSenderId(CurrentLobbyEditingPlayerId);
         LocalContext.NetId = CurrentLobbyEditingPlayerId;
-        LocalMultiControlLogger.Info("Local co-op enabled.");
+        ModLog.Info("Local co-op enabled.");
     }
 
     public static void Disable(string reason)
@@ -108,7 +108,7 @@ internal static class LocalSelfCoopContext
         ActiveCharacterSelectScreen = null;
         _pendingEventAutoSwitchPlayerId = null;
         _eventAutoSwitchPending = false;
-        LocalMultiControlLogger.Info($"Local co-op disabled: {reason}");
+        ModLog.Info($"Local co-op disabled: {reason}");
     }
 
     /// <summary>On character select, hands the lobby to the other player (Tab).</summary>
@@ -133,7 +133,7 @@ internal static class LocalSelfCoopContext
         if (previousPlayerId != CurrentLobbyEditingPlayerId)
         {
             string slotLabel = GetSlotLabel(CurrentLobbyEditingPlayerId);
-            LocalMultiControlLogger.Info($"Lobby editing player: {previousPlayerId} -> {CurrentLobbyEditingPlayerId} (P{slotLabel}, source={source})");
+            ModLog.Info($"Lobby editing player: {previousPlayerId} -> {CurrentLobbyEditingPlayerId} (P{slotLabel}, source={source})");
             NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(LocalModText.LobbyEditingSlot(slotLabel)));
         }
 
@@ -161,7 +161,7 @@ internal static class LocalSelfCoopContext
         EnsureLobbyEditingPlayerIsValid();
         NetService.SetCurrentSenderId(CurrentLobbyEditingPlayerId);
         LocalContext.NetId = CurrentLobbyEditingPlayerId;
-        LocalMultiControlLogger.Info($"Lobby sender: player={CurrentLobbyEditingPlayerId}, source={source}");
+        ModLog.Info($"Lobby sender: player={CurrentLobbyEditingPlayerId}, source={source}");
         return true;
     }
 
@@ -181,7 +181,7 @@ internal static class LocalSelfCoopContext
         }
 
         _pendingEventAutoSwitchPlayerId = playerId;
-        LocalMultiControlLogger.Info($"Event auto-switch requested: player={playerId}");
+        ModLog.Info($"Event auto-switch requested: player={playerId}");
     }
 
     public static bool ShouldQueueEventAutoSwitchAfterEventState(EventModel eventModel)
@@ -224,7 +224,7 @@ internal static class LocalSelfCoopContext
         StartRunLobby? lobby = GetLobby(characterSelectScreen);
         if (lobby == null)
         {
-            LocalMultiControlLogger.Warn("Lobby setup skipped: the lobby isn't initialized yet.");
+            ModLog.Warn("Lobby setup skipped: the lobby isn't initialized yet.");
             return false;
         }
 
@@ -252,7 +252,7 @@ internal static class LocalSelfCoopContext
         EnsureLobbySenderContext("bootstrap-local-players");
         SyncCharacterSelectHighlight();
         EnsureLobbyAscensionCapacity(lobby, "bootstrap-local-players");
-        LocalMultiControlLogger.Info($"Lobby set up with {lobby.Players.Count} players.");
+        ModLog.Info($"Lobby set up with {lobby.Players.Count} players.");
         return true;
     }
 
@@ -303,7 +303,7 @@ internal static class LocalSelfCoopContext
 
         if (changed)
         {
-            LocalMultiControlLogger.Info($"Ascension 0-{MaxLocalAscensionLevel} unlocked for the lobby (source={source}).");
+            ModLog.Info($"Ascension 0-{MaxLocalAscensionLevel} unlocked for the lobby (source={source}).");
         }
     }
 
@@ -389,7 +389,7 @@ internal static class LocalSelfCoopContext
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Character select highlight sync failed: {exception.Message}");
+            ModLog.Warn($"Character select highlight sync failed: {exception.Message}");
         }
         finally
         {

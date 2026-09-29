@@ -1,9 +1,9 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models.Relics;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(PaelsWing), nameof(PaelsWing.OnSacrifice))]
 internal static class PaelsWingPatch
@@ -42,7 +42,7 @@ internal static class PaelsWingPatch
             PendingOwnerNetIds.Add(owner.NetId);
         }
 
-        LocalMultiControlLogger.Info($"Pael's Wing sacrifice hit the relic threshold; registered as non-shared: owner={owner.NetId}");
+        ModLog.Info($"Pael's Wing sacrifice hit the relic threshold; registered as non-shared: owner={owner.NetId}");
     }
 
     internal static bool TryConsumePendingOwner(ulong ownerNetId)

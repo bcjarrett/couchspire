@@ -1,9 +1,9 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(LoadRunLobby), nameof(LoadRunLobby.SetReady))]
 internal static class LoadRunLobbyPatch
@@ -74,7 +74,7 @@ internal static class LoadRunLobbyPatch
         if (ready)
         {
             InvokeBeginRunIfAllPlayersReady(__instance);
-            LocalMultiControlLogger.Info($"Local multi-control save load auto-ready: players={string.Join(",", localPlayerIdsInRun)}");
+            ModLog.Info($"Local co-op save load auto-ready: players={string.Join(",", localPlayerIdsInRun)}");
         }
     }
 
@@ -92,6 +92,6 @@ internal static class LoadRunLobbyPatch
             return;
         }
 
-        LocalMultiControlLogger.Warn("Save-load auto-start failed: BeginRunIfAllPlayersReady/BeginRunForAllPlayersIfAllReady not found.");
+        ModLog.Warn("Save-load auto-start failed: BeginRunIfAllPlayersReady/BeginRunForAllPlayersIfAllReady not found.");
     }
 }

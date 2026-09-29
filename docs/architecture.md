@@ -11,7 +11,7 @@ Quick orientation for the "online multiplayer → local two-player co-op" implem
 ## Directory layout
 
 - `Scripts/Entry.cs` — mod entry point (`[ModInitializer]`), registers all Harmony patches via `PatchAll`.
-- `Scripts/Runtime/` — runtime state: multi-control context, control switching, loopback net service, UI helpers.
+- `Scripts/Runtime/` — runtime state: local-control context, control switching, loopback net service, UI helpers.
 - `Scripts/Patch/` — Harmony patches grouped by scene/system (lobby, combat, map, rewards, rest sites, shops, events, specific relics).
 - `Scripts/Runtime/Couch/` — couch co-op: controller seats, input routing, the teammate HUD and panels.
 - `Scripts/Rewards/` — supporting data types.
@@ -21,7 +21,7 @@ Quick orientation for the "online multiplayer → local two-player co-op" implem
 - `LocalLoopbackHostGameService` — implements the game's `INetHostGameService` with a **mutable NetId** and no real networking; multiplayer synchronizers believe they're in a session while all messages stay in-process. `SetCurrentSenderId()` changes who "the local player" is.
 - `LocalSelfCoopContext` — the master switch: enabled state, the two local player IDs, character-select screen context.
 - `LocalMultiSessionState` — per-session ordering of players and the currently controlled player.
-- `LocalMultiControlRuntime` — lands a control switch: updates the net service sender, `LocalContext.NetId`, re-syncs each game synchronizer's notion of "local player", and refreshes the UI (hand, energy, potions, status strip).
+- `LocalControlRuntime` — lands a control switch: updates the net service sender, `LocalContext.NetId`, re-syncs each game synchronizer's notion of "local player", and refreshes the UI (hand, energy, potions, status strip).
 
 ## Core flow
 

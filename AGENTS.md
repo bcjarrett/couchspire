@@ -15,9 +15,9 @@ Rules for automated coding agents (and humans) working in this repository. Goal:
 Run from the repo root:
 
 ```bash
-dotnet restore LocalMultiControl.csproj
-dotnet build LocalMultiControl.csproj -c Debug     # or -c Release for shipping
-dotnet format LocalMultiControl.csproj --verify-no-changes
+dotnet restore CouchSpire.csproj
+dotnet build CouchSpire.csproj -c Debug     # or -c Release for shipping
+dotnet format CouchSpire.csproj --verify-no-changes
 dotnet test Tests/CouchSpire.Tests                 # Layer A: offline Harmony/AccessTools target check (docs/design/testing-plan.md §5)
 ```
 
@@ -28,7 +28,7 @@ dotnet test Tests/CouchSpire.Tests                 # Layer A: offline Harmony/Ac
 ## 3. Runtime verification
 
 - Log file: `%APPDATA%\SlayTheSpire2\logs\godot.log` (Windows), `~/.local/share/SlayTheSpire2/logs/godot.log` (Linux); `./deploy.sh logs` follows the remote log.
-- Log via `Log.Info` with the unified prefix `[LocalMultiControl]` (`Log.Debug` is invisible by default). Add logs for anything you fix.
+- Log via `Log.Info` with the unified prefix `[CouchSpire]` (`Log.Debug` is invisible by default). Add logs for anything you fix.
 - On startup the mod logs `Applying Harmony patches.` → build marker → `Mod initialized.`; any Harmony exception between those lines means a patch target broke.
 - Automated tests: `dotnet test Tests/CouchSpire.Tests` (offline patch-target check) after every build, and `./deploy.sh test all` (in-game scenarios, macOS) before asking for a playtest or pushing. See `docs/testing.md`. Run `./deploy.sh mac` afterwards to restore the normal build.
 - Only `./deploy.sh test` may launch the game for tests: it holds a lock, resets only the `default/1/` test profile, and never touches `steam/` saves. Don't kill a game you didn't start.
@@ -60,7 +60,7 @@ When the game updates and the mod breaks:
 ## 6. Code style
 
 - `using` order: system → third-party → project namespaces; remove unused.
-- File-scoped namespaces: `namespace LocalMultiControl.Scripts.Patch;`
+- File-scoped namespaces: `namespace CouchSpire.Scripts.Patch;`
 - Types/methods/properties `PascalCase`; locals/params `camelCase`; private fields `_camelCase`.
 - Explicit types over `var`; `<Nullable>enable</Nullable>` — handle null branches.
 - Custom Godot node subclasses must be `partial` (source generators).

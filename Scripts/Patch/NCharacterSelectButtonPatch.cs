@@ -1,8 +1,8 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NCharacterSelectButton), nameof(NCharacterSelectButton.Select))]
 internal static class NCharacterSelectButtonSelectPatch
@@ -39,12 +39,12 @@ internal static class NCharacterSelectButtonSelectPatch
             LocalSelfCoopContext.EnsureLobbySenderContext("character-button-reselect");
             selectDelegate.SelectCharacter(button, button.Character);
             AccessTools.Method(typeof(NCharacterSelectButton), "RefreshState")?.Invoke(button, Array.Empty<object>());
-            LocalMultiControlLogger.Info($"Allowing re-selecting the same character to resubmit the flow: character={button.Character.Id.Entry}");
+            ModLog.Info($"Allowing re-selecting the same character to resubmit the flow: character={button.Character.Id.Entry}");
             return true;
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Repeat character-selection patch failed; falling back to original logic: {exception.Message}");
+            ModLog.Warn($"Repeat character-selection patch failed; falling back to original logic: {exception.Message}");
             return false;
         }
     }
@@ -86,11 +86,11 @@ internal static class NCharacterSelectButtonOnPressPatch
             LocalSelfCoopContext.EnsureLobbySenderContext("character-button-on-press-reselect");
             selectDelegate.SelectCharacter(__instance, __instance.Character);
             AccessTools.Method(typeof(NCharacterSelectButton), "RefreshState")?.Invoke(__instance, Array.Empty<object>());
-            LocalMultiControlLogger.Info($"Allowing repeated clicks on an already-selected character: character={__instance.Character.Id.Entry}");
+            ModLog.Info($"Allowing repeated clicks on an already-selected character: character={__instance.Character.Id.Entry}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Repeat-click character-selection patch failed: {exception.Message}");
+            ModLog.Warn($"Repeat-click character-selection patch failed: {exception.Message}");
         }
     }
 }

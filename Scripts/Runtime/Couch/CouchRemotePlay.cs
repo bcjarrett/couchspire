@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Messages.Game;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// Plays for the teammate who isn't driving, without taking the screen away from the driver.
@@ -41,7 +41,7 @@ internal static class CouchRemotePlay
         }
 
         RunState? runState = RunManager.Instance.DebugOnlyGetState();
-        return LocalMultiControlRuntime.SessionState.OrderedPlayerIds
+        return LocalControlRuntime.SessionState.OrderedPlayerIds
             .Where((ulong id) => id != LocalContext.NetId)
             .Select((ulong id) => runState?.GetPlayer(id))
             .FirstOrDefault((Player? p) => p != null && p.Creature.IsAlive && p.PlayerCombatState != null);

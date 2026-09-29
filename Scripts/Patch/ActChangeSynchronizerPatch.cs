@@ -1,12 +1,12 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(ActChangeSynchronizer), nameof(ActChangeSynchronizer.SetLocalPlayerReady))]
 internal static class ActChangeSynchronizerPatch
@@ -60,7 +60,7 @@ internal static class ActChangeSynchronizerPatch
             RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new VoteToMoveToNextActAction(mirroredPlayer, runState.CurrentActIndex));
         }
 
-        LocalMultiControlLogger.Info(
-            $"Local multi-control auto-filled next-act ready state: local={localNetId.Value}, mirrored={string.Join(",", pendingPlayers.Select((player) => player.NetId))}");
+        ModLog.Info(
+            $"Local co-op auto-filled next-act ready state: local={localNetId.Value}, mirrored={string.Join(",", pendingPlayers.Select((player) => player.NetId))}");
     }
 }

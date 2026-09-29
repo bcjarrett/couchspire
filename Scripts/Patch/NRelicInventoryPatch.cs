@@ -1,12 +1,12 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Relics;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NRelicInventory), nameof(NRelicInventory.AnimateRelic))]
 internal static class NRelicInventoryPatch
@@ -28,7 +28,7 @@ internal static class NRelicInventoryPatch
         NRelicInventoryHolder? holder = relicNodes?.FirstOrDefault((node) => node.Relic.Model == relic);
         if (holder == null)
         {
-            LocalMultiControlLogger.Warn($"Skipping relic animation: relic {relic.Id.Entry} does not exist in the current view");
+            ModLog.Warn($"Skipping relic animation: relic {relic.Id.Entry} does not exist in the current view");
             return false;
         }
 
@@ -77,7 +77,7 @@ internal static class NRelicInventoryPatch
             addMethod.Invoke(relicInventory, new object[] { relic, true, -1 });
         }
 
-        LocalMultiControlLogger.Info($"Relic bar rebuilt for the target player: player={targetPlayer.NetId}, count={targetPlayer.Relics.Count}");
+        ModLog.Info($"Relic bar rebuilt for the target player: player={targetPlayer.NetId}, count={targetPlayer.Relics.Count}");
         return true;
     }
 }

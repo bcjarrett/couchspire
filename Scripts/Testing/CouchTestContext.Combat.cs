@@ -1,10 +1,10 @@
 #if COUCHSPIRE_TESTS
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.AutoSlay.Helpers;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 
-namespace LocalMultiControl.Scripts.Testing;
+namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
 /// Combat helpers for <c>combat</c> and <c>choice</c> (docs/design/testing-plan.md §6.9). Everything here drives P2

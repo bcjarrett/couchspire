@@ -1,8 +1,8 @@
 using System.Runtime.CompilerServices;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Rewards;
 
-namespace LocalMultiControl.Scripts.Rewards;
+namespace CouchSpire.Scripts.Rewards;
 
 /// <summary>
 /// Records the player label (e.g. "Player 1") corresponding to each Reward instance.

@@ -1,7 +1,7 @@
 #if COUCHSPIRE_TESTS
 using System.Text;
 
-namespace LocalMultiControl.Scripts.Testing;
+namespace CouchSpire.Scripts.Testing;
 
 internal enum CouchTestOutcome
 {

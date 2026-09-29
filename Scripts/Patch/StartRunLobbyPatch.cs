@@ -1,11 +1,11 @@
 using System.Reflection;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 /// <summary>
 /// Compatibility for 0.103.2: the run-start entry point has changed to BeginRunForAllPlayers; the actual local start flow is handled by BeginRunLocally.
@@ -21,7 +21,7 @@ internal static class StartRunLobbyPatch
             return true;
         }
 
-        LocalMultiControlLogger.Info("Detected the local loopback lobby starting a run; taking over the BeginRunForAllPlayers logic.");
+        ModLog.Info("Detected the local loopback lobby starting a run; taking over the BeginRunForAllPlayers logic.");
 
         MethodInfo? updatePreferredAscensionMethod = AccessTools.Method(typeof(StartRunLobby), "UpdatePreferredAscension");
         updatePreferredAscensionMethod?.Invoke(__instance, Array.Empty<object>());
@@ -42,7 +42,7 @@ internal static class StartRunLobbyPatch
         }
 
         beginRunLocallyMethod.Invoke(__instance, new object[] { seed, modifiers });
-        LocalMultiControlLogger.Info($"Local loopback lobby run-start flow complete, player count={__instance.Players.Count}, seed={seed}");
+        ModLog.Info($"Local loopback lobby run-start flow complete, player count={__instance.Players.Count}, seed={seed}");
         return false;
     }
 }

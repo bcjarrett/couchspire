@@ -1,5 +1,5 @@
 #if COUCHSPIRE_TESTS
-namespace LocalMultiControl.Scripts.Testing;
+namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
 /// Every scenario the runner knows about (docs/design/testing-plan.md §6.9): each concrete

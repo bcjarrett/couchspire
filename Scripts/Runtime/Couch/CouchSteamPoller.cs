@@ -6,7 +6,7 @@ using MegaCrit.Sts2.Core.ControllerInput;
 using MegaCrit.Sts2.Core.Platform.Steam;
 using Steamworks;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// Replaces <see cref="SteamControllerInputStrategy.ProcessInput"/> during couch runs. The game only polls the

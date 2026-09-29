@@ -1,7 +1,7 @@
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -10,7 +10,7 @@ using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(EventSynchronizer), nameof(EventSynchronizer.ChooseLocalOption))]
 internal static class EventSynchronizerPatch
@@ -99,7 +99,7 @@ internal static class EventSynchronizerPatch
 
             ulong currentPlayerId =
                 AccessTools.Field(typeof(EventSynchronizer), "_localPlayerId")?.GetValue(synchronizer) as ulong?
-                ?? LocalMultiControlRuntime.SessionState.CurrentControlledPlayerId
+                ?? LocalControlRuntime.SessionState.CurrentControlledPlayerId
                 ?? 0UL;
             if (currentPlayerId != 0)
             {
@@ -138,7 +138,7 @@ internal static class EventSynchronizerPatch
             }
 
             List<Player> players = playerCollection.Players.Take(sharedCount).ToList();
-            ulong localPlayerId = LocalMultiControlRuntime.SessionState.CurrentControlledPlayerId
+            ulong localPlayerId = LocalControlRuntime.SessionState.CurrentControlledPlayerId
                 ?? LocalContext.NetId
                 ?? LocalSelfCoopContext.PrimaryPlayerId;
 
@@ -171,7 +171,7 @@ internal static class EventSynchronizerPatch
                 filledCount++;
             }
 
-            LocalMultiControlLogger.Info($"Shared event auto-filled votes: option={index}, filled={filledCount}/{sharedCount}");
+            ModLog.Info($"Shared event auto-filled votes: option={index}, filled={filledCount}/{sharedCount}");
             if (votes.Take(sharedCount).All((vote) => vote.HasValue) && netService.Type != NetGameType.Client)
             {
                 TryChooseSharedEventOptionDeferred(synchronizer);
@@ -179,7 +179,7 @@ internal static class EventSynchronizerPatch
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Shared event auto vote-fill failed: {exception.Message}");
+            ModLog.Warn($"Shared event auto vote-fill failed: {exception.Message}");
         }
     }
 
@@ -187,7 +187,7 @@ internal static class EventSynchronizerPatch
     {
         if (_isChoosingSharedEventOption)
         {
-            LocalMultiControlLogger.Warn("Shared event resolution already in progress; skipping duplicate trigger.");
+            ModLog.Warn("Shared event resolution already in progress; skipping duplicate trigger.");
             return;
         }
 
@@ -197,11 +197,11 @@ internal static class EventSynchronizerPatch
             try
             {
                 AccessTools.Method(typeof(EventSynchronizer), "ChooseSharedEventOption")?.Invoke(synchronizer, Array.Empty<object>());
-                LocalMultiControlLogger.Info("Shared event auto vote-fill complete, triggered resolution.");
+                ModLog.Info("Shared event auto vote-fill complete, triggered resolution.");
             }
             catch (Exception exception)
             {
-                LocalMultiControlLogger.Warn($"Failed to trigger shared event resolution: {exception.Message}");
+                ModLog.Warn($"Failed to trigger shared event resolution: {exception.Message}");
             }
             finally
             {
@@ -260,20 +260,20 @@ internal static class EventSynchronizerChooseOptionForEventPatch
             }
 
             ulong? driverBefore = LocalContext.NetId;
-            LocalMultiControlRuntime.SwitchControlledPlayerTo(player.NetId, "event-shared-serial-execution");
-            LocalMultiControlLogger.Info($"Shared event starting to execute player option: player={player.NetId}, key={eventOption.TextKey}");
+            LocalControlRuntime.SwitchControlledPlayerTo(player.NetId, "event-shared-serial-execution");
+            ModLog.Info($"Shared event starting to execute player option: player={player.NetId}, key={eventOption.TextKey}");
             await eventOption.Chosen();
-            LocalMultiControlLogger.Info($"Shared event player option execution complete: player={player.NetId}, key={eventOption.TextKey}");
+            ModLog.Info($"Shared event player option execution complete: player={player.NetId}, key={eventOption.TextKey}");
 
             // Couch simultaneous mode: give the screen back to the driver after running the teammate's part.
             if (CouchConfig.SimultaneousEnabled && driverBefore.HasValue && driverBefore.Value != player.NetId)
             {
-                LocalMultiControlRuntime.SwitchControlledPlayerTo(driverBefore.Value, "event-shared-serial-restore-driver");
+                LocalControlRuntime.SwitchControlledPlayerTo(driverBefore.Value, "event-shared-serial-restore-driver");
             }
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Shared event player option execution failed: player={player.NetId}, key={eventOption.TextKey}, error={exception.Message}");
+            ModLog.Warn($"Shared event player option execution failed: player={player.NetId}, key={eventOption.TextKey}, error={exception.Message}");
         }
         finally
         {

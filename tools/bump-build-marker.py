@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Bump the "CouchSpire X.Y.Z" prefix in Entry.cs's BuildMarker string in place, leaving the
-rest of the marker (base mod version, game version, dev marker tag) untouched. Used by
-semantic-release's @semantic-release/exec prepare step — see .releaserc.json.
+rest of the marker (game version) untouched. Used by semantic-release's @semantic-release/exec
+prepare step — see .releaserc.json.
 
 BuildMarker looks like:
-    private const string BuildMarker = "CouchSpire 0.1.0 on Revival v1.33 loaded (game v0.111.0, marker=2026-09-26-couch4)";
+    private const string BuildMarker = "CouchSpire 0.1.0 loaded (game v0.111.0)";
 """
 import re
 import sys
@@ -20,7 +20,7 @@ def main() -> int:
     with open(entry_path, "r", encoding="utf-8") as handle:
         text = handle.read()
 
-    pattern = re.compile(r'(BuildMarker = "CouchSpire )\d+\.\d+\.\d+( on )')
+    pattern = re.compile(r'(BuildMarker = "CouchSpire )\d+\.\d+\.\d+( loaded)')
     new_text, count = pattern.subn(rf"\g<1>{version}\g<2>", text)
 
     if count != 1:

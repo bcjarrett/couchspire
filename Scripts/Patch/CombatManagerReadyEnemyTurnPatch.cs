@@ -1,10 +1,10 @@
 using System.Reflection;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Players;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 /// <summary>
 /// When one local character readies for the enemy turn, mirror that readiness onto every other local character so
@@ -62,8 +62,8 @@ internal static class CombatManagerReadyEnemyTurnPatch
 
         if (pendingPlayers.Count > 0)
         {
-            LocalMultiControlLogger.Info(
-                $"Local multi-control auto-filled enemy-turn ready state: trigger={player.NetId}, mirrored={string.Join(",", pendingPlayers.Select((candidate) => candidate.NetId))}");
+            ModLog.Info(
+                $"Local co-op auto-filled enemy-turn ready state: trigger={player.NetId}, mirrored={string.Join(",", pendingPlayers.Select((candidate) => candidate.NetId))}");
         }
     }
 
@@ -98,7 +98,7 @@ internal static class CombatManagerReadyEnemyTurnPatch
         // The game already completed the signal on the normal path; TrySetResult is a no-op then.
         if (allReady && signalSource != null && signalSource.TrySetResult(actionDuringEnemyTurn))
         {
-            LocalMultiControlLogger.Info("Detected that the enemy turn is not progressing; triggering a local fallback to advance it.");
+            ModLog.Info("Detected that the enemy turn is not progressing; triggering a local fallback to advance it.");
         }
     }
 
@@ -128,7 +128,7 @@ internal static class CombatManagerReadyEnemyTurnPatch
             if (!_missingLogged)
             {
                 _missingLogged = true;
-                LocalMultiControlLogger.Warn("CombatTurnState members not found (PlayersReadyToBeginEnemyTurn/BeginEnemyTurnSignalSource); enemy-turn auto-ready disabled.");
+                ModLog.Warn("CombatTurnState members not found (PlayersReadyToBeginEnemyTurn/BeginEnemyTurnSignalSource); enemy-turn auto-ready disabled.");
             }
 
             return null;

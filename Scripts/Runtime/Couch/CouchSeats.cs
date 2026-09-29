@@ -1,4 +1,4 @@
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// One couch seat: a character (player NetId) and the controller that drives it.

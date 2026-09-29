@@ -1,8 +1,8 @@
 #if COUCHSPIRE_TESTS
 using System.Threading;
 using Godot;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.AutoSlay;
 using MegaCrit.Sts2.Core.AutoSlay.Handlers.Screens;
 using MegaCrit.Sts2.Core.AutoSlay.Helpers;
@@ -27,7 +27,7 @@ using MegaCrit.Sts2.Core.Settings;
 using MegaCrit.Sts2.Core.Timeline;
 using MegaCrit.Sts2.Core.Timeline.Epochs;
 
-namespace LocalMultiControl.Scripts.Testing;
+namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
 /// Entry point and lifecycle for the in-game scenario runner (docs/design/testing-plan.md §6.1-§6.3). Started from

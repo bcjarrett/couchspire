@@ -1,7 +1,7 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Rewards;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Rewards;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Hooks;
@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.TestSupport;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 /// <summary>
 /// Merged post-combat rewards, moved up to the room level.
@@ -43,7 +43,7 @@ internal static class CombatRoomOfferRewardsPatch
 
         if (!CombatRewardMergeContext.TryMarkRoomMerged(__instance))
         {
-            LocalMultiControlLogger.Info("Duplicate room-end reward call ignored (already merged for this room).");
+            ModLog.Info("Duplicate room-end reward call ignored (already merged for this room).");
             __result = Task.CompletedTask;
             return false;
         }
@@ -76,7 +76,7 @@ internal static class CombatRoomOfferRewardsPatch
 
                 RewardsSet perPlayerSet = await RewardsCmd.GenerateForRoomEnd(player, combatRoom);
                 generatedSets.Add(perPlayerSet);
-                LocalMultiControlLogger.Info(
+                ModLog.Info(
                     $"Per-character rewards generated (room end): player={player.NetId}, rewardCount={perPlayerSet.Rewards.Count}");
             }
 
@@ -103,7 +103,7 @@ internal static class CombatRoomOfferRewardsPatch
                 mergedRewards.AddRange(perPlayerSet.Rewards);
             }
 
-            LocalMultiControlRuntime.SwitchControlledPlayerTo(displayPlayer.NetId, "merged-rewards-offer-from-combatroom");
+            LocalControlRuntime.SwitchControlledPlayerTo(displayPlayer.NetId, "merged-rewards-offer-from-combatroom");
             RewardsSet displaySet = new RewardsSet(displayPlayer).WithCustomRewards(mergedRewards);
 
             if (TestMode.IsOn)

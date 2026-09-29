@@ -1,6 +1,6 @@
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
@@ -10,7 +10,7 @@ using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NCardPlayQueue), "OnActionEnqueued")]
 internal static class NCardPlayQueueOnActionEnqueuedFailSafePatch
@@ -29,7 +29,7 @@ internal static class NCardPlayQueueOnActionEnqueuedFailSafePatch
         if (now - _lastLogAtMs >= 600)
         {
             _lastLogAtMs = now;
-            LocalMultiControlLogger.Warn(
+            ModLog.Warn(
                 $"Action queue UI enqueue triggered a null reference, intercepted to avoid blocking: action={action?.ToString() ?? "null"}, context={LocalContext.NetId?.ToString() ?? "null"}");
         }
 
@@ -50,7 +50,7 @@ internal static class NCardPlayQueueOnActionEnqueuedFailSafePatch
             return;
         }
 
-        LocalMultiControlRuntime.AlignContextForActionOwner(playerId, "action-queue-ui-failsafe");
+        LocalControlRuntime.AlignContextForActionOwner(playerId, "action-queue-ui-failsafe");
     }
 }
 
@@ -82,7 +82,7 @@ internal static class ActionQueueSynchronizerRequestEnqueueFailSafePatch
             ? (AccessTools.Field(typeof(NEndTurnButton), "_combatState")?.GetValue(NCombatRoom.Instance.Ui.EndTurnButton) as CombatState)?.RoundNumber ?? -1
             : -1;
         ulong playerId = LocalContext.NetId ?? LocalSelfCoopContext.PrimaryPlayerId;
-        LocalMultiControlRuntime.RecordFlowBlockSignal(
+        LocalControlRuntime.RecordFlowBlockSignal(
             "deferred_play_detected_during_enemy_turn",
             syncState.ToString(),
             playerId,
@@ -102,14 +102,14 @@ internal static class ActionQueueSynchronizerRequestEnqueueFailSafePatch
         if (now - _lastLogAtMs >= 600)
         {
             _lastLogAtMs = now;
-            LocalMultiControlLogger.Warn(
+            ModLog.Warn(
                 $"RequestEnqueue null reference intercepted, avoiding a block: action={action?.ToString() ?? "null"}, context={LocalContext.NetId?.ToString() ?? "null"}");
         }
 
         ulong playerId = LocalContext.NetId ?? LocalSelfCoopContext.PrimaryPlayerId;
         if (playerId != 0)
         {
-            LocalMultiControlRuntime.AlignContextForActionOwner(playerId, "request-enqueue-failsafe");
+            LocalControlRuntime.AlignContextForActionOwner(playerId, "request-enqueue-failsafe");
         }
 
         return null;

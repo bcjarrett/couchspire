@@ -1,5 +1,5 @@
 #if COUCHSPIRE_TESTS
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.DevConsole;
 using MegaCrit.Sts2.Core.DevConsole.ConsoleCommands;
@@ -8,7 +8,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Relics;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Testing;
+namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
 /// Test-only console command for the <c>gold_mirror</c> scenario (docs/design/testing-plan.md §8 WP7).
@@ -53,7 +53,7 @@ public sealed class GoldMirrorFlowConsoleCmd : AbstractConsoleCmd
             return new CmdResult(success: false, "A gold amount (int) is required.");
         }
 
-        LocalMultiControlLogger.Info($"[Testing] goldmirrorflow: player={issuingPlayer.NetId}, amount={amount}");
+        ModLog.Info($"[Testing] goldmirrorflow: player={issuingPlayer.NetId}, amount={amount}");
         Task task = ObtainRelicThenGainGoldAsync(issuingPlayer, amount);
         return new CmdResult(task, success: true, $"Obtaining a relic, then granting {amount} gold, in one flow.");
     }

@@ -1,8 +1,8 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(StartRunLobby), nameof(StartRunLobby.IsAboutToBeginGame))]
 internal static class StartRunLobbyReadyFixPatch
@@ -18,7 +18,7 @@ internal static class StartRunLobbyReadyFixPatch
         if (__instance.Players.Count >= 2 && __instance.Players.All((player) => player.isReady))
         {
             __result = true;
-            LocalMultiControlLogger.Info($"Local multi-control lobby meets the ready condition; forcibly allowing the game to start: players={__instance.Players.Count}");
+            ModLog.Info($"Local co-op lobby meets the ready condition; forcibly allowing the game to start: players={__instance.Players.Count}");
         }
     }
 }

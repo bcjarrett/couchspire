@@ -1,5 +1,5 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -8,7 +8,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(RewardSynchronizer), nameof(RewardSynchronizer.SyncLocalObtainedCard))]
 internal static class RewardCardMirrorPatch
@@ -54,7 +54,7 @@ internal static class RewardCardMirrorPatch
             {
                 CardModel mirroredCard = otherPlayer.RunState.CreateCard(card, otherPlayer);
                 await CardPileCmd.Add(mirroredCard, PileType.Deck);
-                LocalMultiControlLogger.Info(
+                ModLog.Info(
                     $"Crystal Sphere event card reward synced: source={sourcePlayer.NetId}, target={otherPlayer.NetId}, card={mirroredCard.Id.Entry}");
             }
         }

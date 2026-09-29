@@ -1,10 +1,10 @@
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 /// <summary>Keyboard Tab hands control to the other character (in a run) or the other player's pick (character select).</summary>
 [HarmonyPatch(typeof(NGame), nameof(NGame._Input))]
@@ -21,10 +21,10 @@ internal static class NGameInputPatch
             return;
         }
 
-        LocalMultiControlLogger.Info("Tab: switching character.");
+        ModLog.Info("Tab: switching character.");
         if (RunManager.Instance.IsInProgress)
         {
-            LocalMultiControlRuntime.SwitchNextControlledPlayer("hotkey:Tab");
+            LocalControlRuntime.SwitchNextControlledPlayer("hotkey:Tab");
         }
         else
         {

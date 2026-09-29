@@ -1,10 +1,10 @@
 using System.Reflection;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(StartRunLobby), nameof(StartRunLobby.SetReady))]
 internal static class StartRunLobbySetReadyPatch
@@ -32,7 +32,7 @@ internal static class StartRunLobbySetReadyPatch
 
         if (hasChange)
         {
-            LocalMultiControlLogger.Info("Local co-op mode auto-ready: marked all players as ready.");
+            ModLog.Info("Local co-op mode auto-ready: marked all players as ready.");
         }
 
         bool beginningRun = AccessTools.Field(typeof(StartRunLobby), "_isBeginningRun")?.GetValue(__instance) as bool? ?? false;

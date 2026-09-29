@@ -1,12 +1,12 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models.Cards;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(SpoilsMap), nameof(SpoilsMap.OnQuestComplete))]
 internal static class SpoilsMapPatch
@@ -71,7 +71,7 @@ internal static class SpoilsMapPatch
                         await PlayerCmd.GainGold(pendingMap.DynamicVars.Gold.BaseValue, otherPlayer);
                         PlayerCmd.CompleteQuest(pendingMap);
                         await CardPileCmd.RemoveFromDeck(pendingMap);
-                        LocalMultiControlLogger.Info(
+                        ModLog.Info(
                             $"Spoils map resolution synced to the local player: owner={sourceOwner?.NetId ?? 0}, target={otherPlayer.NetId}, gold={pendingMap.DynamicVars.Gold.IntValue}");
                     }
                     finally

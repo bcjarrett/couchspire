@@ -2,7 +2,7 @@ using Godot;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Platform;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// The game ignores all controller input while <see cref="NGame.IsGameFocusedWindow"/> is false. Under gamescope the

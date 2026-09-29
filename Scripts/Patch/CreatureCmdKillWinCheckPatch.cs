@@ -1,10 +1,10 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(CreatureCmd), nameof(CreatureCmd.Kill), new[] { typeof(IReadOnlyCollection<Creature>), typeof(bool) })]
 internal static class CreatureCmdKillWinCheckPatch
@@ -45,7 +45,7 @@ internal static class CreatureCmdKillWinCheckPatch
             return;
         }
 
-        LocalMultiControlLogger.Info("Detected that all enemies are dead; immediately triggering combat victory resolution.");
+        ModLog.Info("Detected that all enemies are dead; immediately triggering combat victory resolution.");
         await CombatManager.Instance.CheckWinCondition();
     }
 }

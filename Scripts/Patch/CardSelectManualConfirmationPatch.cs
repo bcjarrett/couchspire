@@ -1,5 +1,5 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.CardSelection;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
@@ -7,7 +7,7 @@ using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 internal static class CardSelectManualConfirmationPatch
 {
@@ -38,8 +38,8 @@ internal static class CardSelectManualConfirmationPatch
         patchedPrefs.ShouldGlowGold = prefs.ShouldGlowGold;
         prefs = patchedPrefs;
 
-        LocalMultiControlLogger.Info(
-            $"Local multi-control forces deck card selection to pop up the inventory: source={source}, min={prefs.MinSelect}, max={prefs.MaxSelect}");
+        ModLog.Info(
+            $"Local co-op forces deck card selection to pop up the inventory: source={source}, min={prefs.MinSelect}, max={prefs.MaxSelect}");
     }
 
     [HarmonyPatch(typeof(CardSelectCmd), nameof(CardSelectCmd.FromDeckForUpgrade), new[] { typeof(Player), typeof(CardSelectorPrefs) })]

@@ -1,9 +1,9 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(RunLobby), nameof(RunLobby.AbandonRun))]
 internal static class RunLobbyPatch
@@ -17,7 +17,7 @@ internal static class RunLobbyPatch
             return true;
         }
 
-        LocalMultiControlLogger.Info("Local multi-control taking over RunLobby.AbandonRun, executing the full run-abandon flow directly.");
+        ModLog.Info("Local co-op taking over RunLobby.AbandonRun, executing the full run-abandon flow directly.");
         ((IRunLobbyListener)RunManager.Instance).RunAbandoned();
         return false;
     }

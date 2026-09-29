@@ -1,12 +1,12 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Rewards;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Rewards;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Rooms;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 internal static class GoldMirrorSuppressionContext
 {
@@ -48,7 +48,7 @@ internal static class PlayerGainGoldMirrorPatch
 
         if (GoldMirrorSuppressionContext.ShouldSuppressGoldMirror)
         {
-            LocalMultiControlLogger.Info($"Skipping gold mirror for relic-flow gold: amount={amount}, owner={player.NetId}");
+            ModLog.Info($"Skipping gold mirror for relic-flow gold: amount={amount}, owner={player.NetId}");
             return;
         }
 
@@ -86,7 +86,7 @@ internal static class PlayerGainGoldMirrorPatch
                 await PlayerCmd.GainGold(amount, otherPlayer, wasStolenBack);
             }
 
-            LocalMultiControlLogger.Info(
+            ModLog.Info(
                 $"Event/flow gold synced to the other players: amount={amount}, owner={sourcePlayer.NetId}, mirrored={string.Join(",", otherPlayers.Select((player) => player.NetId))}");
         }
         finally

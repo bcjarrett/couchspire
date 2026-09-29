@@ -1,5 +1,5 @@
 #if COUCHSPIRE_TESTS
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
@@ -8,7 +8,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.TreasureRoomRelic;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Testing.Scenarios;
+namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
 /// docs/design/testing-plan.md §6.9, row `treasure`. Entering the room already begins relic picking

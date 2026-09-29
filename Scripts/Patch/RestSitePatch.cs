@@ -1,7 +1,7 @@
 using Godot;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.ControllerInput;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.RestSite;
@@ -14,7 +14,7 @@ using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(RestSiteOption), nameof(RestSiteOption.Generate))]
 internal static class RestSiteOptionPatch
@@ -68,13 +68,13 @@ internal static class RestSiteSynchronizerChooseLocalOptionPatch
         bool success = await originalTask;
         if (!localPlayerId.HasValue)
         {
-            LocalMultiControlLogger.Warn($"Rest site upgrade switch failed: unable to identify the current local player, optionIndex={optionIndex}");
+            ModLog.Warn($"Rest site upgrade switch failed: unable to identify the current local player, optionIndex={optionIndex}");
             return success;
         }
 
         if (!success)
         {
-            LocalMultiControlLogger.Warn(
+            ModLog.Warn(
                 $"Rest site option execution failed; not triggering auto-switch: player={localPlayerId.Value}, optionIndex={optionIndex}, snapshot={DescribeOptions(sourceOptionsSnapshot)}");
             return success;
         }
@@ -87,7 +87,7 @@ internal static class RestSiteSynchronizerChooseLocalOptionPatch
 
         if (TryFindNextSelectablePlayer(synchronizer, localPlayerId.Value, out ulong nextPlayerId))
         {
-            LocalMultiControlLogger.Info(
+            ModLog.Info(
                 $"Rest site choice succeeded; queued a switch to the next player pending selection (not auto-choosing for them): {localPlayerId.Value} -> {nextPlayerId}, optionIndex={optionIndex}, snapshot={DescribeOptions(sourceOptionsSnapshot)}");
             Callable.From(delegate
             {
@@ -96,7 +96,7 @@ internal static class RestSiteSynchronizerChooseLocalOptionPatch
         }
         else
         {
-            LocalMultiControlLogger.Info(
+            ModLog.Info(
                 $"Rest site choice complete: all eligible players have chosen. player={localPlayerId.Value}, optionIndex={optionIndex}");
             Callable.From(delegate
             {
@@ -109,7 +109,7 @@ internal static class RestSiteSynchronizerChooseLocalOptionPatch
 
     private static bool TryFindNextSelectablePlayer(RestSiteSynchronizer synchronizer, ulong currentPlayerId, out ulong nextPlayerId)
     {
-        IReadOnlyList<ulong> orderedPlayerIds = LocalMultiControlRuntime.SessionState.OrderedPlayerIds;
+        IReadOnlyList<ulong> orderedPlayerIds = LocalControlRuntime.SessionState.OrderedPlayerIds;
         if (orderedPlayerIds.Count < 2)
         {
             nextPlayerId = 0;
@@ -192,7 +192,7 @@ internal static class RestSiteSynchronizerDisposePatch
         ref Task? hoverMessageTask = ref AccessTools.FieldRefAccess<RestSiteSynchronizer, Task?>(__instance, "_hoverMessageTask");
         if (hoverMessageTask != null && !hoverMessageTask.IsCompleted)
         {
-            LocalMultiControlLogger.Info("Rest site disposed while its hover-message task was still pending; detached it instead of disposing.");
+            ModLog.Info("Rest site disposed while its hover-message task was still pending; detached it instead of disposing.");
             hoverMessageTask = null;
         }
     }
@@ -242,7 +242,7 @@ internal static class NRestSiteRoomHoverGuardPatch
             }
             else
             {
-                LocalMultiControlLogger.Warn($"Rest site hover index out of range; ignored: player={playerId}, index={hoveredOptionIndex.Value}, options={options.Count}");
+                ModLog.Warn($"Rest site hover index out of range; ignored: player={playerId}, index={hoveredOptionIndex.Value}, options={options.Count}");
             }
         }
 
@@ -281,7 +281,7 @@ internal static class NRestSiteButtonSelectGuardPatch
         }
 
         RunManager.Instance.RestSiteSynchronizer.LocalOptionHovered(null);
-        LocalMultiControlLogger.Warn("Rest site button does not match the current option list; rejected this click and refreshed.");
+        ModLog.Warn("Rest site button does not match the current option list; rejected this click and refreshed.");
         __result = Task.CompletedTask;
         return false;
     }
@@ -361,7 +361,7 @@ internal static class NRestSiteRoomReadyPatch
 
         if (isLoading)
         {
-            LocalMultiControlLogger.Warn($"Rest site entry: the game still reports loading after {MaxLoadingWaitFrames} frames; checking options anyway.");
+            ModLog.Warn($"Rest site entry: the game still reports loading after {MaxLoadingWaitFrames} frames; checking options anyway.");
         }
         else if (loadingSettledFramesLeft > 0)
         {
@@ -371,7 +371,7 @@ internal static class NRestSiteRoomReadyPatch
 
         if (!switchedToPrimary)
         {
-            LocalMultiControlRuntime.SwitchControlledPlayerTo(LocalSelfCoopContext.PrimaryPlayerId, $"rest-site-enter-primary-{attempt}");
+            LocalControlRuntime.SwitchControlledPlayerTo(LocalSelfCoopContext.PrimaryPlayerId, $"rest-site-enter-primary-{attempt}");
             switchedToPrimary = true;
         }
 
@@ -381,7 +381,7 @@ internal static class NRestSiteRoomReadyPatch
         int localOptionCount = RunManager.Instance.RestSiteSynchronizer.GetLocalOptions().Count;
         if (optionCount > 0 || localOptionCount > 0 || attempt >= 6)
         {
-            LocalMultiControlLogger.Info(
+            ModLog.Info(
                 $"Rest site post-entry option check: attempt={attempt}, options={optionCount}, localOptions={localOptionCount}, switchedToPrimary={switchedToPrimary}");
             return;
         }
@@ -407,7 +407,7 @@ internal static class RestSiteAutoSwitchUtil
         }
 
         NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(LocalModText.RestSiteAllChosen));
-        LocalMultiControlLogger.Info("Rest site hint text shown: all eligible players have chosen.");
+        ModLog.Info("Rest site hint text shown: all eligible players have chosen.");
     }
 
     private static void EnsureOptionsAfterSwitch(ulong targetPlayerId, string source, int attempt, bool switched)
@@ -425,7 +425,7 @@ internal static class RestSiteAutoSwitchUtil
 
         if (!switched)
         {
-            LocalMultiControlRuntime.SwitchControlledPlayerTo(targetPlayerId, source);
+            LocalControlRuntime.SwitchControlledPlayerTo(targetPlayerId, source);
             switched = true;
         }
 
@@ -435,14 +435,14 @@ internal static class RestSiteAutoSwitchUtil
         int localOptionCount = RunManager.Instance.RestSiteSynchronizer.GetLocalOptions().Count;
         if (targetOptionCount > 0 && localOptionCount > 0)
         {
-            LocalMultiControlLogger.Info(
+            ModLog.Info(
                 $"Rest site auto-switched to the next player pending selection and refreshed successfully: target={targetPlayerId}, attempt={attempt}, targetOptions={targetOptionCount}, localOptions={localOptionCount}");
             return;
         }
 
         if (attempt >= MaxRefreshAttempts)
         {
-            LocalMultiControlLogger.Warn(
+            ModLog.Warn(
                 $"Rest site option display still not restored after auto-switch: target={targetPlayerId}, attempts={attempt + 1}, targetOptions={targetOptionCount}, localOptions={localOptionCount}");
             return;
         }
@@ -470,12 +470,12 @@ internal static class RestSiteUiRefreshUtil
             AccessTools.Field(typeof(NRestSiteRoom), "_lastFocused")?.SetValue(room, null);
             AccessTools.Method(typeof(NRestSiteRoom), "UpdateRestSiteOptions")?.Invoke(room, null);
             EnsureChoicesVisibleForLocalPlayer(room, source);
-            LocalMultiControlLogger.Info($"Rest site options refreshed: source={source}, player={LocalContext.NetId?.ToString() ?? "null"}");
+            ModLog.Info($"Rest site options refreshed: source={source}, player={LocalContext.NetId?.ToString() ?? "null"}");
             return true;
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Failed to refresh rest site options: source={source}, error={exception.Message}");
+            ModLog.Warn($"Failed to refresh rest site options: source={source}, error={exception.Message}");
             return false;
         }
     }
@@ -504,11 +504,11 @@ internal static class RestSiteUiRefreshUtil
             AccessTools.Method(typeof(NRestSiteRoom), "EnableOptions")?.Invoke(room, null);
             AccessTools.Method(typeof(NRestSiteRoom), "AnimateDescriptionUp")?.Invoke(room, null);
             EnsureControllerFocus(room, source);
-            LocalMultiControlLogger.Info($"Rest site option visibility restored: source={source}, options={localOptionCount}");
+            ModLog.Info($"Rest site option visibility restored: source={source}, options={localOptionCount}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Failed to restore rest site option visibility: source={source}, error={exception.Message}");
+            ModLog.Warn($"Failed to restore rest site option visibility: source={source}, error={exception.Message}");
         }
     }
 
@@ -524,16 +524,16 @@ internal static class RestSiteUiRefreshUtil
             Control? focusTarget = FindFirstFocusableRestSiteButton(room) ?? FindFirstFocusableControl(room);
             if (focusTarget == null)
             {
-                LocalMultiControlLogger.Warn($"Rest site controller focus restore failed: no focusable control found. source={source}");
+                ModLog.Warn($"Rest site controller focus restore failed: no focusable control found. source={source}");
                 return;
             }
 
             focusTarget.GrabFocus();
-            LocalMultiControlLogger.Info($"Rest site controller focus restored: source={source}, target={focusTarget.Name}");
+            ModLog.Info($"Rest site controller focus restored: source={source}, target={focusTarget.Name}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Failed to restore rest site controller focus: source={source}, error={exception.Message}");
+            ModLog.Warn($"Failed to restore rest site controller focus: source={source}, error={exception.Message}");
         }
     }
 

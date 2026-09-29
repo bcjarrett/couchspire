@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 internal static partial class CouchText
 {

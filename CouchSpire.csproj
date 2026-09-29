@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>CouchSpire</AssemblyName>
-    <RootNamespace>DualRoleAdventure</RootNamespace>
+    <RootNamespace>CouchSpire</RootNamespace>
     <!-- An unawaited Task silently drops its failures (e.g. a test Checkpoint's layout check). -->
     <WarningsAsErrors>$(WarningsAsErrors);CS4014</WarningsAsErrors>
   </PropertyGroup>

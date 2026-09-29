@@ -1,8 +1,8 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Patch;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Patch;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Cards;
@@ -26,9 +26,9 @@ using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Rooms;
 using Godot;
 
-namespace LocalMultiControl.Scripts.Runtime;
+namespace CouchSpire.Scripts.Runtime;
 
-internal static class LocalMultiControlRuntime
+internal static class LocalControlRuntime
 {
     private static readonly LocalMultiSessionState Session = new LocalMultiSessionState();
 
@@ -47,11 +47,11 @@ internal static class LocalMultiControlRuntime
 
     public static void OnRunLaunched(RunState runState)
     {
-        LocalMultiControlLogger.Info("Detected RunManager.Launch, starting to initialize local multi-control session.");
+        ModLog.Info("Detected RunManager.Launch, starting to initialize local co-op session.");
         if (LocalSelfCoopContext.IsEnabled)
         {
             RunManager.Instance.CombatStateSynchronizer.IsDisabled = true;
-            LocalMultiControlLogger.Info("Local co-op mode has disabled combat sync waiting to avoid single-process loopback blocking.");
+            ModLog.Info("Local co-op mode has disabled combat sync waiting to avoid single-process loopback blocking.");
         }
 
         Session.InitializeFromRunState(runState);
@@ -61,7 +61,7 @@ internal static class LocalMultiControlRuntime
         }
         else
         {
-            LocalMultiControlLogger.Info("The current run has not enabled a local multi-control session.");
+            ModLog.Info("The current run has not enabled a local co-op session.");
         }
     }
 
@@ -79,7 +79,7 @@ internal static class LocalMultiControlRuntime
         LocalMerchantInventoryRuntime.Clear();
         CouchTeammateChoices.ClearAll("RunManager.CleanUp");
         LocalSelfCoopContext.Disable("RunManager.CleanUp");
-        LocalMultiControlLogger.Info("Local multi-control session cleanup completed after RunManager.CleanUp.");
+        ModLog.Info("Local co-op session cleanup completed after RunManager.CleanUp.");
     }
 
     public static void SwitchNextControlledPlayer(string source)
@@ -182,7 +182,7 @@ internal static class LocalMultiControlRuntime
             bool hasPlayableCards = PileType.Hand.GetPile(player).Cards.Any((card) => card.CanPlay());
             if (hasPlayableCards)
             {
-                LocalMultiControlLogger.Info($"Detected a player who can still play cards while another player manually ended their turn; not triggering an all-players end: round={combatState.RoundNumber}");
+                ModLog.Info($"Detected a player who can still play cards while another player manually ended their turn; not triggering an all-players end: round={combatState.RoundNumber}");
                 return false;
             }
         }
@@ -223,7 +223,7 @@ internal static class LocalMultiControlRuntime
         if (endedAnyPlayer)
         {
             _allPlayersAutoEndedRounds.Add(combatState.RoundNumber);
-            LocalMultiControlLogger.Info($"Detected that no player can play any cards; automatically ended all players' turns: round={combatState.RoundNumber}, source={source}");
+            ModLog.Info($"Detected that no player can play any cards; automatically ended all players' turns: round={combatState.RoundNumber}, source={source}");
         }
 
         return endedAnyPlayer;
@@ -242,7 +242,7 @@ internal static class LocalMultiControlRuntime
         _allPlayersAutoEndedRounds.Clear();
         _pendingManualEndTurnPlayerId = null;
         _pendingManualEndTurnRound = -1;
-        LocalMultiControlLogger.Info($"New combat; auto end-turn tracking reset: combat={combatIdentity}");
+        ModLog.Info($"New combat; auto end-turn tracking reset: combat={combatIdentity}");
     }
 
     public static void RecordManualEndTurnIntent(ulong playerId, string source)
@@ -251,7 +251,7 @@ internal static class LocalMultiControlRuntime
         CombatState? combatState = combatUi != null ? TryGetCombatState(combatUi) : null;
         _pendingManualEndTurnPlayerId = playerId;
         _pendingManualEndTurnRound = combatState?.RoundNumber ?? -1;
-        LocalMultiControlLogger.Info($"Recorded manual end-turn intent: player={playerId}, round={_pendingManualEndTurnRound}, source={source}");
+        ModLog.Info($"Recorded manual end-turn intent: player={playerId}, round={_pendingManualEndTurnRound}, source={source}");
     }
 
     private static void ApplyControlContext(string source)
@@ -268,7 +268,7 @@ internal static class LocalMultiControlRuntime
             CombatState? combatState = combatUi != null ? TryGetCombatState(combatUi) : null;
             if (combatState != null && combatState.GetPlayer(currentControlledPlayerId.Value) == null)
             {
-                LocalMultiControlLogger.Warn($"Detected an invalid combat player ID, falling back to slot 1: {currentControlledPlayerId.Value}");
+                ModLog.Warn($"Detected an invalid combat player ID, falling back to slot 1: {currentControlledPlayerId.Value}");
                 ulong fallbackPlayerId = Session.OrderedPlayerIds.FirstOrDefault();
                 if (fallbackPlayerId != 0 && Session.TrySetCurrentPlayer(fallbackPlayerId))
                 {
@@ -292,7 +292,7 @@ internal static class LocalMultiControlRuntime
         {
             // Risk: if LocalContext has already switched but the combat UI refresh fails, the "logical owner" and "displayed owner" become separated.
             // That state would enqueue subsequent card plays to the wrong player's queue, so we must roll back the context immediately here.
-            LocalMultiControlLogger.Warn($"Control context switch rolled back: combat UI refresh failed, target={currentControlledPlayerId.Value}");
+            ModLog.Warn($"Control context switch rolled back: combat UI refresh failed, target={currentControlledPlayerId.Value}");
             LocalContext.NetId = previousNetId;
             if (previousNetId.HasValue)
             {
@@ -309,7 +309,7 @@ internal static class LocalMultiControlRuntime
         RefreshEventRoomForControlledPlayer(currentControlledPlayerId.Value);
         LocalMerchantInventoryRuntime.RefreshShopRoomForPlayer(currentControlledPlayerId.Value);
         EnsureTreasureCursorVisibleAfterSwitch(source);
-        LocalMultiControlLogger.Info($"Control context updated: {previousNetId?.ToString() ?? "null"} -> {currentControlledPlayerId.Value}, source={source}");
+        ModLog.Info($"Control context updated: {previousNetId?.ToString() ?? "null"} -> {currentControlledPlayerId.Value}, source={source}");
         if (source != "run-launched")
         {
             string slotLabel = LocalSelfCoopContext.GetSlotLabel(currentControlledPlayerId.Value);
@@ -353,7 +353,7 @@ internal static class LocalMultiControlRuntime
         LocalContext.NetId = playerId;
         LocalSelfCoopContext.NetService?.SetCurrentSenderId(playerId);
         SyncRunSynchronizerLocalPlayerId(playerId);
-        LocalMultiControlLogger.Warn(
+        ModLog.Warn(
             $"Detected manual card-play context drift, forcibly corrected: {previousNetId?.ToString() ?? "null"} -> {playerId}, source={source}");
     }
 
@@ -373,7 +373,7 @@ internal static class LocalMultiControlRuntime
             string key = $"{componentName}:{target.GetType().Name}";
             if (_fieldSyncFailures.Add(key))
             {
-                LocalMultiControlLogger.Warn($"Failed to sync _localPlayerId for {key}: {exception.Message}");
+                ModLog.Warn($"Failed to sync _localPlayerId for {key}: {exception.Message}");
             }
         }
     }
@@ -394,18 +394,18 @@ internal static class LocalMultiControlRuntime
         bool matchedManualEndTurn = TryConsumeManualEndTurnIntent(endedPlayerId);
         if (!matchedManualEndTurn && Session.CurrentControlledPlayerId != endedPlayerId)
         {
-            LocalMultiControlLogger.Info(
+            ModLog.Info(
                 $"Skipping auto-switch after end turn: ended={endedPlayerId}, controlled={Session.CurrentControlledPlayerId?.ToString() ?? "null"}, manualMatched={matchedManualEndTurn}");
             return;
         }
 
         if (CombatManager.Instance.AllPlayersReadyToEndTurn())
         {
-            LocalMultiControlLogger.Info("All players have ended their turn; skipping auto-switch and waiting for the enemy turn to proceed.");
+            ModLog.Info("All players have ended their turn; skipping auto-switch and waiting for the enemy turn to proceed.");
             return;
         }
 
-        LocalMultiControlLogger.Info($"Detected player {endedPlayerId} ending their turn; automatically switching to the next player.");
+        ModLog.Info($"Detected player {endedPlayerId} ending their turn; automatically switching to the next player.");
         Callable.From(delegate
         {
             if (TrySwitchToNextPlayablePlayer(endedPlayerId, "auto-end-turn-next-playable"))
@@ -427,7 +427,7 @@ internal static class LocalMultiControlRuntime
         NCombatUi? combatUi = NCombatRoom.Instance?.Ui;
         if (combatUi == null)
         {
-            LocalMultiControlLogger.Info($"Ignoring switch request ({source}): combat UI not ready.");
+            ModLog.Info($"Ignoring switch request ({source}): combat UI not ready.");
             return false;
         }
 
@@ -436,7 +436,7 @@ internal static class LocalMultiControlRuntime
         {
             // Risk: switching during card dragging, target selection, or card selection UI would interrupt the NCardPlay/selection context mid-flight,
             // which easily triggers an NMouseCardPlay._ExitTree null reference and puts the action queue into a cancel-all state.
-            LocalMultiControlLogger.Info($"Ignoring switch request ({source}): a card-play/card-selection operation is currently in progress.");
+            ModLog.Info($"Ignoring switch request ({source}): a card-play/card-selection operation is currently in progress.");
             return false;
         }
 
@@ -444,14 +444,14 @@ internal static class LocalMultiControlRuntime
         if (combatSyncState != ActionSynchronizerCombatState.PlayPhase)
         {
             // Risk: switching owner outside of PlayPhase causes actions to be delayed/rejected from the queue, resulting in "card presses doing nothing".
-            LocalMultiControlLogger.Info($"Ignoring switch request ({source}): combat sync phase={combatSyncState}.");
+            ModLog.Info($"Ignoring switch request ({source}): combat sync phase={combatSyncState}.");
             return false;
         }
 
         CombatState? combatState = TryGetCombatState(combatUi);
         if (combatState == null || combatState.CurrentSide != CombatSide.Player)
         {
-            LocalMultiControlLogger.Info($"Ignoring switch request ({source}): not currently in the player's card-play phase.");
+            ModLog.Info($"Ignoring switch request ({source}): not currently in the player's card-play phase.");
             return false;
         }
 
@@ -475,8 +475,8 @@ internal static class LocalMultiControlRuntime
         List<ulong> combatPlayerIds = combatState.Players.Select((player) => player.NetId).Distinct().ToList();
         if (combatPlayerIds.Count < 2)
         {
-            // Risk: the current implementation only guarantees "two-player local multi-control"; continuing to switch with an unexpected player count could cause unpredictable owner binding.
-            LocalMultiControlLogger.Warn($"Combat player switch requires at least 2 players, current count={combatPlayerIds.Count}");
+            // Risk: the current implementation only guarantees "two-player local co-op"; continuing to switch with an unexpected player count could cause unpredictable owner binding.
+            ModLog.Warn($"Combat player switch requires at least 2 players, current count={combatPlayerIds.Count}");
             return false;
         }
 
@@ -556,7 +556,7 @@ internal static class LocalMultiControlRuntime
             }
 
             ApplyControlContext(source);
-            LocalMultiControlLogger.Info($"Switched to the next player who can play cards after ending turn: {currentPlayerId} -> {targetPlayerId}");
+            ModLog.Info($"Switched to the next player who can play cards after ending turn: {currentPlayerId} -> {targetPlayerId}");
             return true;
         }
 
@@ -620,7 +620,7 @@ internal static class LocalMultiControlRuntime
         Player? player = combatState.GetPlayer(playerId);
         if (player == null)
         {
-            LocalMultiControlLogger.Warn($"Failed to refresh combat UI: player {playerId} not found");
+            ModLog.Warn($"Failed to refresh combat UI: player {playerId} not found");
             return false;
         }
 
@@ -630,7 +630,7 @@ internal static class LocalMultiControlRuntime
             if (hand.InCardPlay || hand.IsInCardSelection || (NTargetManager.Instance?.IsInSelection ?? false))
             {
                 // Risk: rebuilding the hand container at this point would destroy holder/cardplay nodes still in their lifecycle.
-                LocalMultiControlLogger.Info($"Combat UI refresh deferred: a card-play/card-selection operation is currently in progress, player={playerId}");
+                ModLog.Info($"Combat UI refresh deferred: a card-play/card-selection operation is currently in progress, player={playerId}");
                 return false;
             }
 
@@ -673,12 +673,12 @@ internal static class LocalMultiControlRuntime
             hand.ForceRefreshCardIndices();
             RefreshCombatEnergyUi(combatUi, player);
             ReevaluateEndTurnButtonState(combatUi, combatState, player);
-            LocalMultiControlLogger.Info($"Combat UI refreshed to current player {playerId}, hand card count={handPile.Cards.Count}");
+            ModLog.Info($"Combat UI refreshed to current player {playerId}, hand card count={handPile.Cards.Count}");
             return true;
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Failed to refresh combat UI: {exception.Message}");
+            ModLog.Warn($"Failed to refresh combat UI: {exception.Message}");
             return false;
         }
     }
@@ -773,7 +773,7 @@ internal static class LocalMultiControlRuntime
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Failed to refresh top bar: {exception.Message}");
+            ModLog.Warn($"Failed to refresh top bar: {exception.Message}");
         }
     }
 
@@ -801,11 +801,11 @@ internal static class LocalMultiControlRuntime
         try
         {
             RefreshCombatEnergyUi(combatUi, player);
-            LocalMultiControlLogger.Info($"Combat-entry energy display refreshed: player={playerId}, source={source}");
+            ModLog.Info($"Combat-entry energy display refreshed: player={playerId}, source={source}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Combat-entry energy display refresh failed: player={playerId}, source={source}, error={exception.Message}");
+            ModLog.Warn($"Combat-entry energy display refresh failed: player={playerId}, source={source}, error={exception.Message}");
         }
     }
 
@@ -833,7 +833,7 @@ internal static class LocalMultiControlRuntime
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Pre-combat potion bar refresh failed: {exception.Message}");
+            ModLog.Warn($"Pre-combat potion bar refresh failed: {exception.Message}");
         }
 
         try
@@ -842,18 +842,18 @@ internal static class LocalMultiControlRuntime
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Pre-combat relic bar refresh failed: {exception.Message}");
+            ModLog.Warn($"Pre-combat relic bar refresh failed: {exception.Message}");
         }
 
         if (!potionRefreshed && !relicRefreshed)
         {
-            LocalMultiControlLogger.Warn($"Pre-combat top bar refresh had no effect: source={source}");
+            ModLog.Warn($"Pre-combat top bar refresh had no effect: source={source}");
             return;
         }
 
         AccessTools.Method(typeof(NTopBar), "UpdateNavigation")?.Invoke(runNode.GlobalUi.TopBar, Array.Empty<object>());
         AccessTools.Method(typeof(MegaCrit.Sts2.Core.Nodes.Relics.NRelicInventory), "UpdateNavigation")?.Invoke(runNode.GlobalUi.RelicInventory, Array.Empty<object>());
-        LocalMultiControlLogger.Info($"Pre-combat top bar refresh complete: source={source}, potion={potionRefreshed}, relic={relicRefreshed}");
+        ModLog.Info($"Pre-combat top bar refresh complete: source={source}, potion={potionRefreshed}, relic={relicRefreshed}");
     }
 
     private static void RefreshTopBarDeck(NTopBarDeckButton deckButton, Player player)
@@ -910,11 +910,11 @@ internal static class LocalMultiControlRuntime
                 AccessTools.Method(typeof(NDeckViewScreen), "DisplayCards")?.Invoke(deckView, Array.Empty<object>());
             }
 
-            LocalMultiControlLogger.Info($"Deck view screen switched to current player: {playerId}");
+            ModLog.Info($"Deck view screen switched to current player: {playerId}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Failed to refresh deck view screen: {exception.Message}");
+            ModLog.Warn($"Failed to refresh deck view screen: {exception.Message}");
         }
     }
 
@@ -932,11 +932,11 @@ internal static class LocalMultiControlRuntime
             AccessTools.Field(typeof(NRestSiteRoom), "_lastFocused")?.SetValue(restSiteRoom, null);
             AccessTools.Method(typeof(NRestSiteRoom), "UpdateRestSiteOptions")?.Invoke(restSiteRoom, null);
             RestSiteUiRefreshUtil.EnsureChoicesVisibleForLocalPlayer(restSiteRoom, $"runtime-switch-{playerId}");
-            LocalMultiControlLogger.Info($"Rest site UI refreshed to current player: {playerId}");
+            ModLog.Info($"Rest site UI refreshed to current player: {playerId}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Failed to refresh rest site UI: {exception.Message}");
+            ModLog.Warn($"Failed to refresh rest site UI: {exception.Message}");
         }
     }
 
@@ -982,16 +982,16 @@ internal static class LocalMultiControlRuntime
             NEventRoom? refreshedRoom = NEventRoom.Create(targetEvent, runState, isPreFinished);
             if (refreshedRoom == null)
             {
-                LocalMultiControlLogger.Warn($"Failed to rebuild event room: Create returned null, player={playerId}");
+                ModLog.Warn($"Failed to rebuild event room: Create returned null, player={playerId}");
                 return;
             }
 
             NRun.Instance?.SetCurrentRoom(refreshedRoom);
-            LocalMultiControlLogger.Info($"Non-shared event room rebuilt for the current player: player={playerId}, event={targetEvent.Id.Entry}");
+            ModLog.Info($"Non-shared event room rebuilt for the current player: player={playerId}, event={targetEvent.Id.Entry}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Failed to switch non-shared event view: {exception.Message}");
+            ModLog.Warn($"Failed to switch non-shared event view: {exception.Message}");
         }
     }
 
@@ -1040,7 +1040,7 @@ internal static class LocalMultiControlRuntime
         string signalSummary = _flowBlockSignalCounts.Count == 0
             ? "none"
             : string.Join(",", _flowBlockSignalCounts.Select((entry) => $"{entry.Key}:{entry.Value}"));
-        LocalMultiControlLogger.Warn(
+        ModLog.Warn(
             $"Flow-block watchdog: windowMs={nowMs - _flowBlockSignalWindowStartMs}, signals={signalSummary}, player={playerId}, round={round}, source={source}");
 
         _flowBlockSignalWindowStartMs = nowMs;
@@ -1072,7 +1072,7 @@ internal static class LocalMultiControlRuntime
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Failed to refresh end-turn button state: {exception.Message}");
+            ModLog.Warn($"Failed to refresh end-turn button state: {exception.Message}");
         }
     }
 
@@ -1090,11 +1090,11 @@ internal static class LocalMultiControlRuntime
             {
                 Input.MouseMode = Input.MouseModeEnum.Visible;
             }).CallDeferred();
-            LocalMultiControlLogger.Info($"Forced mouse cursor visible after treasure room player switch: source={source}");
+            ModLog.Info($"Forced mouse cursor visible after treasure room player switch: source={source}");
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Warn($"Failed to restore mouse cursor after treasure room player switch: source={source}, error={exception.Message}");
+            ModLog.Warn($"Failed to restore mouse cursor after treasure room player switch: source={source}, error={exception.Message}");
         }
     }
 

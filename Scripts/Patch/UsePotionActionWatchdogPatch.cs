@@ -1,8 +1,8 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.GameActions;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(UsePotionAction), "ExecuteAction")]
 internal static class UsePotionActionWatchdogPatch
@@ -28,7 +28,7 @@ internal static class UsePotionActionWatchdogPatch
         await Task.Delay(WarnThresholdMs);
         if (!executionTask.IsCompleted)
         {
-            LocalMultiControlLogger.Warn($"Potion action waited for selection over {WarnThresholdMs}ms, which may cause the queue to block: watchId={watchId}, action={action}");
+            ModLog.Warn($"Potion action waited for selection over {WarnThresholdMs}ms, which may cause the queue to block: watchId={watchId}, action={action}");
         }
 
         try

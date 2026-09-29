@@ -28,7 +28,7 @@ internal sealed class CecilContext : IDisposable
         if (!File.Exists(GamePaths.ModDllPath))
         {
             throw new InvalidOperationException(
-                $"Mod DLL not found at '{GamePaths.ModDllPath}'. Build LocalMultiControl.csproj first " +
+                $"Mod DLL not found at '{GamePaths.ModDllPath}'. Build CouchSpire.csproj first " +
                 "(dotnet test Tests/CouchSpire.Tests builds it automatically via a ProjectReference).");
         }
 

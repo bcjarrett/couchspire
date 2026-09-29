@@ -1,7 +1,7 @@
 #if COUCHSPIRE_TESTS
 using MegaCrit.Sts2.Core.Rooms;
 
-namespace LocalMultiControl.Scripts.Testing.Scenarios;
+namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
 /// docs/design/testing-plan.md §8 WP4: the vehicle scenario for the layout-checking machinery in

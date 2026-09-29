@@ -12,7 +12,7 @@ using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// The teammate's own event, in a panel beside the driver's event screen. Every player has their own copy of the
@@ -228,7 +228,7 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
 
     private string VoteSummary(EventSynchronizer synchronizer, IReadOnlyList<EventOption> options)
     {
-        IEnumerable<string> votes = LocalMultiControlRuntime.SessionState.OrderedPlayerIds
+        IEnumerable<string> votes = LocalControlRuntime.SessionState.OrderedPlayerIds
             .Select((ulong id) => RunManager.Instance.DebugOnlyGetState()?.GetPlayer(id))
             .Where((Player? p) => p != null)
             .Select((Player? p) =>

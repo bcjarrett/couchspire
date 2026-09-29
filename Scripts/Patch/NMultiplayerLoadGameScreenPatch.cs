@@ -1,9 +1,9 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NMultiplayerLoadGameScreen), nameof(NMultiplayerLoadGameScreen.ShouldAllowRunToBegin))]
 internal static class NMultiplayerLoadGameScreenPatch
@@ -23,7 +23,7 @@ internal static class NMultiplayerLoadGameScreenPatch
         }
 
         __result = Task.FromResult(true);
-        LocalMultiControlLogger.Info("Local co-op save load skips the \"not all players present\" popup and allows continuing directly.");
+        ModLog.Info("Local co-op save load skips the \"not all players present\" popup and allows continuing directly.");
         return false;
     }
 }

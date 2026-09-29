@@ -3,7 +3,7 @@ using Godot;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Rooms;
 
-namespace LocalMultiControl.Scripts.Rewards;
+namespace CouchSpire.Scripts.Rewards;
 
 /// <summary>
 /// Marks whether we are currently in the combat reward merge flow.

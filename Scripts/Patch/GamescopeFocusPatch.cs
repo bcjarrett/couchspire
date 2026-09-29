@@ -1,10 +1,10 @@
 using System.Reflection;
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime.Couch;
+using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 /// <summary>
 /// Under gamescope, sends the game's input focus checks to <see cref="GamescopeFocus.IsGameFocusedWindow"/>, so the

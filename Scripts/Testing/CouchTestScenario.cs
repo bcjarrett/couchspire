@@ -2,7 +2,7 @@
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Characters;
 
-namespace LocalMultiControl.Scripts.Testing;
+namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
 /// One scenario (docs/design/testing-plan.md §6.9). Implementations live under <c>Scripts/Testing/Scenarios/</c>,

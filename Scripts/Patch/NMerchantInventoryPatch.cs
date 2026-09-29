@@ -1,5 +1,5 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Merchant;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -7,7 +7,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(NMerchantInventory), nameof(NMerchantInventory.Initialize))]
 internal static class NMerchantInventoryPatch
@@ -35,6 +35,6 @@ internal static class NMerchantInventoryPatch
 
         inventory = LocalMerchantInventoryRuntime.GetOrCreateInventory(merchantRoom, currentPlayer);
         LocalMerchantInventoryRuntime.BindInventoryToRoom(merchantRoom, currentPlayer, inventory);
-        LocalMultiControlLogger.Info($"Shop inventory bound to the current player: player={currentPlayer.NetId}");
+        ModLog.Info($"Shop inventory bound to the current player: player={currentPlayer.NetId}");
     }
 }

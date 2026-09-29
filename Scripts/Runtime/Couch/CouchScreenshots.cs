@@ -1,6 +1,6 @@
 using Godot;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// Screenshots of what the game draws, for UI work: F11 saves one; with <c>shots = 1</c> one is also saved shortly after

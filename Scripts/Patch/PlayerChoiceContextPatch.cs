@@ -1,11 +1,11 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(PlayerChoiceSynchronizer), nameof(PlayerChoiceSynchronizer.SyncLocalChoice))]
 internal static class PlayerChoiceSynchronizerPatch
@@ -66,7 +66,7 @@ internal static class PlayerChoiceSynchronizerPatch
 
         LocalContext.NetId = state.PreviousContextNetId;
         state.IsPatched = false;
-        LocalMultiControlLogger.Info($"PlayerChoice sender/context restored: source={source}");
+        ModLog.Info($"PlayerChoice sender/context restored: source={source}");
     }
 }
 

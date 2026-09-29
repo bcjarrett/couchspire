@@ -1,5 +1,5 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Context;
@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.CardPools;
 using MegaCrit.Sts2.Core.Models.Relics;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(Toolbox), nameof(Toolbox.BeforeHandDraw))]
 internal static class ToolboxPatch
@@ -29,7 +29,7 @@ internal static class ToolboxPatch
             return true;
         }
 
-        LocalMultiControlLogger.Info($"Toolbox auto-takeover triggered: player={player.NetId}, reason={reason}");
+        ModLog.Info($"Toolbox auto-takeover triggered: player={player.NetId}, reason={reason}");
         __result = AutoPickFirstCardAsync(__instance, player);
         return false;
     }
@@ -78,7 +78,7 @@ internal static class ToolboxPatch
         if (pickedCard != null)
         {
             await CardPileCmd.AddGeneratedCardToCombat(pickedCard, PileType.Hand, relic.Owner);
-            LocalMultiControlLogger.Info($"Toolbox auto-picked the first card: player={player.NetId}, card={pickedCard.Id.Entry}");
+            ModLog.Info($"Toolbox auto-picked the first card: player={player.NetId}, card={pickedCard.Id.Entry}");
         }
     }
 }

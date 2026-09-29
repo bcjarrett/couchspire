@@ -1,9 +1,9 @@
 using HarmonyLib;
-using LocalMultiControl.Scripts.Runtime;
+using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace LocalMultiControl.Scripts.Patch;
+namespace CouchSpire.Scripts.Patch;
 
 [HarmonyPatch(typeof(MapSelectionSynchronizer), nameof(MapSelectionSynchronizer.PlayerVotedForMapCoord))]
 internal static class MapSelectionSynchronizerPatch
@@ -37,7 +37,7 @@ internal static class MapSelectionSynchronizerPatch
                 return;
             }
 
-            ulong currentControlledPlayerId = LocalMultiControlRuntime.SessionState.CurrentControlledPlayerId ?? 0;
+            ulong currentControlledPlayerId = LocalControlRuntime.SessionState.CurrentControlledPlayerId ?? 0;
             int localIndex = -1;
             for (int i = 0; i < sharedCount; i++)
             {
@@ -69,17 +69,17 @@ internal static class MapSelectionSynchronizerPatch
                 filledCount++;
             }
 
-            LocalMultiControlLogger.Info($"Map auto-follow vote: vote={destination}, filled={filledCount}/{sharedCount}");
+            ModLog.Info($"Map auto-follow vote: vote={destination}, filled={filledCount}/{sharedCount}");
             if (votes.Take(sharedCount).All((vote) => vote.HasValue && vote.Value.mapGenerationCount == __instance.MapGenerationCount) &&
                 netService.Type != NetGameType.Client)
             {
                 AccessTools.Method(typeof(MapSelectionSynchronizer), "MoveToMapCoord")?.Invoke(__instance, Array.Empty<object>());
-                LocalMultiControlLogger.Info("Map auto-follow vote complete; triggered route progression.");
+                ModLog.Info("Map auto-follow vote complete; triggered route progression.");
             }
         }
         catch (Exception exception)
         {
-            LocalMultiControlLogger.Error($"Map auto-follow vote failed: {exception}");
+            ModLog.Error($"Map auto-follow vote failed: {exception}");
         }
     }
 }

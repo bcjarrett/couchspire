@@ -1,6 +1,6 @@
 using Godot;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// Maps teammate inputs to <see cref="CouchHudCommand"/>s. Controller inputs arrive with the names the router uses:

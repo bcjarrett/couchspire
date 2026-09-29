@@ -4,7 +4,7 @@ using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Messages.Game;
 
-namespace LocalMultiControl.Scripts.Runtime.Couch;
+namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>How the waiting side decodes the answer (mirrors the <c>WaitForRemoteChoice(...).AsXxx()</c> call).</summary>
 internal enum CouchChoiceAnswerKind
@@ -242,7 +242,7 @@ internal static class CouchTeammateChoices
 
     /// <summary>
     /// Drops every pending/requested teammate choice, in or out of combat. Called from <c>RunManager.CleanUp</c>
-    /// (<see cref="LocalMultiControl.Scripts.Runtime.LocalMultiControlRuntime.OnRunCleanup"/>): a choice that's still
+    /// (<see cref="CouchSpire.Scripts.Runtime.LocalControlRuntime.OnRunCleanup"/>): a choice that's still
     /// pending when the run ends (abandoned mid-Smith, mid-event, etc.) otherwise outlives the run it belongs to, so
     /// its panel (<see cref="CouchTeammateChoicePanel"/>, or <see cref="CouchTeammateRewards"/>'s inline card choice)
     /// stays up into whatever runs next, and <see cref="Answer"/>/<see cref="AnswerIndex"/> would try to dispatch a
