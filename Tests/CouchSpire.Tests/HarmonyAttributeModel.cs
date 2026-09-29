@@ -26,7 +26,7 @@ internal sealed class PatchTargetSpec
 
     public PatchMethodKind? MethodKind { get; init; }
 
-    /// <summary>True for the <c>[HarmonyTargetMethods]</c> <c>Callers</c>-table special case (§5), where the mod
+    /// <summary>True for the <c>[HarmonyTargetMethods]</c> <c>Callers</c>-table special case, where the mod
     /// itself calls <c>AccessTools.DeclaredMethod</c> — i.e. no base-type walk.</summary>
     public bool DeclaredOnly { get; init; }
 

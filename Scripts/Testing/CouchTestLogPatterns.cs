@@ -2,12 +2,13 @@
 namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
-/// Mod log lines that signal a real problem even when logged below Error level (docs/design/testing-plan.md §6.5).
+/// Mod log lines that signal a real problem even when logged below Error level (docs/testing.md).
 /// <see cref="CouchTestLogWatch"/> fails a scenario on the first line matching one of these, or on any Error-level
 /// line. Substrings, not whole interpolated lines: values and ids inside them change per run.
 ///
 /// Each pattern below was checked against the current source (paths given); update this list whenever a cited line
-/// changes wording, and re-check line numbers if this file is touched during a game-patch adaptation (AGENTS.md §5).
+/// changes wording, and re-check line numbers if this file is touched during a game-patch adaptation (see
+/// AGENTS.md §5).
 /// </summary>
 internal static class CouchTestLogPatterns
 {

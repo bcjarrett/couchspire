@@ -235,7 +235,7 @@ internal sealed partial class CouchTeammateHud : Control
     public static float? HeaderMiddle => IsActive ? _instance!._headerMiddle : null;
 
     /// <summary>Top of the HUD's header line (before <see cref="BandTop"/>'s <c>HeaderOffset</c>), while the HUD is
-    /// up. Used by the in-game test runner (docs/design/testing-plan.md §6.5) to check the HUD band against the
+    /// up. Used by the in-game test runner (docs/testing.md) to check the HUD band against the
     /// players list without measuring the whole HUD's bounding box, which also spans the (separately laid out) hand
     /// of cards and can extend above the header line when a card is focused/enlarged.</summary>
     public static float? HeaderTop => IsActive ? _instance!._headerTop : null;

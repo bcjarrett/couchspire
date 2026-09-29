@@ -1,10 +1,10 @@
 # Player Guide
 
-Two players, one screen, one controller each. CouchSpire runs a real two-player Slay the Spire 2 multiplayer run inside one game, with no network. Setup, settings and the full controller layout are in [COUCH.md](COUCH.md).
+Two players, one screen, one controller each. CouchSpire runs a real two-player Slay the Spire 2 multiplayer run inside one game, with no network. Setup, settings and the full controller layout are in [Couch co-op setup](couch-coop.md).
 
 ## Install & enable
 
-1. Install with `deploy.sh`, or place `CouchSpire.dll` + `CouchSpire.json` in `<game>/mods/CouchSpire/` (see [README.md](README.md)).
+1. Install with `deploy.sh`, or place `CouchSpire.dll` + `CouchSpire.json` in `<game>/mods/CouchSpire/` (see [README.md](../README.md)).
 2. Launch the game → `Settings → Mods` → enable **CouchSpire**. Restart if prompted.
 
 ## Starting a run
@@ -33,10 +33,10 @@ Two players, one screen, one controller each. CouchSpire runs a real two-player 
 | `F10` | anywhere | debug overlay |
 | `F11` | anywhere | screenshot to `couch_shots/` |
 
-P2's keyboard block (for testing without a second controller) is listed in [COUCH.md](COUCH.md).
+P2's keyboard block (for testing without a second controller) is listed in [Couch co-op setup](couch-coop.md).
 
 ## Troubleshooting
 
 - Log file: `%APPDATA%\SlayTheSpire2\logs\godot.log` on Windows, `~/.local/share/SlayTheSpire2/logs/godot.log` on Linux. Mod lines are prefixed `[CouchSpire]` and `[Couch]`.
 - If something breaks, note the **act, room/screen, and exact steps**, and include the log when you report it.
-- Known issues are tracked in [TODO.md](TODO.md).
+- Known issues are tracked on the project's [GitHub Issues](https://github.com/bcjarrett/couchspire/issues) page.

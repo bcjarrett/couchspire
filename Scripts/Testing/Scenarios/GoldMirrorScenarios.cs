@@ -5,7 +5,7 @@ using CouchSpire.Scripts.Runtime;
 namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
-/// docs/design/testing-plan.md §8 WP7: guards the gold-mirror suppression leak fixed in commit 06b185a.
+/// docs/testing.md WP7: guards the gold-mirror suppression leak fixed in commit 06b185a.
 ///
 /// The bug: <c>RelicCmdObtainPatch</c> suppresses gold mirroring for the duration of a relic pickup
 /// (<c>GoldMirrorSuppressionContext</c>, an <c>AsyncLocal</c>), so a relic's own on-pickup gold effect isn't

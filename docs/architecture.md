@@ -1,6 +1,6 @@
 # Architecture — How CouchSpire Works
 
-Quick orientation for the "online multiplayer → local two-player co-op" implementation. The couch layer (per-controller routing, teammate HUD and panels) is described in [COUCH.md](../COUCH.md#how-it-works-for-development).
+Quick orientation for the "online multiplayer → local two-player co-op" implementation. The couch layer (per-controller routing, teammate HUD and panels) is described in [couch-coop.md](couch-coop.md#how-it-works-for-development).
 
 ## Goal & principle
 
@@ -39,6 +39,5 @@ Quick orientation for the "online multiplayer → local two-player co-op" implem
 ## Related docs
 
 - Build & deploy: `README.md`; agent rules: `AGENTS.md`
-- History: `CHANGELOG.md`; open issues: `TODO.md`
+- History: `CHANGELOG.md`; open issues: [GitHub Issues](https://github.com/bcjarrett/couchspire/issues)
 - Automated tests (patch-target check, in-game scenarios): `docs/testing.md`
-- Original design docs: `docs/design/`

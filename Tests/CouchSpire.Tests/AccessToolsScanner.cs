@@ -38,7 +38,7 @@ internal sealed class ResolvedAccessToolsCall
 /// Scans every method body in the mod assembly (including nested/compiler-generated types — lambdas, async
 /// state machines, local functions are all just ordinary nested types/methods to Cecil) for
 /// <c>call HarmonyLib.AccessTools::*</c>, and classifies each call site per the variant table in
-/// docs/design/testing-plan.md §5 / the WP1 brief.
+/// docs/testing.md / the WP1 brief.
 /// </summary>
 internal static class AccessToolsScanner
 {

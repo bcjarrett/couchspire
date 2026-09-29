@@ -8,7 +8,7 @@ using MegaCrit.Sts2.Core.Runs;
 namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
-/// docs/design/testing-plan.md §6.9, row 1: a couch run starts from the menu with the expected session order,
+/// docs/testing.md, row 1: a couch run starts from the menu with the expected session order,
 /// driver, characters, combat-sync suppression, and save tag. No room/combat interaction — this only checks that the
 /// run starts correctly. Guaranteed by <c>NMultiplayerHostSubmenuPatch.cs</c>, <c>LocalControlRuntime.cs</c>,
 /// and <c>LocalSelfCoopSaveTag.cs</c>.

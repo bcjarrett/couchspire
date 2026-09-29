@@ -5,7 +5,7 @@ using Xunit;
 namespace CouchSpire.Tests;
 
 /// <summary>
-/// Tiny synthetic-IL unit tests for <see cref="IlSymbolicWalker"/> itself (docs/design/testing-plan.md §5 / WP1
+/// Tiny synthetic-IL unit tests for <see cref="IlSymbolicWalker"/> itself (docs/testing.md / WP1
 /// brief: "write a couple of unit tests for your IL-walk on tiny synthetic cases"). Each test hand-builds a
 /// throwaway method body with Mono.Cecil's <see cref="ILProcessor"/> reproducing one of the IL shapes the real
 /// scanners rely on, so a regression in the walker itself is caught here instead of only showing up as a mystery

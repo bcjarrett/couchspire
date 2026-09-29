@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Runs;
 namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
-/// Test-only console command for the <c>gold_mirror</c> scenario (docs/design/testing-plan.md §8 WP7).
+/// Test-only console command for the <c>gold_mirror</c> scenario (docs/testing.md WP7).
 ///
 /// No shipped event, relic, card or reward combines "obtain a relic" and "gain gold" as two <c>await</c>s in one
 /// method the way WP7's bug needs (checked against every event, reward and rest-site option in the decompiled

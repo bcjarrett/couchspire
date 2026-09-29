@@ -8,7 +8,7 @@ using MegaCrit.Sts2.Core.Runs;
 namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
-/// The timeout diagnostic dump from docs/design/testing-plan.md §6.5: overlay stack, current room, driver, action
+/// The timeout diagnostic dump from docs/testing.md: overlay stack, current room, driver, action
 /// queue state, and both players' pending choices and visible mod panels. Logged in full (prefix
 /// "[CouchSpire] [CouchTest]") and returned truncated for the scenario result's message field.
 /// </summary>

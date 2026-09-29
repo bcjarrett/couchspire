@@ -2,19 +2,17 @@
 
 CouchSpire runs a two-character multiplayer run in one game, with **per-controller routing**: each controller drives its own character. To take over, press a button on your controller; if your teammate is in the middle of something (playing or targeting a card, picking cards) or it's the enemy turn, the press is ignored and you try again.
 
-Status: **Phase 1 MVP, not yet playtested.** The steps below are the Phase 0 tests plus the first playtest.
-
 ## Install
 
-Build machine (this Mac) needs the .NET 9 SDK: `brew install dotnet@9`.
+The build machine needs the .NET 9 SDK: `brew install dotnet@9` (macOS) or your distro's `dotnet-sdk-9.0` package (Linux).
 
 ```bash
-./deploy.sh mac                   # this Mac's game
-./deploy.sh bazzite user@bazzite  # Bazzite box over SSH (or set BAZZITE_HOST)
-./deploy.sh logs user@bazzite     # follow the couch lines of the game log
+./deploy.sh local                  # build and install into the local game (macOS or Linux)
+./deploy.sh remote user@host       # copy to a Linux machine (e.g. a Steam Deck or Bazzite box) over SSH
+./deploy.sh logs user@host         # follow the couch lines of the remote game log
 ```
 
-- **Bazzite SSH:** enable it once with `sudo systemctl enable --now sshd`. If the game isn't in `~/.local/share/Steam`, set `STS2_REMOTE_DIR` to its install folder, relative to your home directory.
+- **Remote SSH:** enable it once on the remote machine with `sudo systemctl enable --now sshd`. If the game isn't in `~/.local/share/Steam`, set `STS2_REMOTE_DIR` to its install folder, relative to your home directory.
 - **Remove the original mod:** unsubscribe from or disable the Workshop DualRoleAdventure mod. Both patch the same code.
 - **First modded launch:** the game asks whether to load mods; say yes, then restart.
 - **Check it loaded:** the log should contain `CouchSpire 0.1.0 ... loaded` and `[Couch] Couch input gate attached.`, with no Harmony exception between them.
@@ -30,7 +28,7 @@ Put settings in `CouchSpire.cfg` in the repo root: copy `CouchSpire.cfg.example`
 | `overlay = 1` | Only the overlay |
 | `simultaneous = 0` | In combat, go back to hotseat behavior: auto-switch after end turn, and the teammate's choices on the main screen |
 
-- **Linux (Bazzite):** the same switches also work as Steam launch options, e.g. `COUCHSPIRE_PROBE=1 %command%`, and they override the file.
+- **Linux (Steam Deck/Bazzite Game Mode):** the same switches also work as Steam launch options, e.g. `COUCHSPIRE_PROBE=1 %command%`, and they override the file.
 - **Mac:** leave Steam launch options empty. Steam for Mac doesn't run them through a shell, so that form fails with "OS Error 260".
 
 Keyboard keys, for testing:
@@ -45,7 +43,7 @@ Keyboard keys, for testing:
 2. The controller used in the menus becomes **P1**. The first press from the other controller binds it as **P2** and takes control if it's allowed right now.
 3. After that, press any button (not a stick or the d-pad) to take control of your own character. Ending your turn hands control to the teammate automatically.
 
-## Tests (in Bazzite Game Mode, 2 controllers)
+## Tests (on a Linux machine in gamescope/Game Mode, 2 controllers)
 
 Run each test, then send back the `[Couch]` log lines (`./deploy.sh logs`, or `~/.local/share/SlayTheSpire2/logs/godot.log`).
 
@@ -112,7 +110,7 @@ The HUD fades while P1 has a hand selection, overlay, map or deck view open, or 
 3. Survivor: after I, the HUD shows P2's hand as the choice options. Pick one with I; for a multi-card choice, toggle with I and confirm with O.
 4. Potions: U, J/L to a potion (the hint shows what it does), then I. Enemy-targeted potions show the arrow. O twice discards.
 5. P ends P2's turn; the status line shows `TURN ENDED`.
-6. With a controller bound to P2 (Bazzite), the same actions work on the pad. During combat, P2's pad no longer takes over the screen; outside combat it still does.
+6. With a controller bound to P2 (on a gamescope/Game Mode setup), the same actions work on the pad. During combat, P2's pad no longer takes over the screen; outside combat it still does.
 
 **F. Teammate rewards panel** (after a combat, both players take rewards at once)
 

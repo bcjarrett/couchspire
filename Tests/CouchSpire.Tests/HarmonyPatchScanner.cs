@@ -84,7 +84,7 @@ internal static class HarmonyPatchScanner
         return checks;
     }
 
-    /// <summary>The <c>[HarmonyTargetMethods]</c> special case (§5): a class with a bare <c>[HarmonyPatch]</c> and
+    /// <summary>The <c>[HarmonyTargetMethods]</c> special case: a class with a bare <c>[HarmonyPatch]</c> and
     /// a <c>TargetMethods()</c> method that resolves its real targets from a static <c>(Type, string)[]</c> table
     /// (e.g. <c>GamescopeFocusPatch.Callers</c>), consumed via <c>AccessTools.DeclaredMethod</c>. We find that
     /// table by symbolically walking the type's own IL for a static field store whose value is an array of
@@ -120,7 +120,7 @@ internal static class HarmonyPatchScanner
             throw new InvalidOperationException(
                 $"{type.FullName} has [HarmonyTargetMethods]/[HarmonyTargetMethod] but the special-cased IL scan " +
                 "found no (Type, string) table built in its own methods. If this type doesn't use the " +
-                "Callers-table pattern (docs/design/testing-plan.md §5, GamescopeFocusPatch), add a different " +
+                "Callers-table pattern (docs/testing.md, GamescopeFocusPatch), add a different " +
                 "special case in HarmonyPatchScanner instead of silently skipping verification.");
         }
 

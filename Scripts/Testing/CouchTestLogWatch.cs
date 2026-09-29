@@ -4,7 +4,7 @@ using MegaCrit.Sts2.Core.Logging;
 namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
-/// Subscribes to <see cref="Log.LogCallback"/> for the lifetime of one scenario (docs/design/testing-plan.md §6.5).
+/// Subscribes to <see cref="Log.LogCallback"/> for the lifetime of one scenario (docs/testing.md).
 /// Any Error-level line, or any line matching <see cref="CouchTestLogPatterns"/> and not allowlisted, fails the
 /// scenario; the first such line is recorded and every later one is ignored. Lines carrying the runner's own
 /// <see cref="CouchTestLog.Marker"/> (diagnostic dumps, "scenario starting" lines, ...) are ignored so the runner

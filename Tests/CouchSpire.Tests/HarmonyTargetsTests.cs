@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 namespace CouchSpire.Tests;
 
 /// <summary>
-/// Test 1 (docs/design/testing-plan.md §5, §8 WP1): every <c>[HarmonyPatch]</c> target in the mod must resolve
+/// Test 1 (docs/testing.md WP1): every <c>[HarmonyPatch]</c> target in the mod must resolve
 /// against the game assemblies, without starting Godot.
 /// </summary>
 [Collection(CecilCollection.Name)]

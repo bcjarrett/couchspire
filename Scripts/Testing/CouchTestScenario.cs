@@ -5,7 +5,7 @@ using MegaCrit.Sts2.Core.Models.Characters;
 namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
-/// One scenario (docs/design/testing-plan.md §6.9). Implementations live under <c>Scripts/Testing/Scenarios/</c>,
+/// One scenario (docs/testing.md). Implementations live under <c>Scripts/Testing/Scenarios/</c>,
 /// one file per area, and are picked up by <see cref="CouchTestScenarioRegistry"/>.
 /// </summary>
 internal interface ICouchTestScenario
@@ -13,18 +13,18 @@ internal interface ICouchTestScenario
     /// <summary>Short, stable, lowercase; used on the command line (<c>--couch-test</c>) and in output file names.</summary>
     string Name { get; }
 
-    /// <summary>Fixed per scenario (docs/design/testing-plan.md §6.6 rule 2); never derived from the wall clock.</summary>
+    /// <summary>Fixed per scenario (docs/testing.md); never derived from the wall clock.</summary>
     string Seed { get; }
 
     CharacterModel P1Character { get; }
 
     CharacterModel P2Character { get; }
 
-    /// <summary>How long the scenario body may run before the runner treats it as a soft-lock (§6.3).</summary>
+    /// <summary>How long the scenario body may run before the runner treats it as a soft-lock (see docs/testing.md).</summary>
     TimeSpan Timeout { get; }
 
     /// <summary>
-    /// The aspect ratio passes this scenario runs at (docs/design/testing-plan.md §6.5.3): a fresh couch run is
+    /// The aspect ratio passes this scenario runs at (docs/testing.md): a fresh couch run is
     /// started once per label here, with the display pinned first (<see cref="CouchTestLayout.PinAsync"/>). Labels
     /// must be one of <see cref="CouchTestLayout.KnownAspects"/>.
     /// </summary>
@@ -53,7 +53,7 @@ internal abstract class CouchTestScenarioBase : ICouchTestScenario
 
     public virtual TimeSpan Timeout => TimeSpan.FromSeconds(90);
 
-    /// <summary>16:9 only by default (docs/design/testing-plan.md §6.5.3); layout-sensitive scenarios override this.</summary>
+    /// <summary>16:9 only by default (docs/testing.md); layout-sensitive scenarios override this.</summary>
     public virtual IReadOnlyList<string> Aspects { get; } = new[] { "16:9" };
 
     public abstract Task RunAsync(CouchTestContext context);

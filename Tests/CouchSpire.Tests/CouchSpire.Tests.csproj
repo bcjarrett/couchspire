@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Layer A offline patch-target check (docs/design/testing-plan.md §5, §8 WP1). Plain SDK project (not
+  <!-- Layer A offline patch-target check (docs/testing.md WP1). Plain SDK project (not
        Godot.NET.Sdk): it never starts Godot, it only reads CouchSpire.dll and the game's sts2.dll as files
        via Mono.Cecil. -->
   <Import Project="../../Sts2Paths.props" />

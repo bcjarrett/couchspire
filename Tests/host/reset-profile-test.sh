@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Exercises deploy.sh's reset_test_profile (the §6.6 rule 1 reset/seed logic and its safety refusals) against a
+# Exercises deploy.sh's reset_test_profile (the test-profile reset/seed logic and its safety refusals; see
+# docs/testing.md) against a
 # throwaway fake tree in mktemp -d. Never touches the real user-data root or launches the game.
 #
 # Run: bash Tests/host/reset-profile-test.sh

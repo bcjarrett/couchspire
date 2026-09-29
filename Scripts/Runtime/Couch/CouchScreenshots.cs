@@ -71,7 +71,7 @@ internal static class CouchScreenshots
 
     /// <summary>
     /// Saves what's on screen at the end of this frame to an exact path, as a PNG. For the in-game test runner's
-    /// failure/timeout screenshots (docs/design/testing-plan.md §6.7), which need a known file name in the run's
+    /// failure/timeout screenshots (docs/testing.md), which need a known file name in the run's
     /// output directory rather than the auto-named files under <see cref="Folder"/>. Independent of the automatic
     /// <see cref="Tick"/>/<see cref="Take"/> state, so it can't collide with them.
     /// </summary>

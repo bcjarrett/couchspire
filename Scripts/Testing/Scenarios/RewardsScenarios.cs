@@ -14,7 +14,7 @@ using MegaCrit.Sts2.Core.Rooms;
 namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
-/// docs/design/testing-plan.md §6.9, row 4: post-combat rewards. `win` triggers
+/// docs/testing.md, row 4: post-combat rewards. `win` triggers
 /// <c>CombatRoomOfferRewardsPatch</c>, which generates each player's rewards exactly once, switches the driver to
 /// the first living player, shows P1 only P1's (merged) rewards, and gives P2 their own panel
 /// (<see cref="CouchTeammateRewards"/>). <c>CouchRewardsProceedPatch</c> blocks P1's Proceed button until that
@@ -38,7 +38,7 @@ internal sealed class RewardsScenarios : CouchTestScenarioBase
 
         context.Expect(
             LocalContext.NetId == context.P1Id,
-            $"Expected the driver to be P1 ({context.P1Id}) after the merged-rewards driver switch (docs/design/testing-plan.md §4), found {LocalContext.NetId?.ToString() ?? "null"}.");
+            $"Expected the driver to be P1 ({context.P1Id}) after the merged-rewards driver switch (docs/testing.md), found {LocalContext.NetId?.ToString() ?? "null"}.");
 
         NRewardsScreen p1Screen = context.RewardsScreen();
         RewardsSet p1DisplaySet = context.RewardsScreenSet(p1Screen);

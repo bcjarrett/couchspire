@@ -18,7 +18,7 @@ Run from the repo root:
 dotnet restore CouchSpire.csproj
 dotnet build CouchSpire.csproj -c Debug     # or -c Release for shipping
 dotnet format CouchSpire.csproj --verify-no-changes
-dotnet test Tests/CouchSpire.Tests                 # Layer A: offline Harmony/AccessTools target check (docs/design/testing-plan.md §5)
+dotnet test Tests/CouchSpire.Tests                 # Layer A: offline Harmony/AccessTools target check (docs/testing.md)
 ```
 
 - The build copies the DLL to the repo root: `CouchSpire.dll`. **Always deploy/ship the root artifact**, not `.godot/mono/temp/...`.

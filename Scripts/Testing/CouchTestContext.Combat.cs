@@ -7,7 +7,7 @@ using MegaCrit.Sts2.Core.Nodes.Combat;
 namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
-/// Combat helpers for <c>combat</c> and <c>choice</c> (docs/design/testing-plan.md §6.9). Everything here drives P2
+/// Combat helpers for <c>combat</c> and <c>choice</c> (docs/testing.md). Everything here drives P2
 /// exactly the way their pad/keyboard would (<see cref="CouchTeammateHud"/> via <see cref="CouchTestContext.P2Press"/>),
 /// or P1 through the real UI (<see cref="CouchTestContext.ClickAsync"/>) — never through <see cref="CouchRemotePlay"/>
 /// directly, since the HUD path exercises the input-handling code the scenarios exist to protect.
@@ -16,7 +16,7 @@ internal sealed partial class CouchTestContext
 {
     /// <summary>
     /// Finds P2's copy of a no-target card by ID and plays it through P2's HUD, sending the same commands their pad
-    /// would (docs/design/testing-plan.md §6.9 row `combat`): moves the hand cursor from its starting position (index
+    /// would (docs/testing.md row `combat`): moves the hand cursor from its starting position (index
     /// 0, true for a <see cref="CouchTeammateHud"/> freshly attached to this combat, since nothing has moved it yet)
     /// onto the card, then presses Accept twice — the first picks the card up ("Holding", since it needs no target),
     /// the second confirms the play. Only cards for which <see cref="CouchRemotePlay.NeedsTarget"/> is false (e.g.
@@ -72,7 +72,7 @@ internal sealed partial class CouchTestContext
     }
 
     /// <summary>
-    /// Answers P2's pending teammate choice through their HUD (docs/design/testing-plan.md §6.9 row `choice`): moves
+    /// Answers P2's pending teammate choice through their HUD (docs/testing.md row `choice`): moves
     /// the choice cursor from its starting position (index 0, reset whenever the HUD switches into
     /// <c>HudMode.Choice</c>) onto the option whose card ID matches <paramref name="optionCardIdEntry"/>, then
     /// presses Accept. Only works for single-pick choices (<c>MaxSelect == 1</c>, true for Survivor's discard), where

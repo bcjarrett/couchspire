@@ -5,7 +5,7 @@ namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
 /// Logging for the in-game test runner: the mod's "[CouchSpire]" prefix plus "[CouchTest]"
-/// (docs/design/testing-plan.md §6.1, §6.5). <see cref="Marker"/> is the substring <see cref="CouchTestLogWatch"/>
+/// (docs/testing.md). <see cref="Marker"/> is the substring <see cref="CouchTestLogWatch"/>
 /// uses to recognize (and ignore) the runner's own lines, so its diagnostics can never trip its own failure detector.
 /// </summary>
 internal static class CouchTestLog

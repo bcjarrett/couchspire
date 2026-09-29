@@ -13,7 +13,7 @@
     <WarningsAsErrors>$(WarningsAsErrors);CS4014</WarningsAsErrors>
   </PropertyGroup>
 
-  <!-- Test gating (see docs/design/testing-plan.md §6.1): Scripts/Testing/ compiles only in Debug. -->
+  <!-- Test gating (see docs/testing.md): Scripts/Testing/ compiles only in Debug. -->
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <DefineConstants>$(DefineConstants);COUCHSPIRE_TESTS</DefineConstants>
   </PropertyGroup>

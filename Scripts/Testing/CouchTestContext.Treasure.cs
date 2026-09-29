@@ -10,7 +10,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.TreasureRoomRelic;
 namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
-/// Treasure-room helpers for the <c>treasure</c> scenario (docs/design/testing-plan.md §6.9). Relic picking is a
+/// Treasure-room helpers for the <c>treasure</c> scenario (docs/testing.md). Relic picking is a
 /// two-player vote (<c>TreasureRoomRelicSynchronizer</c>): the chest is opened once, by P1's real UI
 /// (<see cref="NTreasureRoom"/>), which generates one relic per living player and each player's own chest gold; P1
 /// then picks their own relic through the real relic-holder buttons (<see cref="NTreasureRoomRelicCollection"/>),

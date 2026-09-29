@@ -6,7 +6,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
-/// Map-screen helpers for the <c>map</c> scenario (docs/design/testing-plan.md §6.9). A fresh couch run starts
+/// Map-screen helpers for the <c>map</c> scenario (docs/testing.md). A fresh couch run starts
 /// directly on the map (<c>MapRoom.EnterInternal</c> -&gt; <c>NMapRoom._Ready</c> opens <see cref="NMapScreen"/> and
 /// enables travel). P1 votes for a node through the real map UI (<c>NMapPoint.OnRelease</c> -&gt;
 /// <c>NMapScreen.OnMapPointSelectedLocally</c>); the mod's <c>MapSelectionSynchronizerPatch</c> then auto-fills P2's

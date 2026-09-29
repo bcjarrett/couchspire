@@ -4,10 +4,10 @@ using MegaCrit.Sts2.Core.Rooms;
 namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
-/// docs/design/testing-plan.md §8 WP4: the vehicle scenario for the layout-checking machinery in
-/// <see cref="CouchTestLayout"/> — two checkpoints ("map", before entering combat, and "combat", after), run at both
-/// 16:9 and 16:10 so the aspect-pass mechanism (§6.5.3) has something to exercise. The `combat` scenario written in
-/// parallel (WP5a) adds richer combat checkpoints later; this one only needs to prove the layout machinery itself
+/// The vehicle scenario for the layout-checking machinery in
+/// <see cref="CouchTestLayout"/> (see docs/testing.md) — two checkpoints ("map", before entering combat, and
+/// "combat", after), run at both 16:9 and 16:10 so the aspect-pass mechanism has something to exercise. The
+/// `combat` scenario adds richer combat checkpoints; this one only needs to prove the layout machinery itself
 /// works, at both aspects.
 /// </summary>
 internal sealed class LayoutScenario : CouchTestScenarioBase

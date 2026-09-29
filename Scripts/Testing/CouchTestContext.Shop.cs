@@ -12,7 +12,7 @@ using MegaCrit.Sts2.Core.Runs;
 namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
-/// Shop-area helpers for the <c>shop</c> scenario (docs/design/testing-plan.md §6.9). Each player has their own
+/// Shop-area helpers for the <c>shop</c> scenario (docs/testing.md). Each player has their own
 /// <see cref="MerchantInventory"/> (<see cref="LocalMerchantInventoryRuntime"/>/<see cref="NMerchantInventoryPatch"/>);
 /// P2 buys from theirs through <see cref="CouchTeammateShop"/>'s own panel, and the driver (P1) can't leave the room
 /// until P2 is done (<c>CouchTeammateRoomsPatch.PrefixMerchantLeave</c>). <see cref="CouchTeammateShop"/>'s

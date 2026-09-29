@@ -30,7 +30,7 @@ using MegaCrit.Sts2.Core.Timeline.Epochs;
 namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
-/// Entry point and lifecycle for the in-game scenario runner (docs/design/testing-plan.md §6.1-§6.3). Started from
+/// Entry point and lifecycle for the in-game scenario runner (docs/testing.md). Started from
 /// <see cref="Scripts.Entry.Init"/> when <c>--couch-test</c> is on the command line; always ends by calling
 /// <c>GetTree().Quit(exitCode)</c>, including on an internal runner exception, because SIGTERM makes the game's
 /// .NET host abort with a crash report instead of exiting cleanly.
@@ -55,7 +55,7 @@ internal static class CouchTestRunner
             return;
         }
 
-        // Mods initialize before the tree/main menu exist (docs/design/testing-plan.md §4), so attach the same way
+        // Mods initialize before the tree/main menu exist (docs/testing.md), so attach the same way
         // CouchRuntime.Initialize does: wait one frame, then start.
         tree.ProcessFrame += OnFirstProcessFrame;
     }
@@ -109,10 +109,10 @@ internal static class CouchTestRunner
         }
 
         // The baselines dir lives in the repo (Tests/layout-baselines/), not the gitignored results dir
-        // (docs/design/testing-plan.md §6.5.2), so it's its own flag; deploy.sh test always passes $ROOT/Tests/layout-baselines.
+        // (docs/testing.md), so it's its own flag; deploy.sh test always passes $ROOT/Tests/layout-baselines.
         if (!CommandLineHelper.TryGetValue("couch-test-baselines", out string? baselinesDir) || string.IsNullOrWhiteSpace(baselinesDir))
         {
-            CouchTestLog.Error("--couch-test-baselines <abs dir> is required when --couch-test is given (docs/design/testing-plan.md §6.5.2).");
+            CouchTestLog.Error("--couch-test-baselines <abs dir> is required when --couch-test is given (docs/testing.md).");
             return 2;
         }
 
@@ -179,19 +179,19 @@ internal static class CouchTestRunner
 
         PrepareEnvironment();
 
-        // Belt-and-braces for the §4 static-ctor caveat: touching AutoSlayer's helpers (WaitHelper/UiHelper/
+        // Belt-and-braces for the static-ctor caveat (see docs/testing.md): touching AutoSlayer's helpers (WaitHelper/UiHelper/
         // GameOverScreenHandler) runs AutoSlayer's static ctor, which is harmless only as long as nothing ever
         // actually starts AutoSlay in this process. If it's active, something outside this runner's control did —
         // that's a runner-environment problem, not a scenario failure, so it's a hard exit 2.
         if (AutoSlayer.IsActive)
         {
-            CouchTestLog.Error("AutoSlayer.IsActive is true after environment prep; AutoSlay must never run alongside --couch-test (docs/design/testing-plan.md §4, §7). Aborting.");
+            CouchTestLog.Error("AutoSlayer.IsActive is true after environment prep; AutoSlay must never run alongside --couch-test (docs/testing.md). Aborting.");
             return 2;
         }
 
         CouchTestLayout.ResetReview();
 
-        // §6.2/§6.6 rule 8: --repeat runs the whole selection N times and every pass's results/layout must match the
+        // --repeat runs the whole selection N times and every pass's results/layout must match the
         // first (apart from durations). Each pass is the full "for each scenario, for each aspect it declares" loop.
         List<List<CouchTestScenarioResult>> passResults = new();
         List<List<CouchTestLayoutSnapshot>> passSnapshots = new();
@@ -291,7 +291,7 @@ internal static class CouchTestRunner
         return passed ? 0 : 1;
     }
 
-    /// <summary>§6.2/§6.6 rule 8: every field but <c>DurationMs</c> must match the first pass, in the same order.</summary>
+    /// <summary>--repeat: every field but <c>DurationMs</c> must match the first pass, in the same order.</summary>
     private static string? CompareResultsForRepeat(IReadOnlyList<CouchTestScenarioResult> first, IReadOnlyList<CouchTestScenarioResult> repeatPass, int repeatNumber)
     {
         if (first.Count != repeatPass.Count)
@@ -329,7 +329,7 @@ internal static class CouchTestRunner
 
     private static void PrepareEnvironment()
     {
-        // FastMode is clamped to Fast during startup; Instant only sticks if set afterwards (docs/design/testing-plan.md §6.3).
+        // FastMode is clamped to Fast during startup; Instant only sticks if set afterwards (docs/testing.md).
         SaveManager.Instance.PrefsSave.FastMode = FastModeType.Instant;
         SaveManager.Instance.SetFtuesEnabled(false);
         SaveManager.Instance.ObtainEpochOverride(EpochModel.GetId<Silent1Epoch>(), EpochState.Revealed);
@@ -337,8 +337,8 @@ internal static class CouchTestRunner
         SaveManager.Instance.ObtainEpochOverride(EpochModel.GetId<Defect1Epoch>(), EpochState.Revealed);
         SaveManager.Instance.ObtainEpochOverride(EpochModel.GetId<Necrobinder1Epoch>(), EpochState.Revealed);
 
-        // The display is pinned per scenario/aspect pass by CouchTestLayout.PinAsync (docs/design/testing-plan.md
-        // §6.5.3); nothing to do here beyond the non-display prep above.
+        // The display is pinned per scenario/aspect pass by CouchTestLayout.PinAsync (see docs/testing.md);
+        // nothing to do here beyond the non-display prep above.
         CouchTestLog.Info("Test environment prepared: FastMode=Instant, FTUEs off, all epochs unlocked.");
     }
 
@@ -356,7 +356,7 @@ internal static class CouchTestRunner
 
         try
         {
-            // Pin before starting the run: §8.1 confirmed this works at any time, and starting fresh at the right
+            // Pin before starting the run: this works at any time, and starting fresh at the right
             // aspect avoids a mid-run resize the game doesn't otherwise do outside the options screen.
             await CouchTestLayout.PinAsync(tree, layoutOptions.Aspect, CancellationToken.None);
             await StartCouchRunAsync(tree, scenario);
@@ -468,7 +468,7 @@ internal static class CouchTestRunner
     }
 
     /// <summary>
-    /// Drives the real menu buttons (docs/design/testing-plan.md §6.3): Multiplayer → Host → the injected Couch
+    /// Drives the real menu buttons (docs/testing.md): Multiplayer → Host → the injected Couch
     /// Co-op card (<c>NMultiplayerHostSubmenuPatch</c>), picks characters per player, sets the seed, then Embarks.
     /// </summary>
     private static async Task StartCouchRunAsync(SceneTree tree, ICouchTestScenario scenario)
@@ -502,7 +502,7 @@ internal static class CouchTestRunner
         SelectCharacterFor(characterSelect, charButtonContainer, playerIds[1], scenario.P2Character);
 
         // Set right before Embark, after character select has initialized: AfterInitialized() clears any earlier
-        // value (docs/design/testing-plan.md §4 Seeds).
+        // value (see docs/testing.md).
         NGame.Instance!.DebugSeedOverride = scenario.Seed;
 
         NButton embarkButton = await WaitHelper.ForNode<NButton>(mainMenu, "Submenus/CharacterSelectScreen/ConfirmButton", CancellationToken.None, MenuStepTimeout);
@@ -534,7 +534,7 @@ internal static class CouchTestRunner
     /// Returns to the main menu after a scenario, following <c>AutoSlayer.AbandonRunAsync</c> when a run is active
     /// (pause menu → Give Up → confirm → game-over screen → main menu), or popping the submenu stack when the
     /// scenario failed before a run started. Never throws: any failure here is reported and turned into
-    /// <c>CanContinue = false</c>, per docs/design/testing-plan.md §6.5's "if abandoning itself fails, stop running
+    /// <c>CanContinue = false</c>, per docs/testing.md's "if abandoning itself fails, stop running
     /// further scenarios" rule.
     /// </summary>
     private static async Task<bool> TryAbandonToMainMenuAsync(SceneTree tree)

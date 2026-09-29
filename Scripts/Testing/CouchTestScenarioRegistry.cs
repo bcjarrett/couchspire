@@ -2,7 +2,7 @@
 namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
-/// Every scenario the runner knows about (docs/design/testing-plan.md §6.9): each concrete
+/// Every scenario the runner knows about (docs/testing.md): each concrete
 /// <see cref="ICouchTestScenario"/> in this assembly with a parameterless constructor. Adding a scenario class is
 /// enough; there is no list to edit (a shared list conflicted on every parallel merge).
 /// </summary>

@@ -8,7 +8,7 @@ using MegaCrit.Sts2.Core.Runs;
 namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
-/// docs/design/testing-plan.md §6.9, row `map`. A fresh couch run starts directly on the map
+/// docs/testing.md, row `map`. A fresh couch run starts directly on the map
 /// (<c>MapRoom.EnterInternal</c> -&gt; <c>NMapRoom._Ready</c> opens <c>NMapScreen</c> and enables travel), so this
 /// scenario needs no <c>EnterRoom</c> setup. P1 votes for a node through the real map UI (<c>NMapPoint.OnRelease</c>
 /// -&gt; <c>NMapScreen.OnMapPointSelectedLocally</c>, which enqueues a <c>VoteForMapCoordAction</c>). The base game's

@@ -1,36 +1,44 @@
-# Godot generated
+# --- Godot ------------------------------------------------------------------
 .godot/
 .import/
 
-# .NET build outputs
+# --- .NET build outputs ------------------------------------------------------
 bin/
 obj/
-
-# Local export artifacts
+*.pdb
+# The build copies the shipped artifact to the repo root; never commit the binary itself.
 CouchSpire.dll
 
-# IDE/user files
-.vs/
-.idea/
-*.user
-*.suo
-*.tmp
-
-# Decompiled game source (read-only reference, never commit)
+# --- Decompiled game source ---------------------------------------------------
+# Read-only reference regenerated from sts2.dll (see AGENTS.md §5); never commit it.
 src/
 
-# Layer B test run output (docs/design/testing-plan.md §6.7)
+# --- Test / release output ----------------------------------------------------
 test-results/
+artifacts/
+release/
 
-# Keep repository code-focused
+# --- Node (semantic-release tooling; package.json devDependencies) -----------
+node_modules/
+
+# --- Personal/local config -----------------------------------------------------
+# Personal mod settings; the tracked .example is the template contributors copy from.
+CouchSpire.cfg
+# Local Claude Code agent worktrees/settings; never shared.
+.claude/
+
+# --- Editor/IDE -----------------------------------------------------------------
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.user
+*.suo
+
+# --- Misc ------------------------------------------------------------------------
+*.tmp
 *.uid
 *.sln
 .dotnet
-release/
-CouchSpire.cfg
-
-# Local release/Workshop packaging output (tools/package.sh)
-artifacts/
-
-# semantic-release tooling (package.json devDependencies; CI runs `npm ci`)
-node_modules/
+.DS_Store
+Thumbs.db

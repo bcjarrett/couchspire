@@ -20,9 +20,10 @@ internal sealed record CouchTestScenarioResult(
     long DurationMs);
 
 /// <summary>
-/// Writes <c>results.json</c> and <c>summary.txt</c> (docs/design/testing-plan.md §6.7). Hand-rolled JSON: the
+/// Writes <c>results.json</c> and <c>summary.txt</c> (docs/testing.md). Hand-rolled JSON: the
 /// shape is tiny and fixed, and this avoids any question about reflection-based serialization inside a Godot mod
-/// assembly. <c>durationMs</c> is the only field allowed to differ between two otherwise-identical runs (§6.6 rule 8).
+/// assembly. <c>durationMs</c> is the only field allowed to differ between two otherwise-identical runs (see
+/// docs/testing.md).
 /// </summary>
 internal static class CouchTestResultsWriter
 {

@@ -27,7 +27,7 @@ internal sealed class CouchTestExpectationFailedException : System.Exception
 }
 
 /// <summary>
-/// The small API a scenario drives the game through (docs/design/testing-plan.md §6.4). Deliberately minimal: only
+/// The small API a scenario drives the game through (docs/testing.md). Deliberately minimal: only
 /// what every scenario needs. Area-specific helpers (e.g. combat's P2Play/P2EndTurn wrapping
 /// <see cref="CouchRemotePlay"/>) go in their own partial file, <c>CouchTestContext.&lt;Area&gt;.cs</c>, and must
 /// call <see cref="ThrowIfCancelled"/> before touching the game.
@@ -50,7 +50,7 @@ internal sealed partial class CouchTestContext
     /// "zombie" that could press buttons or run console commands inside the *next* scenario's run.
     /// </param>
     /// <param name="layoutOptions">Scenario/aspect/output-dir context <see cref="Checkpoint"/> needs for the layout
-    /// checks and snapshot compare/bless (docs/design/testing-plan.md §6.5, WP4).</param>
+    /// checks and snapshot compare/bless (docs/testing.md, WP4).</param>
     public CouchTestContext(SceneTree tree, CancellationToken cancellationToken, CouchTestCheckpointOptions layoutOptions)
     {
         _tree = tree;
@@ -68,7 +68,7 @@ internal sealed partial class CouchTestContext
     /// <summary>Call first in every helper that touches the game (see the constructor's cancellation note).</summary>
     public void ThrowIfCancelled() => _cancellationToken.ThrowIfCancellationRequested();
 
-    /// <summary>The driver's id (platform id; 1 under <c>--force-steam off</c>, see docs/design/testing-plan.md §4).</summary>
+    /// <summary>The driver's id (platform id; 1 under <c>--force-steam off</c>, see docs/testing.md).</summary>
     public ulong P1Id => LocalSelfCoopContext.LocalPlayerIds[0];
 
     /// <summary>The teammate's id (P1Id + 1 unless P1Id wrapped, see <see cref="LocalSelfCoopContext.ResolvePrimaryPlayerId"/>).</summary>
@@ -82,7 +82,7 @@ internal sealed partial class CouchTestContext
 
     /// <summary>
     /// Runs a dev console command as <paramref name="player"/> and awaits it (<c>NDevConsole.ProcessNetCommand</c>).
-    /// <c>fight</c> and <c>godmode</c> are banned (docs/design/testing-plan.md §4, §7): the first reseeds from the
+    /// <c>fight</c> and <c>godmode</c> are banned (docs/testing.md): the first reseeds from the
     /// wall clock, the second keeps state in fields shared across players, and both would break determinism.
     /// </summary>
     public async Task Console(Player player, string command)
@@ -95,7 +95,7 @@ internal sealed partial class CouchTestContext
             if (string.Equals(verb, banned, StringComparison.OrdinalIgnoreCase))
             {
                 throw new CouchTestExpectationFailedException(
-                    $"The '{banned}' console command is banned in scenarios (docs/design/testing-plan.md §4, §7): it breaks determinism.");
+                    $"The '{banned}' console command is banned in scenarios (docs/testing.md): it breaks determinism.");
             }
         }
 
@@ -157,7 +157,7 @@ internal sealed partial class CouchTestContext
 
     /// <summary>
     /// Waits for the queue-idle/no-pending-choice/stable-overlay/stable-screen state defined in
-    /// docs/design/testing-plan.md §6.6 rule 4:
+    /// docs/testing.md (Layer B determinism rules):
     /// <list type="bullet">
     /// <item>the action queue is empty and the executor is idle (<see cref="RunManager.ActionQueueSet"/>/<see cref="RunManager.ActionExecutor"/>);</item>
     /// <item>no teammate choice is pending (<see cref="CouchTeammateChoices.Pending"/>);</item>
@@ -226,7 +226,7 @@ internal sealed partial class CouchTestContext
 
     /// <summary>
     /// Records a state summary line, then runs the layout rules and the snapshot compare/bless for this checkpoint
-    /// (docs/design/testing-plan.md §6.5; see <see cref="CouchTestLayout.RunCheckpointAsync"/>). A rule or snapshot
+    /// (docs/testing.md; see <see cref="CouchTestLayout.RunCheckpointAsync"/>). A rule or snapshot
     /// failure aborts the scenario, naming the node and the numbers, exactly like <see cref="Expect"/>.
     /// </summary>
     public async Task Checkpoint(string label)

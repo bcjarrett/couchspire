@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Runs;
 namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
-/// docs/design/testing-plan.md §6.9, row `treasure`. Entering the room already begins relic picking
+/// docs/testing.md, row `treasure`. Entering the room already begins relic picking
 /// (<c>TreasureRoom.EnterInternal</c> calls <c>TreasureRoomRelicSynchronizer.BeginRelicPicking</c> immediately, one
 /// relic per living player), but the real chest UI only reveals it once P1 opens the chest
 /// (<c>NTreasureRoom.OpenChest</c>), which also grants each player their own chest gold

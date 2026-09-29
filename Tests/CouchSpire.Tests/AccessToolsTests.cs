@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 namespace CouchSpire.Tests;
 
 /// <summary>
-/// Test 2 (docs/design/testing-plan.md §5, §8 WP1): every string-named <c>HarmonyLib.AccessTools</c> call in the
+/// Test 2 (docs/testing.md WP1): every string-named <c>HarmonyLib.AccessTools</c> call in the
 /// mod's IL, wherever it appears (including lambdas/async state machines/local functions), must resolve against
 /// the game assemblies — unless its type/name isn't a literal (printed as "unchecked", never a failure) or it's
 /// a known, commented legacy-name fallback (<see cref="AccessToolsAllowList"/>).

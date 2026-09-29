@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Rooms;
 namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
-/// docs/design/testing-plan.md §6.9, row `combat`: P2 plays a no-target card through their HUD — it leaves P2's hand
+/// docs/testing.md, row `combat`: P2 plays a no-target card through their HUD — it leaves P2's hand
 /// and spends P2's energy, while P1's hand and energy are unaffected. P2 ends their turn (through the HUD), P1 ends
 /// theirs (through the real End Turn button), the enemy turn runs, and control returns to a new player round.
 /// <c>win</c> then opens the rewards screen. Guaranteed by <c>CouchRemotePlay.cs</c> (the loopback send under the
@@ -115,7 +115,7 @@ internal sealed class CombatScenario : CouchTestScenarioBase
 }
 
 /// <summary>
-/// docs/design/testing-plan.md §6.9, row `choice`: P2 plays Survivor through their HUD, which asks them to discard a
+/// docs/testing.md, row `choice`: P2 plays Survivor through their HUD, which asks them to discard a
 /// card from their hand. A teammate choice is pending for P2 and P1's screen is unaffected (no overlay change, no
 /// card-select screen for P1); P2 answers through the HUD and the discarded card comes from P2's hand, not P1's.
 /// Guaranteed by <c>CouchTeammateChoicePatch.cs</c> (records the pending choice so <c>CouchTeammateChoices</c> and the

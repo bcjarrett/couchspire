@@ -1,7 +1,8 @@
 # Testing
 
-CouchSpire has two automated test layers. Both run on the maintainer's Mac. The design and its reasoning are in
-[design/testing-plan.md](design/testing-plan.md). This page is the how-to.
+CouchSpire has two automated test layers. Layer A runs anywhere; Layer B (in-game scenarios) is macOS-only for now
+(see [Layer B: running](#layer-b-running)). This page is the how-to; [Reference](#reference) at the bottom has the
+ground-truth facts the harness relies on, for anyone extending it.
 
 | Layer | Command | Needs the game? | Catches |
 |---|---|---|---|
@@ -146,3 +147,45 @@ The layout rules (every checkpoint, both aspects):
   exceptions are listed with reasons in `CouchTestLayout.AllowedOverlaps`.
 - P2's combat relic row is vertically centered on P2's status line (±4 px).
 - The HUD header isn't above the players list's top.
+
+## Reference
+
+Ground-truth facts the harness relies on (checked against decompiled game source, `src/`), for anyone extending
+the runner or writing a new scenario.
+
+**Launching outside Steam, with isolated saves**
+- `--force-steam off` skips Steam init. Saves then go to `user://default/<id>/…` instead of `user://steam/<steamid>/…`
+  (`user://` is `~/Library/Application Support/SlayTheSpire2/` on macOS, `~/.local/share/SlayTheSpire2/` on Linux).
+- The null platform's player id is 1 unless `--clientId` is given, so the test tree is `…/SlayTheSpire2/default/1/`.
+- **Mod consent gotcha:** `settings.save` is account-scoped and holds `ModSettings.PlayerAgreedToModLoading` plus the
+  per-mod enable list. A fresh `default/1/` has no consent, so `ModManager` skips every mod. `deploy.sh test` fixes
+  this by seeding `default/1/settings.save` from the real `steam/<steamid>/settings.save` the first time.
+- The game's own env switches: `STS2_DEV_WINDOWED` forces windowed mode, `STS2_DEV_SKIP` skips the intro logo.
+
+**Dev console as the scenario setup tool**
+- `NDevConsole.Instance.ProcessNetCommand(Player?, string)` runs a command immediately as that player.
+- Per-player commands: `gold`, `card <id> [pile]`, `relic [add|remove] <id>`, `potion <id>`, `heal`, `die`.
+- Global commands: `room <RoomType>`, `event <ID>`, `act <n>`, `win`, `kill`.
+- **`fight <id>` reseeds from the wall clock and `godmode` shares state across players — both are banned** in
+  scenarios; they break determinism.
+
+**Seeds** — `NGame.Instance.DebugSeedOverride` wins over the lobby seed. `NCharacterSelectScreen.AfterInitialized`
+clears it, so set it right before Embark.
+
+**Idle and state signals** — `RunManager.Instance.ActionQueueSet.IsEmpty`/`BecameEmpty()` and
+`ActionExecutor.IsRunning` for idleness; `RunManager.Instance.DebugOnlyGetState()` for run/player state;
+`CombatManager.Instance` for combat state and events; `NOverlayStack.Instance` for UI state; `Log.LogCallback`
+for a global log-line event feed.
+
+**Mod entry points a scenario drives through** — `NMultiplayerHostSubmenuPatch.OnLocalSelfCoopPressed` (starting a
+couch run), `LocalSelfCoopContext.SetLobbyEditingPlayer`/`NCharacterSelectScreen.SelectCharacter` (character picks),
+`CouchTeammateUi.Handle` (P2's HUD input), `CouchRemotePlay` (P2's combat actions), `CouchTeammateChoices` (P2's
+choices), `LocalMultiControlRuntime.SwitchControlledPlayerTo` (a driver swap), `CouchScreenshots` (screenshots).
+
+**Deliberately not used** (each would bypass what the tests are meant to catch):
+- `TestMode.IsOn` — flips reward code to auto-select paths, skipping the mod's real choice patches.
+- `CardSelectCmd.UseSelector` — a global selector that answers every player's choices, skipping the choice synchronizer.
+- `NonInteractiveMode.AutoSlayerCheck = () => true` — makes action-state errors throw and skips combat pauses.
+- Patching `NGame.IsReleaseGame` — may be JIT-inlined, and changes unrelated behavior.
+- AutoSlay's `CombatRoomHandler` — plays cards through `CardCmd.AutoPlay`, which skips energy and the action queue.
+- The `fight` and `godmode` console commands (see above).

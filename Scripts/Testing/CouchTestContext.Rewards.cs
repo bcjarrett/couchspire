@@ -12,7 +12,7 @@ using MegaCrit.Sts2.Core.Rewards;
 namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
-/// Rewards-area helpers for the <c>rewards</c> scenario (docs/design/testing-plan.md §6.9). Post-combat rewards are
+/// Rewards-area helpers for the <c>rewards</c> scenario (docs/testing.md). Post-combat rewards are
 /// merged onto P1's screen (<c>CombatRoomOfferRewardsPatch</c>), while P2 takes their own rewards in
 /// <see cref="CouchTeammateRewards"/>'s panel. Several fields this file needs (<c>NRewardsScreen._rewardsSet</c>,
 /// <c>NRewardsScreen._proceedButton</c>, <c>CouchTeammateRewards._instance/_set/_cursor</c>) are private, so this

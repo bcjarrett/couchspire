@@ -10,7 +10,7 @@ using MegaCrit.Sts2.Core.Rooms;
 namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
-/// docs/design/testing-plan.md §6.9, row `rest_site`. Every player has their own rest site options
+/// docs/testing.md, row `rest_site`. Every player has their own rest site options
 /// (<c>RestSiteSynchronizer</c>, one <c>PlayerRestSite</c> per player); P1 acts through the real
 /// <see cref="NRestSiteRoom"/> UI, P2 through <see cref="CouchTeammateRestSite"/>'s panel. Smith opens a card pick
 /// (<see cref="CouchTeammateChoicePanel"/>); P1's real Proceed is blocked by

@@ -15,7 +15,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 namespace CouchSpire.Scripts.Testing;
 
 /// <summary>
-/// Rest-site-area helpers for the <c>rest_site</c> scenario (docs/design/testing-plan.md §6.9). P1 rests through the
+/// Rest-site-area helpers for the <c>rest_site</c> scenario (docs/testing.md). P1 rests through the
 /// real <see cref="NRestSiteRoom"/> UI (own options are per-player, tracked by <c>RestSiteSynchronizer</c>). P2 picks
 /// their own options in <see cref="CouchTeammateRestSite"/>'s panel; Smith opens a card pick in
 /// <see cref="CouchTeammateChoicePanel"/> (source tag <see cref="RestSiteUpgradeChoiceSource"/>, set by

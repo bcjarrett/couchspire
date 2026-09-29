@@ -7,7 +7,7 @@
 #   ./deploy.sh test [scenario|all] [--repeat N] [--bless] [--review] [--strict-layout]
 #                                    Run the in-game scenario runner (macOS only). Builds Debug, installs with no
 #                                    CouchSpire.cfg, resets the test save profile, launches, reports, and exits with
-#                                    the runner's exit code. See docs/design/testing-plan.md §6.8.
+#                                    the runner's exit code. See docs/testing.md.
 #
 # Mod settings: CouchSpire.cfg in the repo root is installed next to the mod (see CouchSpire.cfg.example).
 # Env overrides: CONFIG (Release|Debug), STS2_REMOTE_DIR (remote game dir), COUCHSPIRE_TEST_TIMEOUT (test mode's
@@ -76,7 +76,7 @@ mac_user_data_root() {
 # Shared by `mac` and `test` so the install logic lives in exactly one place.
 install_mac() {
   # $1: cfg mode - "user" (default; installs the repo's CouchSpire.cfg if present) or "none" (test runs never
-  # install a cfg, so the pinned COUCHSPIRE_* env vars are what decides behavior; testing-plan.md §6.6 rule 7).
+  # install a cfg, so the pinned COUCHSPIRE_* env vars are what decides behavior; docs/testing.md).
   local cfg_mode="${1:-user}"
   local dest
   dest="$(mac_dest)"
@@ -158,7 +158,7 @@ reset_test_profile() {
   echo "==> Reset $target (kept settings.save)"
 }
 
-# Only one test run may hold the game install / default/1/ tree at a time (testing-plan.md §6.8 rule 1). Sets the
+# Only one test run may hold the game install / default/1/ tree at a time (docs/testing.md). Sets the
 # COUCHSPIRE_LOCK_DIR global and an EXIT trap on success; exits 3 on failure to acquire (never returns).
 COUCHSPIRE_LOCK_DIR=""
 
@@ -242,7 +242,7 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
         echo "test mode is macOS-only for now." >&2
         exit 1
       fi
-      # Test scenarios only compile with COUCHSPIRE_TESTS, which is only defined in Debug (testing-plan.md §6.1).
+      # Test scenarios only compile with COUCHSPIRE_TESTS, which is only defined in Debug (docs/testing.md).
       CONFIG="Debug"
 
       shift

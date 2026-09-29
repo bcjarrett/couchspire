@@ -9,7 +9,7 @@ using MegaCrit.Sts2.Core.Rooms;
 namespace CouchSpire.Scripts.Testing.Scenarios;
 
 /// <summary>
-/// docs/design/testing-plan.md §6.9, row `shop`: each player gets their own <see cref="MerchantInventory"/>
+/// docs/testing.md, row `shop`: each player gets their own <see cref="MerchantInventory"/>
 /// (<see cref="LocalMerchantInventoryRuntime"/>/<c>NMerchantInventoryPatch</c>). P2 buys a card, a potion and a relic
 /// through their own panel (<see cref="CouchTeammateShop"/>); each purchase drops exactly P2's own gold and grows
 /// exactly P2's own deck/potions/relics, leaving P1 untouched. P1's real leave button is blocked

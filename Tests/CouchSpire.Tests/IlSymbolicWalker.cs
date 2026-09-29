@@ -68,7 +68,7 @@ internal sealed class AccessToolsCallSite
 }
 
 /// <summary>One <c>stsfld</c> encountered during the walk, with the symbolic value stored. Used by Test 1's
-/// <c>[HarmonyTargetMethods]</c> special case (§5) to pick out the <c>(Type, string)[]</c> table a patch class
+/// <c>[HarmonyTargetMethods]</c> special case to pick out the <c>(Type, string)[]</c> table a patch class
 /// builds in its static constructor, without hardcoding the field's name.</summary>
 internal sealed class StaticFieldStore
 {

@@ -26,7 +26,7 @@ using MegaCrit.Sts2.Core.Settings;
 
 namespace CouchSpire.Scripts.Testing;
 
-/// <summary>One aspect ratio pass a scenario can run at (docs/design/testing-plan.md §6.5.3, §8.1 spike facts).</summary>
+/// <summary>One aspect ratio pass a scenario can run at (see docs/testing.md).</summary>
 internal readonly record struct CouchTestAspectPass(string Label, AspectRatioSetting Setting, Vector2I WindowSize, Vector2I ExpectedViewport);
 
 /// <summary>Everything a scenario/aspect pass's <see cref="CouchTestContext"/> needs to run layout checks at a checkpoint.</summary>
@@ -39,7 +39,7 @@ internal sealed record CouchTestCheckpointOptions(
     bool Review,
     bool StrictLayout);
 
-/// <summary>A rect rounded to whole pixels (docs/design/testing-plan.md §6.5.2), as written to a snapshot/baseline file.</summary>
+/// <summary>A rect rounded to whole pixels (docs/testing.md), as written to a snapshot/baseline file.</summary>
 internal readonly record struct CouchTestRect(int X, int Y, int W, int H)
 {
     public static CouchTestRect FromGodot(Rect2 rect)
@@ -63,7 +63,7 @@ internal readonly record struct CouchTestRect(int X, int Y, int W, int H)
 }
 
 /// <summary>One checkpoint's rounded rects, kept in memory (not just on disk) so <c>--repeat</c> can compare runs
-/// byte-for-byte without racing its own baseline/snapshot files on disk (docs/design/testing-plan.md §6.2, §6.6 rule 8).</summary>
+/// byte-for-byte without racing its own baseline/snapshot files on disk (docs/testing.md).</summary>
 internal sealed record CouchTestLayoutSnapshot(
     string ScenarioName,
     string Aspect,
@@ -71,10 +71,10 @@ internal sealed record CouchTestLayoutSnapshot(
     IReadOnlyDictionary<string, CouchTestRect> Nodes);
 
 /// <summary>
-/// Layout checks run at every <see cref="CouchTestContext.Checkpoint"/> (docs/design/testing-plan.md §6.5.1-3, §8 WP4).
+/// Layout checks run at every <see cref="CouchTestContext.Checkpoint"/> (see docs/testing.md).
 ///
 /// <para>
-/// <b>Plan deviation, found while implementing this (report this back — docs/design/testing-plan.md §6.5.1 says to use
+/// <b>Plan deviation, found while implementing this (report this back — docs/testing.md says to use
 /// "the GetGlobalRect() of each visible mod UI root" directly):</b> none of the mod's UI roots carry a meaningful
 /// <c>Size</c> on themselves. <see cref="CouchTeammateHud"/> is anchored <c>FullRect</c> to its parent, so its own rect
 /// is the whole screen; <see cref="CouchTeammateRelicBar"/>, <see cref="CouchTeammateTopBar"/> and every
@@ -86,7 +86,7 @@ internal sealed record CouchTestLayoutSnapshot(
 /// </para>
 ///
 /// <para>
-/// <b>Determinism finding (§6.6):</b> <see cref="CouchPanel"/> slides and fades in over ~0.3s
+/// <b>Determinism finding:</b> <see cref="CouchPanel"/> slides and fades in over ~0.3s
 /// (<c>_appearTween</c>, a <c>Back</c>-eased tween) whenever it becomes visible, and that isn't tracked by
 /// <see cref="CouchTestContext.Settle"/> (panel visibility never touches <c>NOverlayStack</c>, which is all Settle
 /// watches). Measuring rects right after a panel opens would be flaky. <see cref="WaitForStableRootsAsync"/> polls
@@ -96,10 +96,10 @@ internal sealed record CouchTestLayoutSnapshot(
 /// </summary>
 internal static class CouchTestLayout
 {
-    /// <summary>Stable UI root names that are Controls with a rect (docs/design/testing-plan.md §4). Excluded, and
+    /// <summary>Stable UI root names that are Controls with a rect (docs/testing.md). Excluded, and
     /// why: <c>CouchTeammateDeckChanges</c> is a plain <c>Node</c> (a transient VFX host, not a layout element);
-    /// <c>CouchDebugOverlay</c> is a <c>CanvasLayer</c> (no rect) and forced off in tests (§6.6 rule 7,
-    /// COUCHSPIRE_OVERLAY=0); <c>CouchInputGate</c> is a plain <c>Node</c> coordinator with no visual footprint;
+    /// <c>CouchDebugOverlay</c> is a <c>CanvasLayer</c> (no rect) and forced off in tests (COUCHSPIRE_OVERLAY=0);
+    /// <c>CouchInputGate</c> is a plain <c>Node</c> coordinator with no visual footprint;
     /// <c>CouchTeammatePanels</c> is the FullRect container that hosts several of these roots, not itself one.</summary>
     private static readonly string[] ModRootNames =
     {
@@ -115,7 +115,7 @@ internal static class CouchTestLayout
         "CouchTeammateChoicePanel"
     };
 
-    /// <summary>Overlaps that are allowed by design, each with why (docs/design/testing-plan.md §6.5.1: "some
+    /// <summary>Overlaps that are allowed by design, each with why (docs/testing.md: "some
     /// overlaps may be by design... record any you allowlist, with a reason, in one place"). This is that one place.
     /// Checked in both name orders.</summary>
     private static readonly (string A, string B, string Reason)[] AllowedOverlaps =
@@ -181,7 +181,7 @@ internal static class CouchTestLayout
     public static readonly IReadOnlyList<string> KnownAspects = new[] { "16:9", "16:10" };
 
     // ---------------------------------------------------------------------------------------------------------
-    // Aspect passes (docs/design/testing-plan.md §6.5.3, §8.1)
+    // Aspect passes (docs/testing.md)
     // ---------------------------------------------------------------------------------------------------------
 
     public static CouchTestAspectPass ResolveAspect(string label)
@@ -194,8 +194,8 @@ internal static class CouchTestLayout
         };
     }
 
-    /// <summary>Pins the window/aspect the game's own way (§8.1 spike facts) and waits for the viewport to actually
-    /// settle to the aspect's content-scale size before returning.</summary>
+    /// <summary>Pins the window/aspect the game's own way (see docs/testing.md) and waits for the viewport to
+    /// actually settle to the aspect's content-scale size before returning.</summary>
     public static async Task PinAsync(SceneTree tree, string aspectLabel, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
@@ -226,8 +226,8 @@ internal static class CouchTestLayout
     // Checkpoint entry point
     // ---------------------------------------------------------------------------------------------------------
 
-    /// <summary>Runs every layout rule and the snapshot compare/bless for one checkpoint (docs/design/testing-plan.md
-    /// §6.5.1-3). Throws <see cref="CouchTestExpectationFailedException"/> naming every failing node and its numbers
+    /// <summary>Runs every layout rule and the snapshot compare/bless for one checkpoint (see docs/testing.md).
+    /// Throws <see cref="CouchTestExpectationFailedException"/> naming every failing node and its numbers
     /// on the first violation found; on success, returns this checkpoint's snapshot for <c>--repeat</c> to compare.</summary>
     public static async Task<CouchTestLayoutSnapshot> RunCheckpointAsync(SceneTree tree, CouchTestCheckpointOptions options, string checkpoint, CancellationToken token)
     {
@@ -603,7 +603,7 @@ internal static class CouchTestLayout
         return bounds;
     }
 
-    /// <summary>P1's named elements (docs/design/testing-plan.md §6.5.1): the relic row, the top bar, the end-turn
+    /// <summary>P1's named elements (docs/testing.md): the relic row, the top bar, the end-turn
     /// button (combat only), plus the players list, which is not one of the named elements but is needed for the
     /// HUD-band anchoring rule and is worth recording in the snapshot too.</summary>
     private static Dictionary<string, Rect2> CollectAnchors()
@@ -687,7 +687,7 @@ internal static class CouchTestLayout
     }
 
     // ---------------------------------------------------------------------------------------------------------
-    // Rules (docs/design/testing-plan.md §6.5.1)
+    // Rules (docs/testing.md)
     // ---------------------------------------------------------------------------------------------------------
 
     private static void CheckContainment(Dictionary<string, Rect2> modRects, Vector2 viewport, List<string> failures)
@@ -783,7 +783,7 @@ internal static class CouchTestLayout
         }
 
         // The HUD band (its header line) must not start above the players list (CouchTeammateHud.BandTop() levels
-        // the HUD's top with the top of the players list — docs/design/testing-plan.md §6.5.1 "the HUD band starts
+        // the HUD's top with the top of the players list — docs/testing.md "the HUD band starts
         // below the players list"). This uses CouchTeammateHud.HeaderTop, not the HUD root's measured bounding box:
         // that box also spans the separately-laid-out hand of cards, which can extend above the header line when a
         // card is focused/enlarged, and would make this a false positive on every combat checkpoint (observed on a
@@ -910,7 +910,7 @@ internal static class CouchTestLayout
     private static string FormatRect(Rect2 rect) => $"({rect.Position.X:0}, {rect.Position.Y:0}, {rect.Size.X:0}x{rect.Size.Y:0})";
 
     // ---------------------------------------------------------------------------------------------------------
-    // Snapshots: compare against the committed baseline, or write it under --bless (docs/design/testing-plan.md §6.5.2)
+    // Snapshots: compare against the committed baseline, or write it under --bless (docs/testing.md)
     // ---------------------------------------------------------------------------------------------------------
 
     /// <summary>Always writes this run's snapshot to <c>&lt;out&gt;/layout/</c>. Under <c>--bless</c>, also (over)writes
@@ -997,7 +997,7 @@ internal static class CouchTestLayout
     }
 
     /// <summary>A minimal hand-rolled reader for the fixed shape <see cref="WriteSnapshot"/> writes — this file
-    /// controls both sides of the format, so a full JSON parser isn't needed (docs/design/testing-plan.md §5's Layer A
+    /// controls both sides of the format, so a full JSON parser isn't needed (docs/testing.md's Layer A
     /// project makes the same "hand-rolled, no reflection" call for the same reason).</summary>
     private static Dictionary<string, CouchTestRect> ReadSnapshot(string path)
     {
@@ -1018,7 +1018,7 @@ internal static class CouchTestLayout
     private static string JsonEscape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
     // ---------------------------------------------------------------------------------------------------------
-    // --repeat: cross-run comparison (docs/design/testing-plan.md §6.2, §6.6 rule 8)
+    // --repeat: cross-run comparison (docs/testing.md)
     // ---------------------------------------------------------------------------------------------------------
 
     /// <summary>Resets the in-process snapshot list a fresh <c>--couch-test</c> invocation starts with. Not currently
@@ -1063,7 +1063,7 @@ internal static class CouchTestLayout
     }
 
     // ---------------------------------------------------------------------------------------------------------
-    // --review: checkpoint screenshots and the contact sheet (docs/design/testing-plan.md §6.5, §6.7). Never affects
+    // --review: checkpoint screenshots and the contact sheet (docs/testing.md). Never affects
     // the verdict: failures here are logged and swallowed, not thrown.
     // ---------------------------------------------------------------------------------------------------------
 
