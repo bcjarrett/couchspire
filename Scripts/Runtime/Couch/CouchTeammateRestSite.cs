@@ -1,4 +1,5 @@
 using Godot;
+using CouchSpire.Scripts.Compat;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.RestSite;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
@@ -12,11 +13,10 @@ namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// The teammate's own rest site options (rest, smith, and anything relics add). Every player has their own options in
-/// <see cref="RestSiteSynchronizer"/>; the teammate picks with an <see cref="OptionIndexChosenMessage"/>. "Skip" has no
-/// game-side net message (v0.107.1 has no <c>RestSiteSkippedMessage</c>-equivalent — leaving a rest site is a purely
-/// local UI decision even for online players, per <see cref="MegaCrit.Sts2.Core.Nodes.Rooms.NRestSiteRoom"/>'s own
-/// proceed button), so it's tracked entirely locally by remembering the room the teammate skipped in
-/// <see cref="_skippedRoom"/>. Smithing opens the teammate's card picker. The driver can't leave until the teammate is
+/// <see cref="RestSiteSynchronizer"/>; the teammate picks with an <see cref="OptionIndexChosenMessage"/>. "Skip" is
+/// tracked locally by remembering the room the teammate skipped in (<see cref="_skippedRoom"/>), and also sent as the
+/// teammate where the game branch has a skip message (<see cref="GameCompat.NotifyRestSiteSkipped"/>). Smithing opens
+/// the teammate's card picker. The driver can't leave until the teammate is
 /// done (see <see cref="BlocksProceed"/>, which is itself purely local).
 /// </summary>
 internal sealed partial class CouchTeammateRestSite : CouchPanel
@@ -216,6 +216,7 @@ internal sealed partial class CouchTeammateRestSite : CouchPanel
         {
             CouchLog.Info($"Teammate {_teammate.NetId} skips the rest of the rest site.");
             _skippedRoom = NRestSiteRoom.Instance;
+            GameCompat.NotifyRestSiteSkipped(_teammate);
             return;
         }
 

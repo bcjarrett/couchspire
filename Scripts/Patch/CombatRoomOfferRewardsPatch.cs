@@ -1,4 +1,5 @@
 using HarmonyLib;
+using CouchSpire.Scripts.Compat;
 using CouchSpire.Scripts.Rewards;
 using CouchSpire.Scripts.Runtime;
 using CouchSpire.Scripts.Runtime.Couch;
@@ -21,11 +22,11 @@ namespace CouchSpire.Scripts.Patch;
 /// previous merge point was the Offer patch, which discarded those already-generated sets and regenerated
 /// per player. That double generation burned one-shot generation-time relics on the invisible first pass
 /// (Silken Tress's Glam never appeared: its <c>IsUsed</c> was consumed by the discarded set), advanced the
-/// reward RNG twice, and ran the reward modify hooks only on sets nobody ever saw.
+/// reward RNG twice, and ran the reward hooks only on sets nobody ever saw.
 ///
 /// This patch replaces OfferRoomEndRewards itself: each player's rewards are generated exactly once (via the
-/// vanilla <c>RewardsCmd.GenerateForRoomEnd</c>, which runs <c>Hook.ModifyRewards</c>/<c>Hook.AfterModifyingRewards</c>
-/// internally), and the merged screen displays those same Reward instances. The Offer/OfferForRoomEnd merge
+/// vanilla <c>RewardsCmd.GenerateForRoomEnd</c>), any before-offered hook fires on the sets that are actually shown
+/// (<see cref="GameCompat.BeforeCombatRewardOffered"/>), and the merged screen displays those same Reward instances. The Offer/OfferForRoomEnd merge
 /// patches remain only as backstops for other callers; <c>TryMarkRoomMerged</c> keeps them from re-running.
 /// </summary>
 [HarmonyPatch(typeof(CombatRoom), nameof(CombatRoom.OfferRoomEndRewards))]
@@ -85,12 +86,10 @@ internal static class CombatRoomOfferRewardsPatch
             // Couch simultaneous mode: the teammate takes their rewards in their own panel, not the merged list.
             RewardsSet? teammateSet = CouchTeammateRewards.PickTeammateSet(generatedSets, displayPlayer);
 
-            // v0.107.1 dropped the separate BeforeCombatRewardOffered hook: reward modify hooks (Hook.ModifyRewards /
-            // Hook.AfterModifyingRewards) now run entirely inside GenerateForRoomEnd above, once per set, so there is
-            // nothing left to fire here before merging the sets into the displayed screen.
             List<Reward> mergedRewards = new();
             foreach (RewardsSet perPlayerSet in generatedSets)
             {
+                await GameCompat.BeforeCombatRewardOffered(perPlayerSet, runState, combatRoom);
                 if (perPlayerSet == teammateSet)
                 {
                     continue;

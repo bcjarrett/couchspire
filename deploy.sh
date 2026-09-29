@@ -12,6 +12,8 @@
 #                                      exits with the runner's exit code. See docs/testing.md.
 #
 # Mod settings: CouchSpire.cfg in the repo root is installed next to the mod (see CouchSpire.cfg.example).
+# Game branch: builds for the Steam branch the target game is on (main or beta), detected by matching its
+# release_info.json against the tools/snapshot-game-ref.sh snapshots; set GAME_TARGET=main|beta to override.
 # Env overrides: CONFIG (Release|Debug), STS2_DIR (local game install dir, matches Sts2Paths.props' Sts2Dir),
 # STS2_REMOTE_DIR (remote game dir), STS2_REMOTE_HOST (default `remote`/`logs` host), COUCHSPIRE_TEST_TIMEOUT
 # (test mode's outer timeout in seconds, default 1200), COUCHSPIRE_TEST_LOCK_WAIT (seconds to queue for the test
@@ -32,10 +34,48 @@ if ! command -v dotnet >/dev/null 2>&1 && [ -x /opt/homebrew/opt/dotnet@9/bin/do
 fi
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 
+# $1: game branch (main|beta), from detect_game_target.
 build() {
-  echo "==> Building $MOD_ID ($CONFIG)"
-  dotnet build "$ROOT/CouchSpire.csproj" -c "$CONFIG" -nologo -v quiet
+  echo "==> Building $MOD_ID ($CONFIG, $1 game branch)"
+  dotnet build "$ROOT/CouchSpire.csproj" -c "$CONFIG" -p:GameTarget="$1" -nologo -v quiet
   test -f "$ROOT/$MOD_ID.dll"
+}
+
+# Prints the "version" of a release_info.json read from stdin, without the leading "v" (empty if unreadable).
+release_info_version() {
+  python3 -c 'import json,sys; print(json.load(sys.stdin)["version"].lstrip("v"))' 2>/dev/null || true
+}
+
+# Prints main or beta for the game whose release_info.json version is $1, by matching the snapshots that
+# tools/snapshot-game-ref.sh saved. $GAME_TARGET overrides. Exits if the version matches neither snapshot: that
+# game build is new (a patch landed), so refresh the snapshot first (AGENTS.md §5).
+detect_game_target() {
+  local installed="$1" ref_root="${STS2_REF_ROOT:-$HOME/sts2-ref}" main_version beta_version
+  if [ -n "${GAME_TARGET:-}" ]; then
+    echo "$GAME_TARGET"
+    return
+  fi
+  main_version="$(release_info_version < "$ref_root/main/release_info.json" 2>/dev/null || true)"
+  beta_version="$(release_info_version < "$ref_root/beta/release_info.json" 2>/dev/null || true)"
+  if [ -n "$installed" ] && [ "$installed" = "$beta_version" ]; then
+    echo beta
+  elif [ -n "$installed" ] && [ "$installed" = "$main_version" ]; then
+    echo main
+  elif [ -z "$main_version$beta_version" ]; then
+    echo main
+  else
+    echo "Game version '${installed:-unknown}' matches neither snapshot (main: ${main_version:-none}, beta: ${beta_version:-none})." >&2
+    echo "If a game patch landed, run tools/snapshot-game-ref.sh main|beta for that branch; or set GAME_TARGET=main|beta." >&2
+    exit 1
+  fi
+}
+
+local_release_info() {
+  if is_macos; then
+    cat "$(local_game_dir)/SlayTheSpire2.app/Contents/Resources/release_info.json" 2>/dev/null || true
+  else
+    cat "$(local_game_dir)/release_info.json" 2>/dev/null || true
+  fi
 }
 
 install_atomic() {
@@ -240,7 +280,8 @@ acquire_test_lock() {
 if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
   case "${1:-}" in
     local | mac)
-      build
+      game_target="$(detect_game_target "$(local_release_info | release_info_version)")"
+      build "$game_target"
       install_local user
       if local_game_running; then
         echo "==> The game is running: it keeps the old build until you quit and relaunch it."
@@ -248,7 +289,8 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       ;;
     remote | bazzite)
       host="$(remote_host "${2:-}" "${1:-remote}")"
-      build
+      game_target="$(detect_game_target "$(ssh "$host" "cat \"$REMOTE_GAME_DIR/release_info.json\"" 2>/dev/null | release_info_version)")"
+      build "$game_target"
       dest="$REMOTE_GAME_DIR/mods/$MOD_ID"
       files=("$MOD_ID.dll" "$MOD_ID.json")
       if [ -f "$ROOT/$MOD_ID.cfg" ]; then
@@ -329,8 +371,9 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
         exit 3
       fi
 
-      # 3. Build Debug and install with no CouchSpire.cfg.
-      build
+      # 3. Build Debug for the installed game's branch and install with no CouchSpire.cfg.
+      game_target="$(detect_game_target "$(local_release_info | release_info_version)")"
+      build "$game_target"
       install_local none
 
       # 4. Reset the test save profile. Hard safety: the target must be exactly the real "<root>/default/1", and
@@ -356,7 +399,7 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
         exit 2
       fi
 
-      game_args=(--force-steam off --couch-test "$selection" --couch-test-out "$out_dir" --couch-test-baselines "$ROOT/Tests/layout-baselines")
+      game_args=(--force-steam off --couch-test "$selection" --couch-test-out "$out_dir" --couch-test-baselines "$ROOT/Tests/layout-baselines/$game_target")
       if [ -n "$repeat" ]; then
         game_args+=(--repeat "$repeat")
       fi

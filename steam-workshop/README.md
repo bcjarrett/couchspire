@@ -1,6 +1,13 @@
 # Steam Workshop assets
 
-Place the Workshop preview image (the item's thumbnail) at `steam-workshop/preview.jpg`.
+There are two Workshop items, one per Steam game branch (AGENTS.md §5): the main-branch build, whose
+files live here, and the beta-branch build, whose files live in `beta/`. Each has its own
+`couchspire.vdf`, `description.md` and `verified-versions.txt`; `tools/upload-steam-workshop.sh --target
+main|beta` (or `make steam-upload TARGET=...`) picks one. The beta item's `beta/couchspire.vdf` is created
+by its first upload; commit it afterwards, then add the beta item's link to this `description.md`, the way
+`beta/description.md` links to the main item.
+
+Place the Workshop preview image (the item's thumbnail) at `steam-workshop/preview.jpg`; both items use it.
 
 `screenshots/` holds extra gallery images (gameplay shots, not the thumbnail) — steamcmd's
 `workshop_build.vdf` upload only sets `previewfile`, so these aren't pushed automatically; add

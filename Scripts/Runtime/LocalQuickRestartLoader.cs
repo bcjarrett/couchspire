@@ -1,3 +1,4 @@
+using CouchSpire.Scripts.Compat;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Models;
@@ -51,7 +52,7 @@ internal static class LocalQuickRestartLoader
             NAudioManager.Instance?.StopMusic();
 
             NGame game = NGame.Instance ?? throw new InvalidOperationException("NGame.Instance is null.");
-            game.RemoteCursorContainer.Initialize(lobby.InputSynchronizer, lobby.ConnectedPlayerIds);
+            game.RemoteCursorContainer.Initialize(lobby.InputSynchronizer, GameCompat.LoadLobbyPlayerIds(lobby));
             game.ReactionContainer.InitializeNetworking(netService);
 
             SerializablePlayer localPlayer = saveData.Players.First((player) => player.NetId == primaryPlayerId);
@@ -78,36 +79,6 @@ internal static class LocalQuickRestartLoader
         {
             ModLog.Error($"ESC quick restart direct load failed: {exception}");
             return false;
-        }
-    }
-
-    private sealed class NoopLoadRunLobbyListener : ILoadRunLobbyListener
-    {
-        internal static readonly NoopLoadRunLobbyListener Instance = new NoopLoadRunLobbyListener();
-
-        public void PlayerConnected(ulong playerId)
-        {
-        }
-
-        public void RemotePlayerDisconnected(ulong playerId)
-        {
-        }
-
-        public Task<bool> ShouldAllowRunToBegin()
-        {
-            return Task.FromResult(true);
-        }
-
-        public void BeginRun()
-        {
-        }
-
-        public void PlayerReadyChanged(ulong playerId)
-        {
-        }
-
-        public void LocalPlayerDisconnected(NetErrorInfo info)
-        {
         }
     }
 }

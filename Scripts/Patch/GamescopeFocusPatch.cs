@@ -13,23 +13,11 @@ namespace CouchSpire.Scripts.Patch;
 /// gamescope.
 /// </summary>
 [HarmonyPatch]
-internal static class GamescopeFocusPatch
+internal static partial class GamescopeFocusPatch
 {
     private static readonly MethodInfo? OriginalCheck = AccessTools.Method(typeof(NGame), nameof(NGame.IsGameFocusedWindow));
 
     private static readonly MethodInfo? ReplacementCheck = AccessTools.Method(typeof(GamescopeFocus), nameof(GamescopeFocus.IsGameFocusedWindow));
-
-    // v0.107.1 has no NControllerManager.CheckForArrowKeyInput or NInputManager.ProcessFkbInput (dropped, not
-    // renamed: no other method picked up their IsGameFocusedWindow check), and NInputManager's hotkey check is
-    // named ProcessShortcutKeyInput here rather than ProcessHotkeyInput.
-    private static readonly (Type Type, string Method)[] Callers =
-    {
-        (typeof(NControllerManager), "_Process"),
-        (typeof(NControllerManager), "CheckForControllerInput"),
-        (typeof(NInputManager), "_UnhandledInput"),
-        (typeof(NInputManager), "ProcessShortcutKeyInput"),
-        (typeof(NHotkeyManager), "_UnhandledInput")
-    };
 
     private static bool _loggedEnvironment;
 

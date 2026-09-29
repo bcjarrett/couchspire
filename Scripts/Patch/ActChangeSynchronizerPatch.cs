@@ -1,4 +1,5 @@
 using HarmonyLib;
+using CouchSpire.Scripts.Compat;
 using CouchSpire.Scripts.Runtime;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -57,7 +58,7 @@ internal static class ActChangeSynchronizerPatch
 
         foreach (Player mirroredPlayer in pendingPlayers)
         {
-            RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new VoteToMoveToNextActAction(mirroredPlayer));
+            RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(GameCompat.NewNextActVote(mirroredPlayer, runState));
         }
 
         ModLog.Info(

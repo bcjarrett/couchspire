@@ -1,6 +1,7 @@
 using System.Reflection;
 using Godot;
 using HarmonyLib;
+using CouchSpire.Scripts.Compat;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.ControllerInput;
 using MegaCrit.Sts2.Core.Platform.Steam;
@@ -34,11 +35,10 @@ internal static class CouchSteamPoller
         AccessTools.FieldRefAccess<SteamControllerInputStrategy, InputAnalogActionHandle_t>("_joystickActionHandle");
 
     private static readonly AccessTools.FieldRef<SteamControllerInputStrategy, Vector2> LStickPositionRef =
-        AccessTools.FieldRefAccess<SteamControllerInputStrategy, Vector2>("_joystickPosition");
+        AccessTools.FieldRefAccess<SteamControllerInputStrategy, Vector2>(GameCompat.SteamStickPositionField);
 
-    /// <summary>Mirrors the one-shot rebuild-if-empty guard the beta strategy kept as its own
-    /// <c>_attemptedHandleCacheRebuild</c> field; v0.107.1 dropped that field (it now only rebuilds the map on an
-    /// input-type change), so this poller tracks the same "have we tried it yet" guard itself.</summary>
+    /// <summary>One-shot rebuild-if-empty guard for the digital handle cache. The beta's strategy has its own
+    /// <c>_attemptedHandleCacheRebuild</c> field and main's doesn't, so the poller tracks it itself.</summary>
     private static bool _attemptedHandleCacheRebuild;
 
     private static readonly AccessTools.FieldRef<SteamControllerInputStrategy, List<string>> PressedInputsRef =

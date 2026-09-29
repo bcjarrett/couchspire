@@ -14,16 +14,21 @@
 #   tools/upload-steam-workshop.sh [options] vX.Y.Z
 #
 # Options:
+#   --target main|beta        Which Workshop item: the main-branch build (default) or the beta-branch build.
 #   --dry-run                 Write the VDF and print the SteamCMD command without uploading.
 #   --local-build              Build locally (tools/package.sh) instead of downloading the release asset.
 #   --skip-package             Content folder is already staged; don't download or build.
 #   --username USERNAME        Steam username for SteamCMD login. Defaults to STEAM_USERNAME.
-#   --vdf PATH                 Workshop VDF path. Defaults to steam-workshop/couchspire.vdf.
+#   --vdf PATH                 Workshop VDF path. Defaults to steam-workshop[/beta]/couchspire.vdf.
 #   --preview PATH             Preview image path. Defaults to steam-workshop/preview.jpg.
-#   --content-folder PATH      Uploaded content folder. Defaults to artifacts/release/staging/CouchSpire.
+#   --content-folder PATH      Uploaded content folder. Defaults to artifacts/release/<target>/staging/CouchSpire.
 #   --visibility VALUE         Steam visibility value. Defaults to 2 (private).
 #
-# Description: steam-workshop/description.md, if present, is used as the Workshop item's
+# Two Workshop items: the main game branch's build (steam-workshop/) and the beta game branch's
+# (steam-workshop/beta/), each with its own couchspire.vdf, description.md and verified-versions.txt.
+# --target picks one; both share preview.jpg.
+#
+# Description: <dir>/description.md, if present, is used as the Workshop item's
 # description instead of the manifest's (short, in-game) description — the Workshop page can
 # afford a fuller pitch and links that don't belong in the in-game mod list.
 #
@@ -35,6 +40,7 @@
 # Examples:
 #   tools/upload-steam-workshop.sh --dry-run --local-build v0.1.0
 #   STEAM_USERNAME=myname tools/upload-steam-workshop.sh v0.1.0
+#   STEAM_USERNAME=myname tools/upload-steam-workshop.sh --target beta v0.1.0
 set -euo pipefail
 
 MOD_ID="CouchSpire"
@@ -46,13 +52,14 @@ Usage:
   tools/upload-steam-workshop.sh [options] vX.Y.Z
 
 Options:
+  --target main|beta        Which Workshop item: the main-branch build (default) or the beta-branch build.
   --dry-run                 Write the VDF and print the SteamCMD command without uploading.
   --local-build              Build locally (tools/package.sh) instead of downloading the release asset.
   --skip-package             Content folder is already staged; don't download or build.
   --username USERNAME        Steam username for SteamCMD login. Defaults to STEAM_USERNAME.
-  --vdf PATH                 Workshop VDF path. Defaults to steam-workshop/couchspire.vdf.
+  --vdf PATH                 Workshop VDF path. Defaults to steam-workshop[/beta]/couchspire.vdf.
   --preview PATH             Preview image path. Defaults to steam-workshop/preview.jpg.
-  --content-folder PATH      Uploaded content folder. Defaults to artifacts/release/staging/CouchSpire.
+  --content-folder PATH      Uploaded content folder. Defaults to artifacts/release/<target>/staging/CouchSpire.
   --visibility VALUE         Steam visibility value. Defaults to 2 (private).
 
 Examples:
@@ -103,6 +110,7 @@ print(match.group(1) if match else "0")
 PY
 }
 
+target="main"
 dry_run=false
 skip_package=false
 local_build=false
@@ -115,6 +123,11 @@ tag=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --target)
+      [[ $# -ge 2 ]] || die "--target requires a value"
+      target="$2"
+      shift 2
+      ;;
     --dry-run)
       dry_run=true
       shift
@@ -176,6 +189,10 @@ if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   die "tag must match v<major>.<minor>.<patch>, got '$tag'"
 fi
 
+if [[ "$target" != "main" && "$target" != "beta" ]]; then
+  die "--target must be main or beta, got '$target'"
+fi
+
 if [[ ! "$visibility" =~ ^[0-3]$ ]]; then
   die "visibility must be 0 (public), 1 (friends-only), 2 (private), or 3 (unlisted)"
 fi
@@ -188,8 +205,15 @@ cd "$repo_root"
 
 version="${tag#v}"
 manifest_path="$MOD_ID.json"
-default_content_folder="artifacts/release/staging/$MOD_ID"
-default_vdf_path="steam-workshop/couchspire.vdf"
+if [[ "$target" == "main" ]]; then
+  workshop_dir="steam-workshop"
+  zip_pattern="$MOD_ID-v*.zip"
+else
+  workshop_dir="steam-workshop/$target"
+  zip_pattern="$MOD_ID-$target-v*.zip"
+fi
+default_content_folder="artifacts/release/$target/staging/$MOD_ID"
+default_vdf_path="$workshop_dir/couchspire.vdf"
 default_preview_file="steam-workshop/preview.jpg"
 
 content_folder="${content_folder:-$default_content_folder}"
@@ -208,11 +232,11 @@ if [[ "$skip_package" == false ]]; then
     download_dir="artifacts/release/download"
     rm -rf "$download_dir"
     mkdir -p "$download_dir"
-    gh release download "$tag" --pattern "$MOD_ID-*.zip" --dir "$download_dir" \
+    gh release download "$tag" --pattern "$zip_pattern" --dir "$download_dir" \
       || die "no release asset found for $tag; run tools/attach-release-asset.sh first, or pass --local-build"
-    zip_file="$(find "$download_dir" -maxdepth 1 -name "$MOD_ID-*.zip" | head -n 1)"
-    [[ -n "$zip_file" ]] || die "downloaded but found no $MOD_ID-*.zip in $download_dir"
-    stage_root="artifacts/release/staging"
+    zip_file="$(find "$download_dir" -maxdepth 1 -name "$zip_pattern" | head -n 1)"
+    [[ -n "$zip_file" ]] || die "downloaded but found no $zip_pattern in $download_dir"
+    stage_root="artifacts/release/$target/staging"
     rm -rf "$stage_root"
     mkdir -p "$stage_root/$MOD_ID"
     python3 - "$zip_file" "$stage_root/$MOD_ID" <<'PY'
@@ -290,13 +314,13 @@ else
   )"
 fi
 
-verified_versions_file="steam-workshop/verified-versions.txt"
+verified_versions_file="$workshop_dir/verified-versions.txt"
 verified_versions=""
 if [[ -f "$verified_versions_file" ]]; then
-  verified_versions="$(grep -v '^[[:space:]]*#' "$verified_versions_file" | grep -v '^[[:space:]]*$' | paste -sd, - | sed 's/,/, /g')"
+  verified_versions="$( (grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$verified_versions_file" || true) | paste -sd, - | sed 's/,/, /g')"
 fi
 
-description_file="steam-workshop/description.md"
+description_file="$workshop_dir/description.md"
 description_override=""
 if [[ -f "$description_file" ]]; then
   description_override="$(cat "$description_file")"

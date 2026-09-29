@@ -12,7 +12,7 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace CouchSpire.Scripts.Runtime;
 
-internal sealed class LocalLoopbackHostGameService : INetHostGameService
+internal sealed partial class LocalLoopbackHostGameService : INetHostGameService
 {
     private readonly Dictionary<Type, List<Delegate>> _handlers = new();
 

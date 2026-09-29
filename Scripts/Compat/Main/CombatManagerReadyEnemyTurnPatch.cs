@@ -9,10 +9,10 @@ namespace CouchSpire.Scripts.Patch;
 /// When one local character readies for the enemy turn, mirror that readiness onto every other local character so
 /// the game's own all-players-ready check passes.
 ///
-/// v0.107.1's <c>CombatManager</c> keeps <c>_playersReadyToBeginEnemyTurn</c> (a <c>HashSet&lt;Player&gt;</c>) and
+/// Main branch: <c>CombatManager</c> keeps <c>_playersReadyToBeginEnemyTurn</c> (a <c>HashSet&lt;Player&gt;</c>) and
 /// <c>_playerReadyLock</c> directly as its own fields and calls <c>AfterAllPlayersReadyToBeginEnemyTurn</c> itself,
 /// synchronously, once every player is in the set — no separate <c>CombatTurnState</c>/signal-source indirection
-/// (that only exists in the v0.111.0 beta this mod previously targeted). So the prefix only needs to add the other
+/// (that's the beta branch; see Compat/Beta/). So the prefix only needs to add the other
 /// local players to that set before the original method's own count check runs; the original then drives the
 /// transition itself, exactly as it would for a real second player.
 /// </summary>

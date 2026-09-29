@@ -62,12 +62,15 @@ if ! gh release view "$tag" >/dev/null 2>&1; then
   die "no GitHub Release found for '$tag' yet; the Release workflow may still be running"
 fi
 
-info "packaging $tag"
-zip_path="$(tools/package.sh | tail -n 1)"
-[[ -f "$zip_path" ]] || die "tools/package.sh did not produce a zip"
+info "packaging $tag (main and beta game branches)"
+zip_paths=()
+while IFS= read -r line; do
+  zip_paths+=("$line")
+done < <(tools/package.sh | tail -n 2)
+[[ "${#zip_paths[@]}" -eq 2 && -f "${zip_paths[0]}" && -f "${zip_paths[1]}" ]] || die "tools/package.sh did not produce both zips"
 
-info "uploading $zip_path to release $tag"
-gh release upload "$tag" "$zip_path" --clobber
+info "uploading ${zip_paths[*]} to release $tag"
+gh release upload "$tag" "${zip_paths[@]}" --clobber
 
 release_url="$(gh release view "$tag" --json url --jq .url)"
 info "done: $release_url"

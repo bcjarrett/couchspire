@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# Build CouchSpire (Release) and stage/zip it for distribution. Local-only: the DLL needs the
-# real game assemblies (see AGENTS.md §1), which don't exist on the CI runner.
+# Build CouchSpire (Release) for both Steam game branches and stage/zip each for distribution:
+#   artifacts/release/CouchSpire-vX.Y.Z.zip       main game branch (staged in artifacts/release/main/staging/)
+#   artifacts/release/CouchSpire-beta-vX.Y.Z.zip  beta game branch (staged in artifacts/release/beta/staging/)
+# Local-only: each build needs that branch's game assemblies, saved by tools/snapshot-game-ref.sh
+# (AGENTS.md §5); the CI runner has neither.
 #
 # Version comes from CouchSpire.json, which semantic-release keeps in sync with the released
 # git tag (see .releaserc.json's @semantic-release/exec step) — run this only against a master
-# checkout that already has the version you intend to ship.
+# checkout that already has the version you intend to ship. Each staged manifest's
+# min_game_version is set to the game version that build was compiled against.
 #
 # Usage:
 #   tools/package.sh
 #
-# Prints the produced zip path as the last line of stdout.
+# Prints the produced zip paths, one per line (main first), as the last lines of stdout.
 set -euo pipefail
 
 MOD_ID="CouchSpire"
@@ -55,27 +59,53 @@ PY
 )"
 [[ -n "$version" ]] || die "$MANIFEST has no version field"
 
-info "building Release configuration ($MOD_ID $version)"
-dotnet build "$PROJECT" -c Release -nologo -v quiet
-
-info "checking format"
-dotnet format "$PROJECT" --verify-no-changes
-
-dll_path="$MOD_ID.dll"
-[[ -f "$dll_path" ]] || die "expected built DLL at repo root: $dll_path"
-
+ref_root="${STS2_REF_ROOT:-$HOME/sts2-ref}"
 artifact_root="artifacts/release"
-stage_root="$artifact_root/staging"
-payload_root="$stage_root/$MOD_ID"
-zip_path="$artifact_root/$MOD_ID-v$version.zip"
+zips=()
 
-rm -rf "$stage_root"
-mkdir -p "$payload_root"
-cp "$dll_path" "$payload_root/$MOD_ID.dll"
-cp "$MANIFEST" "$payload_root/$MANIFEST"
+for target in main beta; do
+  release_info="$ref_root/$target/release_info.json"
+  [[ -f "$release_info" ]] || die "no $target game snapshot in $ref_root/$target; run tools/snapshot-game-ref.sh $target with Steam on that branch"
+  game_version="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"].lstrip("v"))' "$release_info")"
 
-info "creating $zip_path"
-python3 - "$zip_path" "$stage_root" <<'PY'
+  info "building Release configuration ($MOD_ID $version, $target game branch, game v$game_version)"
+  dotnet build "$PROJECT" -c Release -p:GameTarget="$target" -nologo -v quiet
+
+  info "checking format ($target)"
+  GameTarget="$target" dotnet format "$PROJECT" --verify-no-changes
+
+  dll_path="$MOD_ID.dll"
+  [[ -f "$dll_path" ]] || die "expected built DLL at repo root: $dll_path"
+
+  stage_root="$artifact_root/$target/staging"
+  payload_root="$stage_root/$MOD_ID"
+  if [[ "$target" == "main" ]]; then
+    zip_path="$artifact_root/$MOD_ID-v$version.zip"
+  else
+    zip_path="$artifact_root/$MOD_ID-$target-v$version.zip"
+  fi
+
+  rm -rf "$stage_root"
+  mkdir -p "$payload_root"
+  cp "$dll_path" "$payload_root/$MOD_ID.dll"
+
+  python3 - "$MANIFEST" "$payload_root/$MANIFEST" "$target" "$game_version" <<'PY'
+import json
+import sys
+
+source, dest, target, game_version = sys.argv[1:5]
+with open(source, "r", encoding="utf-8") as handle:
+    manifest = json.load(handle)
+manifest["min_game_version"] = game_version
+if target == "beta":
+    manifest["name"] = f"{manifest['name']} - beta branch"
+with open(dest, "w", encoding="utf-8") as handle:
+    json.dump(manifest, handle, indent=4)
+    handle.write("\n")
+PY
+
+  info "creating $zip_path"
+  python3 - "$zip_path" "$stage_root" <<'PY'
 from pathlib import Path
 import sys
 import zipfile
@@ -92,5 +122,7 @@ with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as archive:
         if path.is_file():
             archive.write(path, path.relative_to(stage_root).as_posix())
 PY
+  zips+=("$zip_path")
+done
 
-echo "$zip_path"
+printf '%s\n' "${zips[@]}"

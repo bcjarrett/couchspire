@@ -12,6 +12,7 @@ CouchSpire.dll
 # --- Decompiled game source ---------------------------------------------------
 # Read-only reference regenerated from sts2.dll (see AGENTS.md §5); never commit it.
 src/
+src-beta/
 
 # --- Test / release output ----------------------------------------------------
 test-results/
