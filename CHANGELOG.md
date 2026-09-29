@@ -6,7 +6,7 @@ from [Conventional Commits](https://www.conventionalcommits.org/) on every merge
 see `AGENTS.md` §7 for the release flow. This file starts fresh at 0.1.0; CouchSpire's history
 before its first release lives in the git log.
 
-## 0.1.0 (Unreleased)
+## 0.1.0 (2026-09-28)
 
 First public release. CouchSpire runs a real two-player Slay the Spire 2 multiplayer run in one
 game, on one screen, with no networking.
