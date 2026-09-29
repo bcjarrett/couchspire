@@ -10,6 +10,9 @@ isn't mid-action.
 - Rewards, shops, rest sites, treasure, and events are all handled per player.
 - Works on Steam Deck / Bazzite Game Mode.
 
+On the Steam beta branch (Properties > Betas)? Use the beta build instead: https://steamcommunity.com/sharedfiles/filedetails/?id=3810046237
+Subscribe to only one of the two.
+
 Based on Local Multi-Control (DualRoleAdventure) - do not enable both mods at once.
 
 Source, issue tracker, and full setup docs: https://github.com/bcjarrett/couchspire
