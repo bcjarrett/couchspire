@@ -51,10 +51,21 @@ internal sealed class MapScenarios : CouchTestScenarioBase
         // settling its own reveal animation right after the "map-open" checkpoint, which only waits for the mod's
         // panels to stabilize, not the game's own NMapScreen; a click during that can miss). Re-fetch the point
         // fresh each attempt rather than reusing the node, in case the first click's target got recreated.
+        //
+        // A second race sits on top of that one: an earlier attempt's click can register just after its own
+        // WaitUntil gave up, so the room has already moved on from Map by the time a "failed" attempt retries.
+        // Check for that before re-fetching a travelable point - there may be none left once the move has
+        // happened, and LeftmostTravelableMapPoint would then throw instead of this loop just breaking.
         int attempt = 0;
         while (true)
         {
             attempt++;
+            if (runState.CurrentRoom?.RoomType != RoomType.Map)
+            {
+                CouchTestLog.Info($"P1's map vote from an earlier attempt landed late; the room already moved on (attempt {attempt}).");
+                break;
+            }
+
             NMapPoint targetPoint = context.LeftmostTravelableMapPoint(mapScreen);
             await context.ClickAsync(targetPoint);
             try
