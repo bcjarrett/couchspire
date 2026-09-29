@@ -310,7 +310,7 @@ else
   # Steam's changenote is plain text (no Markdown rendering): drop the heading line and
   # strip Markdown syntax so the Workshop page doesn't show literal #/**/backticks.
   changenote="$(
-    printf '%s' "$changenote" | tail -n +2 | sed -E -e 's/^#+[[:space:]]*//' -e 's/[`*]//g' | sed '/^$/N;/^\n$/D'
+    printf '%s' "$changenote" | tail -n +2 | sed -E -e 's/ \(\[[0-9a-f]{7,}\]\([^)]*\)\)//g' -e 's/^#+[[:space:]]*//' -e 's/^\* /- /' -e 's/[`*]//g' | sed '/^$/N;/^\n$/D' | sed '/./,$!d'
   )"
 fi
 
