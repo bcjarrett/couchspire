@@ -25,8 +25,7 @@ format:
 test:
 	dotnet test Tests/CouchSpire.Tests
 
-# Run locally before merging: verifies the build, then opens a PR to master. Merging kicks
-# off the Release workflow (semantic-release), which tags and cuts the GitHub Release.
+# Run locally before merging: verifies the build, then opens a PR to master. 
 pr: check
 	gh pr create --fill --base master
 
