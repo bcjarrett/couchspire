@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
 # Build CouchSpire and install it into a Slay the Spire 2 "mods" folder.
 #
-#   ./deploy.sh mac                  Install into this Mac's game (mods folder inside the .app bundle).
-#   ./deploy.sh bazzite [user@host]  Copy to a Bazzite/Linux box over SSH (default host: $BAZZITE_HOST).
-#   ./deploy.sh logs [user@host]     Follow the remote game log, couch lines only.
+#   ./deploy.sh local                 Build and install into the local game (macOS or Linux).
+#   ./deploy.sh remote [user@host]    Copy to a Linux machine (e.g. a Steam Deck or Bazzite box) over SSH
+#                                      (default host: $STS2_REMOTE_HOST). `./deploy.sh mac` is a hidden alias
+#                                      for `local`, kept for muscle memory.
+#   ./deploy.sh logs [user@host]      Follow the remote game log, couch lines only.
 #   ./deploy.sh test [scenario|all] [--repeat N] [--bless] [--review] [--strict-layout]
-#                                    Run the in-game scenario runner (macOS only). Builds Debug, installs with no
-#                                    CouchSpire.cfg, resets the test save profile, launches, reports, and exits with
-#                                    the runner's exit code. See docs/testing.md.
+#                                      Run the in-game scenario runner (macOS only for now). Builds Debug, installs
+#                                      with no CouchSpire.cfg, resets the test save profile, launches, reports, and
+#                                      exits with the runner's exit code. See docs/testing.md.
 #
 # Mod settings: CouchSpire.cfg in the repo root is installed next to the mod (see CouchSpire.cfg.example).
-# Env overrides: CONFIG (Release|Debug), STS2_REMOTE_DIR (remote game dir), COUCHSPIRE_TEST_TIMEOUT (test mode's
-# outer timeout in seconds, default 1200), COUCHSPIRE_TEST_LOCK_WAIT (seconds to queue for the test lock, default 0).
+# Env overrides: CONFIG (Release|Debug), STS2_DIR (local game install dir, matches Sts2Paths.props' Sts2Dir),
+# STS2_REMOTE_DIR (remote game dir), STS2_REMOTE_HOST (default `remote`/`logs` host), COUCHSPIRE_TEST_TIMEOUT
+# (test mode's outer timeout in seconds, default 1200), COUCHSPIRE_TEST_LOCK_WAIT (seconds to queue for the test
+# lock instead of failing, default 0).
 set -euo pipefail
 
 MOD_ID="CouchSpire"
@@ -34,14 +38,6 @@ build() {
   test -f "$ROOT/$MOD_ID.dll"
 }
 
-# Copy next to the destination, then rename over it. Overwriting a loaded DLL in place corrupts a running game
-# (the runtime memory-maps assemblies; methods compiled afterwards read garbage: "Bad IL range").
-# True if the Mac game is running. Matches the executable path (ps comm), not the command line: pgrep -f would also
-# match any shell whose command merely mentions the game's path.
-mac_game_running() {
-  ps -axo comm= | grep -q "/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2$"
-}
-
 install_atomic() {
   local src="$1" dir="$2" name
   name="$(basename "$1")"
@@ -50,36 +46,75 @@ install_atomic() {
 }
 
 remote_host() {
-  local host="${1:-${BAZZITE_HOST:-}}"
+  local host="${1:-${STS2_REMOTE_HOST:-}}"
   if [ -z "$host" ]; then
-    echo "Give a host (./deploy.sh $2 user@host) or set BAZZITE_HOST." >&2
+    echo "Give a host (./deploy.sh $2 user@host) or set STS2_REMOTE_HOST." >&2
     exit 1
   fi
   echo "$host"
 }
 
-# --- Mac paths -----------------------------------------------------------------------------------------------
+# --- Local paths (macOS or Linux) ------------------------------------------------------------------------------
+# Mirrors Sts2Paths.props' Sts2Dir detection, so `-p:Sts2Dir=...`/$STS2_DIR and this script agree on the game.
 
-mac_macos_dir() {
-  echo "$HOME/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS"
+is_macos() {
+  [ "$(uname -s)" = "Darwin" ]
 }
 
-mac_dest() {
-  echo "$(mac_macos_dir)/mods/$MOD_ID"
+# The game install directory. Override with $STS2_DIR (matches Sts2Paths.props).
+local_game_dir() {
+  if [ -n "${STS2_DIR:-}" ]; then
+    echo "$STS2_DIR"
+  elif is_macos; then
+    echo "$HOME/Library/Application Support/Steam/steamapps/common/Slay the Spire 2"
+  else
+    echo "$HOME/.local/share/Steam/steamapps/common/Slay the Spire 2"
+  fi
 }
 
-mac_user_data_root() {
-  echo "$HOME/Library/Application Support/SlayTheSpire2"
+# macOS ships the game inside an .app bundle; the mods folder lives under its Contents/MacOS. Linux (native or
+# Steam Deck/Bazzite Game Mode) has no bundle: mods sit directly under the install directory.
+local_macos_dir() {
+  echo "$(local_game_dir)/SlayTheSpire2.app/Contents/MacOS"
 }
 
-# Install the built DLL/JSON (and, unless cfg_mode is "none", the repo's CouchSpire.cfg) into the Mac mods folder.
-# Shared by `mac` and `test` so the install logic lives in exactly one place.
-install_mac() {
+local_dest() {
+  if is_macos; then
+    echo "$(local_macos_dir)/mods/$MOD_ID"
+  else
+    echo "$(local_game_dir)/mods/$MOD_ID"
+  fi
+}
+
+local_user_data_root() {
+  if is_macos; then
+    echo "$HOME/Library/Application Support/SlayTheSpire2"
+  else
+    echo "$HOME/.local/share/SlayTheSpire2"
+  fi
+}
+
+# Copy next to the destination, then rename over it. Overwriting a loaded DLL in place corrupts a running game
+# (the runtime memory-maps assemblies; methods compiled afterwards read garbage: "Bad IL range").
+# True if the local game is running. On macOS this matches the executable path (ps comm), not the command line:
+# pgrep -f would also match any shell whose command merely mentions the game's path. Linux has no such fixed path
+# (native install layouts vary), so it falls back to a process-name match there.
+local_game_running() {
+  if is_macos; then
+    ps -axo comm= | grep -q "/SlayTheSpire2.app/Contents/MacOS/Slay the Spire 2$"
+  else
+    pgrep -f "Slay the Spire 2" >/dev/null 2>&1
+  fi
+}
+
+# Install the built DLL/JSON (and, unless cfg_mode is "none", the repo's CouchSpire.cfg) into the local mods folder.
+# Shared by `local` and `test` (macOS only) so the install logic lives in exactly one place.
+install_local() {
   # $1: cfg mode - "user" (default; installs the repo's CouchSpire.cfg if present) or "none" (test runs never
-  # install a cfg, so the pinned COUCHSPIRE_* env vars are what decides behavior; docs/testing.md).
+  # install a cfg, so the pinned COUCHSPIRE_* env vars are what decides behavior; see docs/testing.md).
   local cfg_mode="${1:-user}"
   local dest
-  dest="$(mac_dest)"
+  dest="$(local_dest)"
   mkdir -p "$dest"
   install_atomic "$ROOT/$MOD_ID.dll" "$dest"
   install_atomic "$ROOT/$MOD_ID.json" "$dest"
@@ -89,7 +124,7 @@ install_mac() {
   else
     rm -f "$dest/$MOD_ID.cfg"
     if [ "$cfg_mode" = "none" ]; then
-      echo "==> Settings: none installed for this test run (COUCHSPIRE_* env vars pin behavior instead; ./deploy.sh mac restores your $MOD_ID.cfg)"
+      echo "==> Settings: none installed for this test run (COUCHSPIRE_* env vars pin behavior instead; ./deploy.sh local restores your $MOD_ID.cfg)"
     else
       echo "==> Settings: defaults (no $MOD_ID.cfg in repo root; see $MOD_ID.cfg.example)"
     fi
@@ -97,7 +132,7 @@ install_mac() {
   echo "==> Installed to $dest"
 }
 
-# --- Test-mode helpers -----------------------------------------------------------------------------------------
+# --- Test-mode helpers (macOS only for now) --------------------------------------------------------------------
 
 # Resets the isolated test save profile: seeds settings.save (mod consent) from the real steam/<id>/ profile if
 # missing, then deletes everything else under it. Takes the target dir and its user-data root explicitly (rather
@@ -158,7 +193,7 @@ reset_test_profile() {
   echo "==> Reset $target (kept settings.save)"
 }
 
-# Only one test run may hold the game install / default/1/ tree at a time (docs/testing.md). Sets the
+# Only one test run may hold the game install / default/1/ tree at a time (see docs/testing.md). Sets the
 # COUCHSPIRE_LOCK_DIR global and an EXIT trap on success; exits 3 on failure to acquire (never returns).
 COUCHSPIRE_LOCK_DIR=""
 
@@ -204,15 +239,15 @@ acquire_test_lock() {
 # (and without risking an `exit` from inside a sourced script killing the caller's shell).
 if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
   case "${1:-}" in
-    mac)
+    local | mac)
       build
-      install_mac user
-      if mac_game_running; then
+      install_local user
+      if local_game_running; then
         echo "==> The game is running: it keeps the old build until you quit and relaunch it."
       fi
       ;;
-    bazzite)
-      host="$(remote_host "${2:-}" bazzite)"
+    remote | bazzite)
+      host="$(remote_host "${2:-}" "${1:-remote}")"
       build
       dest="$REMOTE_GAME_DIR/mods/$MOD_ID"
       files=("$MOD_ID.dll" "$MOD_ID.json")
@@ -238,11 +273,11 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       ssh -t "$host" "tail -n 200 -F \"$REMOTE_LOG\" | grep --line-buffered -E '\\[Couch\\]|CouchSpire.*(Harmony|Mod |loaded)|ERROR|Exception'"
       ;;
     test)
-      if [ "$(uname -s)" != "Darwin" ]; then
-        echo "test mode is macOS-only for now." >&2
+      if ! is_macos; then
+        echo "test mode is macOS-only for now (see docs/testing.md); use 'local' or 'remote' to deploy on Linux." >&2
         exit 1
       fi
-      # Test scenarios only compile with COUCHSPIRE_TESTS, which is only defined in Debug (docs/testing.md).
+      # Test scenarios only compile with COUCHSPIRE_TESTS, which is only defined in Debug (see docs/testing.md).
       CONFIG="Debug"
 
       shift
@@ -289,18 +324,18 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       acquire_test_lock "$lock_dir"
 
       # 2. Refuse if the game is already running.
-      if mac_game_running; then
+      if local_game_running; then
         echo "The game is running. Quit it first: only one test run may use the game install and default/1/ at a time." >&2
         exit 3
       fi
 
       # 3. Build Debug and install with no CouchSpire.cfg.
       build
-      install_mac none
+      install_local none
 
       # 4. Reset the test save profile. Hard safety: the target must be exactly the real "<root>/default/1", and
       # HOME must be non-empty (set -u catches unset, not empty). reset_test_profile double-checks this too.
-      user_root="$(mac_user_data_root)"
+      user_root="$(local_user_data_root)"
       profile_dir="$user_root/default/1"
       expected="$HOME/Library/Application Support/SlayTheSpire2/default/1"
       if [ -z "${HOME:-}" ] || [ "$profile_dir" != "$expected" ]; then
@@ -315,7 +350,7 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       mkdir -p "$out_dir"
       echo "==> Results: $out_dir"
 
-      game_bin="$(mac_macos_dir)/Slay the Spire 2"
+      game_bin="$(local_macos_dir)/Slay the Spire 2"
       if [ ! -x "$game_bin" ]; then
         echo "Game binary not found or not executable: $game_bin" >&2
         exit 2
@@ -422,7 +457,7 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       exit "$final_exit"
       ;;
     *)
-      sed -n '2,14p' "$0"
+      sed -n '2,17p' "$0"
       exit 1
       ;;
   esac

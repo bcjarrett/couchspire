@@ -3,7 +3,7 @@
 # real game assemblies (see AGENTS.md §1), which don't exist on the CI runner.
 #
 # Version comes from CouchSpire.json, which semantic-release keeps in sync with the released
-# git tag (see .releaserc.json's @semantic-release/exec step) — run this only against a main
+# git tag (see .releaserc.json's @semantic-release/exec step) — run this only against a master
 # checkout that already has the version you intend to ship.
 #
 # Usage:
@@ -29,14 +29,14 @@ need_command() {
   command -v "$1" >/dev/null 2>&1 || die "missing required command: $1"
 }
 
-need_command dotnet
-need_command python3
-
-if ! command -v /opt/homebrew/opt/dotnet@9/bin/dotnet >/dev/null 2>&1 && [ -x /opt/homebrew/opt/dotnet@9/bin/dotnet ]; then
+if ! command -v dotnet >/dev/null 2>&1 && [ -x /opt/homebrew/opt/dotnet@9/bin/dotnet ]; then
   export DOTNET_ROOT="/opt/homebrew/opt/dotnet@9/libexec"
   export PATH="/opt/homebrew/opt/dotnet@9/bin:$PATH"
 fi
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
+
+need_command dotnet
+need_command python3
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || die "not inside a git repository"
 cd "$repo_root"

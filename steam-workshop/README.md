@@ -2,10 +2,10 @@
 
 Place the Workshop preview image at `steam-workshop/preview.jpg`.
 
-The release flow is: CI (semantic-release, on the GitHub runner) tags and creates the GitHub
-Release from a merge to main, then `make attach-release` on this Mac builds the real DLL and
-attaches it as a Release asset (CI has no game install and can't build it). Once that's done,
-push it to Steam:
+The release flow is: CI (semantic-release, on a hosted GitHub Actions runner) tags and creates
+the GitHub Release from a merge to master, then `make attach-release`, run locally, builds the
+real DLL and attaches it as a Release asset (CI has no game install and can't build it). Once
+that's done, push it to Steam:
 
 ```bash
 STEAM_USERNAME="<steam-user>" tools/upload-steam-workshop.sh vX.Y.Z

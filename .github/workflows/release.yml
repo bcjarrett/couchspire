@@ -20,8 +20,8 @@ concurrency:
 
 jobs:
   release:
-    # Adjust these labels to match how this repo's self-hosted runner is actually registered.
-    runs-on: [self-hosted]
+    # A hosted runner is fine here: this job never touches the game or builds the DLL.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,8 +34,8 @@ jobs:
         with:
           node-version: 20
 
-      # No package-lock.json is committed yet (this Mac has no Node to generate one) — switch
-      # this to `npm ci` once one exists, for reproducible installs.
+      # No package-lock.json is committed yet — switch this to `npm ci` once one exists, for
+      # reproducible installs.
       - run: npm install
 
       - run: npx semantic-release

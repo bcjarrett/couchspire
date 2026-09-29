@@ -42,7 +42,7 @@ What it does:
 5. Prints `summary.txt` and exits with the runner's code: 0 pass, 1 a scenario failed or timed out, 2 runner error,
    3 lock or game busy.
 
-**After a test session, run `./deploy.sh mac`** to put your normal build and settings back.
+**After a test session, run `./deploy.sh local`** to put your normal build and settings back.
 
 Environment variables:
 - `COUCHSPIRE_TEST_TIMEOUT`: outer kill timeout in seconds (default 1200). It's only for hangs; each scenario has
