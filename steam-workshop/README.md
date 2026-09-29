@@ -1,6 +1,13 @@
 # Steam Workshop assets
 
-Place the Workshop preview image at `steam-workshop/preview.jpg`.
+Place the Workshop preview image (the item's thumbnail) at `steam-workshop/preview.jpg`.
+
+`screenshots/` holds extra gallery images (gameplay shots, not the thumbnail) — steamcmd's
+`workshop_build.vdf` upload only sets `previewfile`, so these aren't pushed automatically; add
+them to the Workshop item's screenshot gallery by hand from the item's Steam page (Edit Item >
+Screenshots). Capture fresh ones with `./deploy.sh test <scenario> --review`, which runs with
+the mod's debug overlay forced off (see `docs/testing.md`); pick clean checkpoint PNGs from
+`test-results/<run>/layout/<scenario>/`.
 
 The release flow is: CI (semantic-release, on a hosted GitHub Actions runner) tags and creates
 the GitHub Release from a merge to master, then `make attach-release`, run locally, builds the

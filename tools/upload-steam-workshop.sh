@@ -23,10 +23,14 @@
 #   --content-folder PATH      Uploaded content folder. Defaults to artifacts/release/staging/CouchSpire.
 #   --visibility VALUE         Steam visibility value. Defaults to 2 (private).
 #
+# Description: steam-workshop/description.md, if present, is used as the Workshop item's
+# description instead of the manifest's (short, in-game) description — the Workshop page can
+# afford a fuller pitch and links that don't belong in the in-game mod list.
+#
 # Compatibility: if steam-workshop/verified-versions.txt exists, its lines are appended to the
-# Workshop item's description as "verified compatible with" game versions. Update that file and
-# re-run with --skip-package (reusing the last staged/downloaded build) to refresh just that
-# text on the Workshop page — no new mod release needed.
+# Workshop item's description as "verified compatible with" game versions. Update that file (or
+# description.md) and re-run with --skip-package (reusing the last staged/downloaded build) to
+# refresh just that text on the Workshop page — no new mod release needed.
 #
 # Examples:
 #   tools/upload-steam-workshop.sh --dry-run --local-build v0.1.0
@@ -292,11 +296,17 @@ if [[ -f "$verified_versions_file" ]]; then
   verified_versions="$(grep -v '^[[:space:]]*#' "$verified_versions_file" | grep -v '^[[:space:]]*$' | paste -sd, - | sed 's/,/, /g')"
 fi
 
+description_file="steam-workshop/description.md"
+description_override=""
+if [[ -f "$description_file" ]]; then
+  description_override="$(cat "$description_file")"
+fi
+
 mkdir -p "$(dirname "$vdf_path_abs")"
 
 before_published_file_id="$(read_published_file_id "$vdf_path_abs")"
 
-python3 - "$vdf_path_abs" "$manifest_path_abs" "$content_folder_abs" "$preview_file_abs" "$tag" "$visibility" "$APP_ID" "$changenote" "$verified_versions" <<'PY'
+python3 - "$vdf_path_abs" "$manifest_path_abs" "$content_folder_abs" "$preview_file_abs" "$tag" "$visibility" "$APP_ID" "$changenote" "$verified_versions" "$description_override" <<'PY'
 from pathlib import Path
 import json
 import re
@@ -311,6 +321,7 @@ visibility = sys.argv[6]
 app_id = sys.argv[7]
 changenote = sys.argv[8]
 verified_versions = sys.argv[9]
+description_override = sys.argv[10]
 
 with manifest_path.open("r", encoding="utf-8") as handle:
     manifest = json.load(handle)
@@ -325,7 +336,7 @@ def esc(value):
     return str(value).replace("\\", "\\\\").replace('"', '\\"')
 
 title = manifest.get("name") or manifest.get("id") or "CouchSpire"
-description = manifest.get("description") or title
+description = description_override.strip() or manifest.get("description") or title
 if verified_versions:
     description += f"\n\nVerified compatible with game version(s): {verified_versions}."
 
