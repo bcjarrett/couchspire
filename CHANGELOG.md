@@ -1,3 +1,10 @@
+# [0.3.0](https://github.com/bcjarrett/couchspire/compare/v0.2.0...v0.3.0) (2026-09-29)
+
+
+### Features
+
+* support both the main and beta Steam game branches ([a1ee717](https://github.com/bcjarrett/couchspire/commit/a1ee7173804ab464ae181a8bef744916ccfe31e4))
+
 # [0.2.0](https://github.com/bcjarrett/couchspire/compare/v0.1.0...v0.2.0) (2026-09-29)
 
 
