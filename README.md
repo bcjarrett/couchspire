@@ -4,7 +4,7 @@
 [![Latest release](https://img.shields.io/github/v/release/bcjarrett/couchspire?include_prereleases)](https://github.com/bcjarrett/couchspire/releases)
 
 A **Slay the Spire 2** mod for two-player couch co-op on one screen. Each controller drives its
-own character. The game's real multiplayer flow runs underneath, with no networking.
+own character.
 
 ## Features
 
@@ -14,9 +14,6 @@ own character. The game's real multiplayer flow runs underneath, with no network
   game's own art.
 - Per-character decks, gold, potions, relics and choices; rewards, shops, rest sites, treasure
   and events are all handled per player instead of mirrored or shared.
-- Steam Deck / Bazzite Game Mode support: the controller works from launch, even before you
-  open the Steam overlay.
-- Pure code mod: `has_dll=true`, `has_pck=false` — no asset pack to install.
 
 ## Requirements
 
@@ -54,7 +51,7 @@ package on Linux).
 
 ```bash
 ./deploy.sh local                 # build and install into the local game (macOS or Linux)
-./deploy.sh remote user@host      # build and copy to a Linux machine (e.g. a Steam Deck or Bazzite box) over SSH
+./deploy.sh remote user@host      # build and copy to a remote machine (e.g. a Steam Deck or Bazzite box) over SSH
 ./deploy.sh logs user@host        # follow the couch lines of the remote game log
 ```
 
