@@ -1,3 +1,10 @@
+# [0.2.0](https://github.com/bcjarrett/couchspire/compare/v0.1.0...v0.2.0) (2026-09-29)
+
+
+### Features
+
+* release test ([b2e67fd](https://github.com/bcjarrett/couchspire/commit/b2e67fdf311fa9819dd1e41c0dada4960a7170cd))
+
 # Changelog
 
 All notable changes to CouchSpire will be documented here. Starting with the first release,

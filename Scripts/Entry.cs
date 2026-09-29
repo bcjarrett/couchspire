@@ -11,7 +11,7 @@ namespace CouchSpire.Scripts;
 [ModInitializer(nameof(Init))]
 public partial class Entry
 {
-    private const string BuildMarker = "CouchSpire 0.1.0 loaded (game v0.111.0)";
+    private const string BuildMarker = "CouchSpire 0.2.0 loaded (game v0.111.0)";
 
     private static Harmony? _harmony;
 
