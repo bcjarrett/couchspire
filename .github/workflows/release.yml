@@ -1,0 +1,43 @@
+name: Release
+
+# Version-numbers, tags, and the GitHub Release itself — nothing more. This runner has no
+# Slay the Spire 2 install and no Steam access, so it never builds the DLL: see
+# tools/attach-release-asset.sh for the local step that attaches the real build artifact
+# after this workflow creates the release, and tools/upload-steam-workshop.sh for the
+# (also local, deliberately not CI) Steam Workshop push.
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Adjust these labels to match how this repo's self-hosted runner is actually registered.
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Default GITHUB_TOKEN can't push past branch protection on master; semantic-release
+          # needs a PAT (repo-scoped, with a branch-protection bypass or admin) in this secret.
+          token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # No package-lock.json is committed yet (this Mac has no Node to generate one) — switch
+      # this to `npm ci` once one exists, for reproducible installs.
+      - run: npm install
+
+      - run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}

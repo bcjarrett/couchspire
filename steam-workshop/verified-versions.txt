@@ -1,0 +1,11 @@
+# Game versions this build has actually been playtested against and confirmed working —
+# not the same as CouchSpire.json's min_game_version (a floor, not a guarantee). One version
+# per line; blank lines and lines starting with # are ignored.
+#
+# Editing this file does NOT need a new mod release: commit it with a `docs:`/`chore:` message
+# (semantic-release won't bump the version for those), then refresh the Workshop listing by
+# re-running the upload for the current release tag, e.g.:
+#   tools/upload-steam-workshop.sh v0.1.0
+# It re-downloads the same (unchanged) release asset and re-uploads — steamcmd only transfers
+# what actually changed, so this just refreshes the description/changenote text on Steam.
+0.111.0

@@ -67,10 +67,28 @@ When the game updates and the mod breaks:
 
 ## 7. Release flow
 
-1. Bump the version: `CouchSpire.json` (`x.y.z` semver — the game warns on non-semver) and the `Entry.cs` build marker.
-2. Update `CHANGELOG.md` (cut a dated release section), and `COUCH.md` / `PLAYER_GUIDE.md` if player-facing behavior changed.
-3. `CONFIG=Release ./deploy.sh ...` (Release is the default) and playtest the installed build.
-4. Commit.
+Versioning is automated by `semantic-release` (`.releaserc.json`) on a self-hosted GitHub
+Actions runner — it has no game install, so it only handles versioning, not building:
+
+1. Write commits using [Conventional Commits](https://www.conventionalcommits.org/) (`fix:`,
+   `feat:`, `feat!:`/`BREAKING CHANGE:`, `docs:`, `chore:`, ...) — the commit-analyzer plugin
+   decides the version bump from these. Update `COUCH.md` / `PLAYER_GUIDE.md` if player-facing
+   behavior changed. Do **not** hand-edit `CouchSpire.json`'s `version` or the `Entry.cs` build
+   marker's `CouchSpire X.Y.Z` prefix — CI does that automatically on merge.
+2. `CONFIG=Release ./deploy.sh ...` and playtest the installed build locally.
+3. `make pr` (build + format-check, then opens a PR to `master`).
+4. Merge the PR. This triggers the `Release` workflow: semantic-release computes the version,
+   updates `CHANGELOG.md` and the version fields above, commits that back to `master`, tags it,
+   and creates the GitHub Release (notes only — no DLL asset yet).
+5. `make attach-release` (locally, on `master`): builds the real DLL and attaches it to the
+   Release CI just created.
+6. `tools/upload-steam-workshop.sh vX.Y.Z` (locally) to push it to the Steam Workshop — see
+   `steam-workshop/README.md`. Not part of CI: SteamCMD needs a Steam Guard session the runner
+   doesn't have.
+
+To update the Workshop listing's compatibility note without a new release (e.g. confirming the
+existing build still works on a new game patch), edit `steam-workshop/verified-versions.txt`,
+commit with a `docs:`/`chore:` message (no version bump), and re-run step 6 for the current tag.
 
 ## 8. Documentation map
 

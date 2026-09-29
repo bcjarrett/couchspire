@@ -41,6 +41,12 @@ ilspycmd -p --nested-directories -o /tmp/sts2-src "<game data dir>/sts2.dll"
 cp -r /tmp/sts2-src/MegaCrit/Sts2/. src/
 ```
 
+## Releasing
+
+`make pr` builds, format-checks, and opens a release PR; merging it triggers `semantic-release`
+on CI to version, tag, and cut the GitHub Release. See [AGENTS.md §7](AGENTS.md#7-release-flow)
+for the full flow, including attaching the build and publishing to the Steam Workshop.
+
 ## Documentation
 
 - [COUCH.md](COUCH.md): couch co-op setup, settings, controls, tests

@@ -1,0 +1,11 @@
+{
+  "name": "couchspire-release-tooling",
+  "private": true,
+  "description": "semantic-release tooling for the CouchSpire GitHub Actions release workflow. Not a runtime dependency of the mod itself.",
+  "devDependencies": {
+    "semantic-release": "^24.0.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/git": "^10.0.1"
+  }
+}

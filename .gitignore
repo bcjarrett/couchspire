@@ -28,3 +28,9 @@ test-results/
 .dotnet
 release/
 CouchSpire.cfg
+
+# Local release/Workshop packaging output (tools/package.sh)
+artifacts/
+
+# semantic-release tooling (package.json devDependencies; CI runs `npm ci`)
+node_modules/
