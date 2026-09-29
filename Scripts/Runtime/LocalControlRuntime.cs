@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
+using CouchSpire.Scripts.Compat;
 using CouchSpire.Scripts.Patch;
 using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.Combat;
@@ -975,7 +976,7 @@ internal static class LocalControlRuntime
 
             if (targetEvent.LayoutType == EventLayoutType.Combat && targetEvent.Node == null)
             {
-                synchronizer.GenerateInternalCombatStateIfNecessary(targetEvent);
+                GameCompat.GenerateEventCombatState(synchronizer, targetEvent, runState);
             }
 
             bool isPreFinished = runState.CurrentRoom is EventRoom currentEventRoom && currentEventRoom.IsPreFinished;

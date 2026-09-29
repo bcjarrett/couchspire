@@ -1,5 +1,6 @@
 using Godot;
 using HarmonyLib;
+using CouchSpire.Scripts.Compat;
 using CouchSpire.Scripts.Runtime;
 using CouchSpire.Scripts.Runtime.Couch;
 using MegaCrit.Sts2.Core.ControllerInput;
@@ -514,7 +515,7 @@ internal static class RestSiteUiRefreshUtil
 
     private static void EnsureControllerFocus(NRestSiteRoom room, string source)
     {
-        if (!(NControllerManager.Instance?.InputType == InputType.Controller))
+        if (!GameCompat.IsUsingController())
         {
             return;
         }

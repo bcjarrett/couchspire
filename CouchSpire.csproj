@@ -18,10 +18,23 @@
     <DefineConstants>$(DefineConstants);COUCHSPIRE_TESTS</DefineConstants>
   </PropertyGroup>
 
+  <!--
+    Steam game branch (Sts2Paths.props, AGENTS.md §5): code that differs between main and beta lives in
+    Scripts/Compat/Main/ and Scripts/Compat/Beta/, and only the folder for $(GameTarget) is compiled.
+  -->
+  <ItemGroup Condition="'$(GameTarget)' == 'beta'">
+    <Compile Remove="Scripts/Compat/Main/**" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(GameTarget)' != 'beta'">
+    <Compile Remove="Scripts/Compat/Beta/**" />
+  </ItemGroup>
+
   <ItemGroup>
-    <!-- Decompiled game source lives in src/ as read-only reference; never compile it -->
+    <!-- Decompiled game source lives in src/ (main) and src-beta/ as read-only reference; never compile it -->
     <Compile Remove="src/**" />
     <None Remove="src/**" />
+    <Compile Remove="src-beta/**" />
+    <None Remove="src-beta/**" />
 
     <!-- Layer A tests live in their own plain-SDK project (Tests/CouchSpire.Tests); the Godot SDK must not glob them -->
     <Compile Remove="Tests/**" />

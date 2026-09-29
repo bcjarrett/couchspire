@@ -26,7 +26,7 @@ internal static class LoadRunLobbyPatch
             return;
         }
 
-        // v0.111.0: LoadRunLobby no longer keeps ConnectedPlayerIds/_readyPlayers sets;
+        // Beta branch: LoadRunLobby no longer keeps ConnectedPlayerIds/_readyPlayers sets;
         // membership and readiness both live in the public Players list of
         // LoadRunLobbyPlayer structs, so we mirror the host's ready state onto
         // every other local character there.

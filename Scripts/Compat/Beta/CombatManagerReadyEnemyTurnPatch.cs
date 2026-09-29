@@ -10,7 +10,7 @@ namespace CouchSpire.Scripts.Patch;
 /// When one local character readies for the enemy turn, mirror that readiness onto every other local character so
 /// the game's own all-players-ready check passes.
 ///
-/// v0.111.0: CombatManager moved its per-combat ready sets into an internal <c>CombatTurnState</c> object
+/// Beta branch: CombatManager moved its per-combat ready sets into an internal <c>CombatTurnState</c> object
 /// (<c>_turnState</c>) guarded by <c>ReadyLock</c>, and the player→enemy transition is now driven by a
 /// <c>BeginEnemyTurnSignalSource</c> TaskCompletionSource awaited by the turn loop. Because the type is internal,
 /// everything below goes through reflection. We no longer invoke <c>AfterAllPlayersReadyToBeginEnemyTurn</c> directly

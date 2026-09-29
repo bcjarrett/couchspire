@@ -1,4 +1,5 @@
 using Godot;
+using CouchSpire.Scripts.Compat;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.RestSite;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
@@ -12,9 +13,11 @@ namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
 /// The teammate's own rest site options (rest, smith, and anything relics add). Every player has their own options in
-/// <see cref="RestSiteSynchronizer"/>; the teammate picks with an <see cref="OptionIndexChosenMessage"/> or skips with a
-/// <see cref="RestSiteSkippedMessage"/>, sent as the teammate. Smithing opens the teammate's card picker. The driver
-/// can't leave until the teammate is done.
+/// <see cref="RestSiteSynchronizer"/>; the teammate picks with an <see cref="OptionIndexChosenMessage"/>. "Skip" is
+/// tracked locally by remembering the room the teammate skipped in (<see cref="_skippedRoom"/>), and also sent as the
+/// teammate where the game branch has a skip message (<see cref="GameCompat.NotifyRestSiteSkipped"/>). Smithing opens
+/// the teammate's card picker. The driver can't leave until the teammate is
+/// done (see <see cref="BlocksProceed"/>, which is itself purely local).
 /// </summary>
 internal sealed partial class CouchTeammateRestSite : CouchPanel
 {
@@ -34,6 +37,10 @@ internal sealed partial class CouchTeammateRestSite : CouchPanel
     private bool _busy;
 
     private int _cursor;
+
+    /// <summary>The rest site room instance the teammate has chosen to skip (see class remarks); resets naturally
+    /// because a new <see cref="NRestSiteRoom"/> is created for the next visit.</summary>
+    private NRestSiteRoom? _skippedRoom;
 
     public static bool IsActive => _instance != null && IsInstanceValid(_instance) && _instance.Visible;
 
@@ -143,7 +150,8 @@ internal sealed partial class CouchTeammateRestSite : CouchPanel
     private IReadOnlyList<RestSiteOption> CurrentOptions()
     {
         _teammate = CouchTeammate.FindTeammate();
-        if (_teammate == null || NRestSiteRoom.Instance == null || RunManager.Instance.DebugOnlyGetState()?.CurrentRoom is not RestSiteRoom)
+        if (_teammate == null || NRestSiteRoom.Instance == null || RunManager.Instance.DebugOnlyGetState()?.CurrentRoom is not RestSiteRoom
+            || NRestSiteRoom.Instance == _skippedRoom)
         {
             return new List<RestSiteOption>();
         }
@@ -204,11 +212,11 @@ internal sealed partial class CouchTeammateRestSite : CouchPanel
             return;
         }
 
-        MegaCrit.Sts2.Core.Runs.RunLocation location = RunManager.Instance.RunLocationTargetedBuffer.CurrentLocation;
         if (_cursor >= _shownOptions.Count)
         {
             CouchLog.Info($"Teammate {_teammate.NetId} skips the rest of the rest site.");
-            CouchRemotePlay.DispatchAs(_teammate, new RestSiteSkippedMessage { Location = location });
+            _skippedRoom = NRestSiteRoom.Instance;
+            GameCompat.NotifyRestSiteSkipped(_teammate);
             return;
         }
 
@@ -225,7 +233,7 @@ internal sealed partial class CouchTeammateRestSite : CouchPanel
         {
             type = OptionIndexType.RestSite,
             optionIndex = (uint)_cursor,
-            location = location
+            location = RunManager.Instance.RunLocationTargetedBuffer.CurrentLocation
         });
     }
 

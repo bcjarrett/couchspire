@@ -1,4 +1,5 @@
 using Godot;
+using CouchSpire.Scripts.Compat;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Cards;
@@ -145,7 +146,7 @@ internal static class CouchRemotePlay
             return false;
         }
 
-        if (!owner.CanUseOrRemovePotions)
+        if (!GameCompat.CanUsePotions(owner))
         {
             reason = "potions are locked right now";
             return false;
@@ -245,7 +246,7 @@ internal static class CouchRemotePlay
             return false;
         }
 
-        if (!teammate.CanUseOrRemovePotions)
+        if (!GameCompat.CanUsePotions(teammate))
         {
             reason = "potions are locked right now";
             return false;

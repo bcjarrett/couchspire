@@ -1,22 +1,21 @@
 using System.Reflection;
 using Godot;
 using HarmonyLib;
+using CouchSpire.Scripts.Compat;
 using MegaCrit.Sts2.Core.ControllerInput;
 
 namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
-/// Replaces <see cref="GodotControllerInputStrategy.ProcessInput"/> during couch runs. The game turns stick and
-/// trigger axes into button actions with <c>Input.IsActionJustPressed</c>, which merges every joypad into one.
+/// Replaces <see cref="GodotControllerInputStrategy.ProcessInput"/> during couch runs. The game turns stick (and, on
+/// the beta branch, trigger) axes into button actions with <c>Input.IsActionJustPressed</c>, which merges every joypad
+/// into one.
 /// This reads each joypad's axes separately, routes each transition through <see cref="CouchInputRouter"/>, and
 /// emits only what passes, tagged with <see cref="CouchEventDevice.GodotAnalogBase"/> + device id.
 /// Joypad buttons don't need this: their events already carry the device and are routed by the input gate.
 /// </summary>
 internal static class CouchGodotPadPoller
 {
-    private static readonly AccessTools.FieldRef<GodotControllerInputStrategy, Dictionary<StringName, StringName[]>> AnalogToDigitalRef =
-        AccessTools.FieldRefAccess<GodotControllerInputStrategy, Dictionary<StringName, StringName[]>>("_analogToDigitalInput");
-
     private static readonly MethodInfo? UpdateControllerConfigMethod =
         AccessTools.Method(typeof(GodotControllerInputStrategy), "UpdateControllerConfig");
 
@@ -55,7 +54,7 @@ internal static class CouchGodotPadPoller
             }
         }
 
-        Dictionary<StringName, StringName[]> analogToDigital = AnalogToDigitalRef(strategy);
+        Dictionary<StringName, StringName[]> analogToDigital = GameCompat.AnalogToDigital(strategy);
         foreach (int device in Input.GetConnectedJoypads())
         {
             HashSet<StringName> down = Down(device);

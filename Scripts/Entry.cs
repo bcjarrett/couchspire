@@ -1,4 +1,5 @@
 using HarmonyLib;
+using CouchSpire.Scripts.Compat;
 using CouchSpire.Scripts.Runtime;
 using CouchSpire.Scripts.Runtime.Couch;
 #if COUCHSPIRE_TESTS
@@ -11,7 +12,7 @@ namespace CouchSpire.Scripts;
 [ModInitializer(nameof(Init))]
 public partial class Entry
 {
-    private const string BuildMarker = "CouchSpire 0.2.0 loaded (game v0.111.0)";
+    private const string BuildMarker = "CouchSpire 0.2.0 loaded (" + GameCompat.GameBranch + " game branch)";
 
     private static Harmony? _harmony;
 

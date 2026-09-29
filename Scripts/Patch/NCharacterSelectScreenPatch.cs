@@ -62,7 +62,7 @@ internal static class NCharacterSelectScreenSelectCharacterPatch
 internal static class NCharacterSelectScreenPatch
 {
     [HarmonyPostfix]
-    private static void Postfix(StartRunLobbyPlayer player)
+    private static void Postfix(LobbyPlayer player)
     {
         LocalSelfCoopContext.NotifyCharacterSelectPlayerChanged(player.id);
     }

@@ -13,22 +13,11 @@ namespace CouchSpire.Scripts.Patch;
 /// gamescope.
 /// </summary>
 [HarmonyPatch]
-internal static class GamescopeFocusPatch
+internal static partial class GamescopeFocusPatch
 {
     private static readonly MethodInfo? OriginalCheck = AccessTools.Method(typeof(NGame), nameof(NGame.IsGameFocusedWindow));
 
     private static readonly MethodInfo? ReplacementCheck = AccessTools.Method(typeof(GamescopeFocus), nameof(GamescopeFocus.IsGameFocusedWindow));
-
-    private static readonly (Type Type, string Method)[] Callers =
-    {
-        (typeof(NControllerManager), "_Process"),
-        (typeof(NControllerManager), "CheckForControllerInput"),
-        (typeof(NControllerManager), "CheckForArrowKeyInput"),
-        (typeof(NInputManager), "_UnhandledInput"),
-        (typeof(NInputManager), "ProcessHotkeyInput"),
-        (typeof(NInputManager), "ProcessFkbInput"),
-        (typeof(NHotkeyManager), "_UnhandledInput")
-    };
 
     private static bool _loggedEnvironment;
 

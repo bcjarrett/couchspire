@@ -41,8 +41,11 @@ Launch the game, enable **CouchSpire** under `Settings → Mods`, and restart if
 
 ## Compatibility
 
-Built against game version **v0.111.0** (August 2026). Don't enable CouchSpire together with
-the Workshop DualRoleAdventure mod: both patch the same code.
+Each release has two builds, one per Steam game branch: `CouchSpire-vX.Y.Z.zip` for the default
+(main) branch, currently game v0.107.1, and `CouchSpire-beta-vX.Y.Z.zip` for the beta branch,
+currently game v0.111.0. On the Steam Workshop they're two separate items; subscribe to the one
+matching your game branch. Don't enable CouchSpire together with the Workshop DualRoleAdventure
+mod: both patch the same code.
 
 ## Building from source
 
@@ -59,17 +62,22 @@ The game path is detected per OS in `Sts2Paths.props`. Override it with `-p:Sts2
 `STS2_DIR` environment variable for `deploy.sh`). A manual install copies `CouchSpire.dll` and
 `CouchSpire.json` to `<game>/mods/CouchSpire/`.
 
-Style gate and offline tests, both required before a PR:
+A build targets one Steam game branch: `-p:GameTarget=main` (default) or `beta`. `deploy.sh` picks the
+branch your installed game is on. To build both regardless of which one Steam has installed, save each
+branch's game assemblies once with Steam on that branch: `make snapshot TARGET=main` / `TARGET=beta`
+(see AGENTS.md §5).
+
+Style gate and offline tests, both required before a PR, for both game branches:
 
 ```bash
-dotnet format CouchSpire.csproj --verify-no-changes
-dotnet test Tests/CouchSpire.Tests   # Layer A: offline Harmony/AccessTools target check
+make check   # Release build + dotnet format + Layer A (offline Harmony/AccessTools target check), main and beta
 ```
 
 See [docs/testing.md](docs/testing.md) for the full test setup, including the in-game scenario
 runner (macOS only for now).
 
-For game-API reference, decompile `sts2.dll` into `src/`. It is gitignored and read-only:
+For game-API reference, decompile `sts2.dll` into `src/` (main branch) or `src-beta/` (beta). Both are
+gitignored and read-only:
 
 ```bash
 dotnet tool install -g ilspycmd --version 9.1.0.7988

@@ -8,4 +8,4 @@
 #   tools/upload-steam-workshop.sh v0.1.0
 # It re-downloads the same (unchanged) release asset and re-uploads — steamcmd only transfers
 # what actually changed, so this just refreshes the description/changenote text on Steam.
-0.111.0
+0.107.1

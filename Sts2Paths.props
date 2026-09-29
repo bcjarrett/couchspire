@@ -5,6 +5,15 @@
     Must stay Godot-agnostic: only plain MSBuild functions/properties here.
   -->
   <PropertyGroup>
+    <!--
+      Steam game branch this checkout builds for: main on the master git branch, beta on the beta git
+      branch (AGENTS.md §7). If tools/snapshot-game-ref.sh saved that game branch's assemblies to
+      $(Sts2RefRoot)/$(GameTarget)/, the build uses them, so either git branch builds regardless of which
+      game branch Steam has installed; otherwise it falls back to the installed game below.
+    -->
+    <GameTarget Condition="'$(GameTarget)' == ''">main</GameTarget>
+    <Sts2RefRoot Condition="'$(Sts2RefRoot)' == ''">$(HOME)/sts2-ref</Sts2RefRoot>
+    <Sts2DataDir Condition="'$(Sts2DataDir)' == '' and Exists('$(Sts2RefRoot)/$(GameTarget)/sts2.dll')">$(Sts2RefRoot)/$(GameTarget)</Sts2DataDir>
     <!-- Game install dir; override with -p:Sts2Dir=... . Windows, WSL (C: drive mount), macOS, native Linux. -->
     <WslSts2Dir>/mnt/c/Program Files (x86)/Steam/steamapps/common/Slay the Spire 2</WslSts2Dir>
     <Sts2Dir Condition="'$(Sts2Dir)' == '' and '$(OS)' == 'Windows_NT'">C:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2</Sts2Dir>

@@ -13,8 +13,10 @@ Run Layer A after every build. Run `./deploy.sh test all` before asking for a pl
 
 ## Layer A
 
-`dotnet test Tests/CouchSpire.Tests` builds the mod, then checks every `[HarmonyPatch]` target and every
-`AccessTools.*` string lookup against the installed `sts2.dll`, walking base types the way Harmony does.
+`dotnet test Tests/CouchSpire.Tests -p:GameTarget=main|beta` builds the mod for that game branch, then checks every
+`[HarmonyPatch]` target and every `AccessTools.*` string lookup against that branch's `sts2.dll` (the
+`~/sts2-ref/<branch>/` snapshot, else the installed game), walking base types the way Harmony does. `make test` runs
+it for both branches (AGENTS.md §5).
 
 - A failure names the mod type and method, the target string, and the game type searched.
 - Lookups with no static type or no literal name (e.g. `AccessTools.Field(x.GetType(), …)`) are printed as
@@ -35,7 +37,8 @@ Run Layer A after every build. Run `./deploy.sh test all` before asking for a pl
 
 What it does:
 1. Takes a lock, and refuses (exit 3) if the game is already running.
-2. Builds **Debug** and installs it with **no** `CouchSpire.cfg`.
+2. Builds **Debug** for the game branch Steam has installed (main or beta; AGENTS.md §5) and installs it with **no**
+   `CouchSpire.cfg`. To test the other branch, switch branches in Steam and run it again.
 3. Resets the test save profile `~/Library/Application Support/SlayTheSpire2/default/1/` to just `settings.save`,
    copied from your real profile the first time for mod consent. Your `steam/` saves are never touched.
 4. Launches the game with `--force-steam off`, pinned `COUCHSPIRE_*` settings, and a fixed window.
@@ -128,7 +131,7 @@ Output goes to `test-results/<UTC timestamp>/` (gitignored):
 The **layout rules** below decide pass/fail. They encode intent, so they survive intentional tweaks, game patches
 and seed changes.
 
-**Baselines** are a drift report, not a gate. They live in `Tests/layout-baselines/<scenario>/<checkpoint>@<16x9|16x10>.json`
+**Baselines** are a drift report, not a gate. They live in `Tests/layout-baselines/<main|beta>/<scenario>/<checkpoint>@<16x9|16x10>.json`
 (committed) and hold the whole-pixel rects of the mod UI roots and a few game anchors. A move over 4 px, or a node
 appearing or disappearing, is listed under "Layout drift" in `summary.txt` but doesn't fail the run. Pass
 `--strict-layout` to make drift fail (e.g. before a release). `--repeat` always compares snapshots between passes,

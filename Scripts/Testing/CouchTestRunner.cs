@@ -170,7 +170,9 @@ internal static class CouchTestRunner
             $"Baselines: {baselinesDir}. repeat={repeat}, bless={bless}, review={review}.");
 
         await WaitHelper.Until(() => NGame.Instance != null, CancellationToken.None, TimeSpan.FromSeconds(60), "NGame instance not initialized");
-        await NGame.Instance!.GameStartupComplete;
+        // NGame no longer exposes a startup-completion task in v0.107.1; GameStartup() ends by launching the
+        // main menu, so waiting for the MainMenu node below is the equivalent readiness gate.
+        await WaitHelper.Until(() => NGame.Instance!.MainMenu != null, CancellationToken.None, TimeSpan.FromSeconds(60), "Main menu not initialized");
 
         // Just a readiness check here: the actual Control is re-resolved fresh per scenario/aspect pass
         // (StartCouchRunAsync), because "Give Up" replaces the main menu scene, and a Control captured before that

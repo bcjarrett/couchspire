@@ -12,7 +12,7 @@ using MegaCrit.Sts2.Core.Runs;
 
 namespace CouchSpire.Scripts.Runtime;
 
-internal sealed class LocalLoopbackHostGameService : INetHostGameService
+internal sealed partial class LocalLoopbackHostGameService : INetHostGameService
 {
     private readonly Dictionary<Type, List<Delegate>> _handlers = new();
 
@@ -45,22 +45,11 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
 
     public NetHost? NetHost => null;
 
-    // v0.111.0: every loopback peer is this same game instance, so the local
-    // version info is the correct answer for all of them. The game's lobbies
-    // dereference GetVersionInfoForPeer(...).Value unguarded, so never return null
-    // for a connected peer.
-    public PeerVersionInfo LocalVersion => PeerVersionInfo.LocalDefault();
-
     public event Action<NetErrorInfo>? Disconnected;
 
     public event Action<ulong>? ClientConnected;
 
     public event Action<ulong, NetErrorInfo>? ClientDisconnected;
-
-    // v0.111.0: handshake failures cannot happen on the loopback; never raised.
-#pragma warning disable CS0067
-    public event Action<ulong, NetErrorInfo>? ClientConnectionFailed;
-#pragma warning restore CS0067
 
     public void SetCurrentSenderId(ulong playerId)
     {
@@ -196,11 +185,6 @@ internal sealed class LocalLoopbackHostGameService : INetHostGameService
     {
         ModLog.Warn($"Local loopback request to disconnect client was ignored: peer={peerId}, reason={reason}, now={now}");
         ClientDisconnected?.Invoke(peerId, new NetErrorInfo(reason, selfInitiated: true));
-    }
-
-    public PeerVersionInfo? GetVersionInfoForPeer(ulong peerId)
-    {
-        return LocalVersion;
     }
 
     public void SetPeerReadyForBroadcasting(ulong peerId)
