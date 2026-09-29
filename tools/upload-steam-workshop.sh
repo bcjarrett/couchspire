@@ -19,13 +19,15 @@
 #   --local-build              Build locally (tools/package.sh) instead of downloading the release asset.
 #   --skip-package             Content folder is already staged; don't download or build.
 #   --username USERNAME        Steam username for SteamCMD login. Defaults to STEAM_USERNAME.
-#   --vdf PATH                 Workshop VDF path. Defaults to steam-workshop[/beta]/couchspire.vdf.
+#   --vdf PATH                 Where to write the generated VDF. Defaults to artifacts/workshop/<target>.vdf.
 #   --preview PATH             Preview image path. Defaults to steam-workshop/preview.jpg.
 #   --content-folder PATH      Uploaded content folder. Defaults to artifacts/release/<target>/staging/CouchSpire.
 #   --visibility VALUE         Steam visibility value. Defaults to 2 (private).
 #
 # Two Workshop items: the main game branch's build (steam-workshop/) and the beta game branch's
-# (steam-workshop/beta/), each with its own couchspire.vdf, description.md and verified-versions.txt.
+# (steam-workshop/beta/), each with its own published-file-id.txt, description.md and verified-versions.txt.
+# The VDF SteamCMD reads is generated fresh on every run (it needs absolute local paths, so it isn't
+# tracked); only the Workshop item's ID is kept, in published-file-id.txt.
 # --target picks one; both share preview.jpg.
 #
 # Description: <dir>/description.md, if present, is used as the Workshop item's
@@ -57,7 +59,7 @@ Options:
   --local-build              Build locally (tools/package.sh) instead of downloading the release asset.
   --skip-package             Content folder is already staged; don't download or build.
   --username USERNAME        Steam username for SteamCMD login. Defaults to STEAM_USERNAME.
-  --vdf PATH                 Workshop VDF path. Defaults to steam-workshop[/beta]/couchspire.vdf.
+  --vdf PATH                 Where to write the generated VDF. Defaults to artifacts/workshop/<target>.vdf.
   --preview PATH             Preview image path. Defaults to steam-workshop/preview.jpg.
   --content-folder PATH      Uploaded content folder. Defaults to artifacts/release/<target>/staging/CouchSpire.
   --visibility VALUE         Steam visibility value. Defaults to 2 (private).
@@ -213,7 +215,8 @@ else
   zip_pattern="$MOD_ID-$target-v*.zip"
 fi
 default_content_folder="artifacts/release/$target/staging/$MOD_ID"
-default_vdf_path="$workshop_dir/couchspire.vdf"
+default_vdf_path="artifacts/workshop/$target.vdf"
+id_file="$workshop_dir/published-file-id.txt"
 default_preview_file="steam-workshop/preview.jpg"
 
 content_folder="${content_folder:-$default_content_folder}"
@@ -328,12 +331,14 @@ fi
 
 mkdir -p "$(dirname "$vdf_path_abs")"
 
-before_published_file_id="$(read_published_file_id "$vdf_path_abs")"
+before_published_file_id="0"
+if [[ -f "$id_file" ]]; then
+  before_published_file_id="$(tr -d '[:space:]' < "$id_file")"
+fi
 
-python3 - "$vdf_path_abs" "$manifest_path_abs" "$content_folder_abs" "$preview_file_abs" "$tag" "$visibility" "$APP_ID" "$changenote" "$verified_versions" "$description_override" <<'PY'
+python3 - "$vdf_path_abs" "$manifest_path_abs" "$content_folder_abs" "$preview_file_abs" "$tag" "$visibility" "$APP_ID" "$changenote" "$verified_versions" "$description_override" "$before_published_file_id" <<'PY'
 from pathlib import Path
 import json
-import re
 import sys
 
 vdf_path = Path(sys.argv[1])
@@ -346,15 +351,10 @@ app_id = sys.argv[7]
 changenote = sys.argv[8]
 verified_versions = sys.argv[9]
 description_override = sys.argv[10]
+published_file_id = sys.argv[11] or "0"
 
 with manifest_path.open("r", encoding="utf-8") as handle:
     manifest = json.load(handle)
-
-published_file_id = "0"
-if vdf_path.exists():
-    match = re.search(r'"publishedfileid"\s*"([^"]*)"', vdf_path.read_text(encoding="utf-8"))
-    if match:
-        published_file_id = match.group(1)
 
 def esc(value):
     return str(value).replace("\\", "\\\\").replace('"', '\\"')
@@ -402,9 +402,10 @@ info "uploading $tag to Steam Workshop app $APP_ID"
 "$steamcmd_bin" +login "$steam_username" +workshop_build_item "$vdf_path_abs" +quit
 
 after_published_file_id="$(read_published_file_id "$vdf_path_abs")"
-if [[ "$before_published_file_id" != "$after_published_file_id" ]]; then
-  info "publishedfileid changed from $before_published_file_id to $after_published_file_id"
-  info "keep $vdf_path under version control so future uploads update the same Workshop item"
+if [[ "$before_published_file_id" != "$after_published_file_id" && "$after_published_file_id" != "0" ]]; then
+  printf '%s\n' "$after_published_file_id" > "$id_file"
+  info "publishedfileid changed from $before_published_file_id to $after_published_file_id; saved to $id_file"
+  info "commit $id_file so future uploads update the same Workshop item instead of creating a new one"
 fi
 
 info "Steam Workshop upload command finished"

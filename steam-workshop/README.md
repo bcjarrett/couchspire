@@ -2,10 +2,8 @@
 
 There are two Workshop items, one per Steam game branch (AGENTS.md §5): the main-branch build, whose
 files live here, and the beta-branch build, whose files live in `beta/`. Each has its own
-`couchspire.vdf`, `description.md` and `verified-versions.txt`; `tools/upload-steam-workshop.sh --target
-main|beta` (or `make steam-upload TARGET=...`) picks one. The beta item's `beta/couchspire.vdf` is created
-by its first upload; commit it afterwards, then add the beta item's link to this `description.md`, the way
-`beta/description.md` links to the main item.
+`published-file-id.txt`, `description.md` and `verified-versions.txt`; `tools/upload-steam-workshop.sh
+--target main|beta` (or `make steam-upload TARGET=...`) picks one. Each description links to the other item.
 
 Place the Workshop preview image (the item's thumbnail) at `steam-workshop/preview.jpg`; both items use it.
 
@@ -22,8 +20,11 @@ real DLL and attaches it as a Release asset (CI has no game install and can't bu
 that's done, push it to Steam:
 
 ```bash
-STEAM_USERNAME="<steam-user>" tools/upload-steam-workshop.sh vX.Y.Z
+make steam-upload TAG=vX.Y.Z TARGET=main
+make steam-upload TAG=vX.Y.Z TARGET=beta
 ```
+
+(`STEAM_USERNAME` must be set, or call `tools/upload-steam-workshop.sh --username ...` directly.)
 
 By default this downloads the zip that `make attach-release` just attached to the GitHub
 Release, so Steam, GitHub, and later Nexus all ship identical bytes. Pass `--local-build` to
@@ -32,10 +33,11 @@ See `tools/upload-steam-workshop.sh --help` for all options — it's deliberatel
 CI: SteamCMD needs a Steam Guard-authenticated session, which doesn't survive well on
 short-lived (or Steam-account-less) CI runners.
 
-The script writes `steam-workshop/couchspire.vdf`. On the very first upload it's created
-with `publishedfileid "0"`; SteamCMD fills that in with the real Workshop item ID after a
-successful upload. Commit that file afterwards so future uploads update the same Workshop
-item instead of creating a duplicate.
+Each run generates the VDF SteamCMD reads into `artifacts/workshop/<target>.vdf` (gitignored: it
+holds absolute local paths). The only thing kept between uploads is the Workshop item's ID, in
+`published-file-id.txt`. With no ID file, the upload creates a new Workshop item and the script
+saves its ID there; commit that file so future uploads update the same item instead of creating
+a duplicate.
 
 The item starts at visibility `2` (private) by default — pass `--visibility 0` once you're
 ready to make it public.
