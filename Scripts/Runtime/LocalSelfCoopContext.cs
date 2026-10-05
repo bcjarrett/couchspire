@@ -193,6 +193,17 @@ internal static class LocalSelfCoopContext
         ModLog.Info($"Lobby player {readyPlayerId} is ready; waiting on {string.Join(",", waitingPlayerIds)}. Handing the lobby to {nextPlayerId}.");
         SetLobbyEditingPlayer(nextPlayerId, "lobby-ready-handoff",
             LocalModText.LobbyReadyHandoff(GetSlotLabel(readyPlayerId), GetSlotLabel(nextPlayerId)));
+
+        // Disabling the buttons dropped controller focus; without it the d-pad has nothing to move from (the game's own
+        // Unready does the same).
+        if (AccessTools.Field(typeof(NCharacterSelectScreen), "_selectedButton")?.GetValue(screen) is Control selectedButton)
+        {
+            selectedButton.TryGrabFocus();
+        }
+        else
+        {
+            ModLog.Warn("Lobby handoff: no selected character button to focus.");
+        }
     }
 
     /// <summary>A ready player who takes the lobby back to change their pick has to press Embark again.</summary>
