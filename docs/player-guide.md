@@ -18,6 +18,7 @@ Two players, one screen, one controller each. CouchSpire runs a real two-player 
 
 - Each character has their own deck, hand, energy, gold, potions, relics and choices.
 - **Combat:** P1 plays on the main screen; P2 plays at the same time from the teammate HUD. Each player ends their own turn.
+- **Enemy attack numbers:** when the players would take different damage (e.g. one is Intangible), the intent shows both in seat order: `1 / 12` means P1 takes 1, P2 takes 12.
 - **Rewards, shops, rest sites, treasure, events:** P1 uses the main screen, P2 uses their own panel. Purchases and card removal are billed to whoever makes them.
 - **Map:** picking the next node completes the "everyone votes" step.
 - **Taking the main screen:** P2 clicks a stick in (L3/R3); on the keyboard, press `Tab`.
