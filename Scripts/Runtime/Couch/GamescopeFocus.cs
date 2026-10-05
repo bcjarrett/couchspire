@@ -35,17 +35,19 @@ internal static class GamescopeFocus
 
     private static ulong _lastActivationMs;
 
-    private static readonly bool CanActivateWindow = IsActive && !IsGamescope() && IsLinuxBigPicture();
-
     /// <summary>Running under gamescope, or from Big Picture on Linux, with the fix enabled.</summary>
     public static readonly bool IsActive = CouchConfig.GamescopeFocusFix && (IsGamescope() || IsLinuxBigPicture());
+
+    /// <summary>Declared after <see cref="IsActive"/>: static initializers run in source order.</summary>
+    private static readonly bool CanActivateWindow = IsActive && !IsGamescope() && IsLinuxBigPicture();
 
     public static string Describe()
     {
         return $"gamescope={(IsGamescope() ? "yes" : "no")} (GAMESCOPE_WAYLAND_DISPLAY={Env("GAMESCOPE_WAYLAND_DISPLAY")}, "
             + $"XDG_CURRENT_DESKTOP={Env("XDG_CURRENT_DESKTOP")}), "
             + $"Linux Big Picture={(IsLinuxBigPicture() ? "yes" : "no")} (SteamGamepadUI={Env("SteamGamepadUI")}), "
-            + $"fix {(CouchConfig.GamescopeFocusFix ? "enabled" : "disabled")}, {(IsActive ? "applied" : "not applied")}";
+            + $"fix {(CouchConfig.GamescopeFocusFix ? "enabled" : "disabled")}, {(IsActive ? "applied" : "not applied")}, "
+            + $"window activation {(CanActivateWindow ? "on" : "off")}";
     }
 
     /// <summary>Replacement for <see cref="NGame.IsGameFocusedWindow"/> in the game's input paths.</summary>
