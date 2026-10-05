@@ -22,7 +22,7 @@
 #   --vdf PATH                 Where to write the generated VDF. Defaults to artifacts/workshop/<target>.vdf.
 #   --preview PATH             Preview image path. Defaults to steam-workshop/preview.jpg.
 #   --content-folder PATH      Uploaded content folder. Defaults to artifacts/release/<target>/staging/CouchSpire.
-#   --visibility VALUE         Steam visibility value. Defaults to 2 (private).
+#   --visibility VALUE         Steam visibility value (0 public, 1 friends-only, 2 private, 3 unlisted). Defaults to 0 (public).
 #
 # Two Workshop items: the main game branch's build (steam-workshop/) and the beta game branch's
 # (steam-workshop/beta/), each with its own published-file-id.txt, description.md and verified-versions.txt.
@@ -62,7 +62,7 @@ Options:
   --vdf PATH                 Where to write the generated VDF. Defaults to artifacts/workshop/<target>.vdf.
   --preview PATH             Preview image path. Defaults to steam-workshop/preview.jpg.
   --content-folder PATH      Uploaded content folder. Defaults to artifacts/release/<target>/staging/CouchSpire.
-  --visibility VALUE         Steam visibility value. Defaults to 2 (private).
+  --visibility VALUE         Steam visibility value (0 public, 1 friends-only, 2 private, 3 unlisted). Defaults to 0 (public).
 
 Examples:
   tools/upload-steam-workshop.sh --dry-run --local-build v0.1.0
@@ -120,7 +120,7 @@ steam_username="${STEAM_USERNAME:-}"
 vdf_path=""
 preview_file=""
 content_folder=""
-visibility="2"
+visibility="0"
 tag=""
 
 while [[ $# -gt 0 ]]; do
