@@ -12,8 +12,8 @@ namespace CouchSpire.Scripts.Patch;
 /// Couch co-op: the driver's hand is a little smaller (<c>p1_hand_scale</c>), since the teammate's band shares the
 /// screen, and shifted sideways (<c>p1_hand_offset</c>, left by default) so the driver's raised cards stay off the
 /// enemies, whose health and intents the teammate may be reading. Resting cards are shrunk, drawn in toward the middle
-/// and lowered so their bottom edge stays where it was; the focused or picked-up card grows as usual but to the same
-/// smaller size. Applied after the hand lays itself out, so it never compounds.
+/// and lowered so their bottom edge stays where it was; the focused or picked-up card grows as usual but only to
+/// <c>p1_focus_scale</c> of the game's full size. Applied after the hand lays itself out, so it never compounds.
 /// </summary>
 [HarmonyPatch]
 internal static class CouchDriverHandPatch
@@ -27,7 +27,9 @@ internal static class CouchDriverHandPatch
     private static bool Active =>
         CouchConfig.SimultaneousEnabled
         && LocalSelfCoopContext.IsEnabled
-        && (Mathf.Abs(CouchConfig.DriverHandScale - 1f) > 0.01f || Mathf.Abs(CouchConfig.DriverHandOffset) > 0.5f);
+        && (Mathf.Abs(CouchConfig.DriverHandScale - 1f) > 0.01f
+            || Mathf.Abs(CouchConfig.DriverFocusScale - 1f) > 0.01f
+            || Mathf.Abs(CouchConfig.DriverHandOffset) > 0.5f);
 
     [HarmonyPatch(typeof(NPlayerHand), "RefreshLayout")]
     [HarmonyPostfix]
@@ -57,7 +59,7 @@ internal static class CouchDriverHandPatch
     {
         if (Active)
         {
-            __instance.SetScaleInstantly(__instance.Scale * CouchConfig.DriverHandScale);
+            __instance.SetScaleInstantly(__instance.Scale * CouchConfig.DriverFocusScale);
         }
     }
 
@@ -73,14 +75,15 @@ internal static class CouchDriverHandPatch
 
     /// <summary>
     /// The focused card: <c>NPlayerHand.RefreshLayout</c> snaps it to full size with its bottom edge on the hand's
-    /// baseline; keep it on the baseline at the smaller size.
+    /// baseline; keep it on the baseline at <see cref="CouchConfig.DriverFocusScale"/>. Its sideways position follows
+    /// the resting hand's spacing (<see cref="CouchConfig.DriverHandScale"/>) so it stays over its slot.
     /// </summary>
     private static void ShrinkFocused(NHandCardHolder holder)
     {
-        float scale = CouchConfig.DriverHandScale;
+        float scale = CouchConfig.DriverFocusScale;
         Vector2 target = TargetPositionRef(holder);
         float drop = holder.Hitbox.Size.Y * 0.5f * (1f - scale);
-        Vector2 shrunk = new(target.X * scale + CouchConfig.DriverHandOffset, target.Y + drop);
+        Vector2 shrunk = new(target.X * CouchConfig.DriverHandScale + CouchConfig.DriverHandOffset, target.Y + drop);
         holder.SetScaleInstantly(Vector2.One * scale);
         holder.Position = new Vector2(holder.Position.X, shrunk.Y);
         holder.SetTargetPosition(shrunk);

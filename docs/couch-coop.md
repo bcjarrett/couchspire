@@ -92,7 +92,7 @@ P2's portrait, HP, gold and potions sit in the empty middle of the top bar all r
 - a key hint, which follows whether P2 last used keys or a pad;
 - P2's hand, or the options of a choice. After P2 ends their turn the hand slides away, and comes back if they take the turn back.
 
-The HUD fades while P1 has a hand selection, overlay, map or deck view open, or a tooltip for something in the top bar (P1's potions, relics). Move or resize it with `hud_x`, `hud_y`, `hud_scale` in `CouchSpire.cfg`; `p1_hand_scale` (default 0.85) sets P1's resting hand size.
+The HUD fades while P1 has a hand selection, overlay, map or deck view open, or a tooltip for something in the top bar (P1's potions, relics). Move or resize it with `hud_x`, `hud_y`, `hud_scale` in `CouchSpire.cfg`; `p1_hand_scale` (default 0.85) sets P1's resting hand size and `p1_focus_scale` (default 0.75, the game uses 1) the size of P1's hovered or picked-up card.
 
 | P2 action | Keyboard | Controller |
 |---|---|---|

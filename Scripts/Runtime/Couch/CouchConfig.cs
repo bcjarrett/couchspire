@@ -55,10 +55,17 @@ internal static class CouchConfig
     public static readonly float HudX = Number("hud_x", 300f);
 
     /// <summary>
-    /// Size of the driver's resting hand in couch co-op (1 = the game's size). The card under the cursor still grows to
-    /// full size. The teammate's band shares the screen, so a slightly smaller hand leaves more room.
+    /// Size of the driver's resting hand in couch co-op (1 = the game's size). The teammate's band shares the screen,
+    /// so a slightly smaller hand leaves more room.
     /// </summary>
     public static readonly float DriverHandScale = Number("p1_hand_scale", 0.85f);
+
+    /// <summary>
+    /// Size of the driver's focused or picked-up card in couch co-op, as a fraction of the game's full card size (the
+    /// game shows it at 1; resting cards are 0.8 times <see cref="DriverHandScale"/>). A controller keeps a card
+    /// focused for the whole turn, so at full size it covers the enemies and the teammate's HUD.
+    /// </summary>
+    public static readonly float DriverFocusScale = Number("p1_focus_scale", 0.75f);
 
     /// <summary>
     /// Sideways shift of the driver's hand in couch co-op, in pixels (negative = left). The enemies stand on the right,

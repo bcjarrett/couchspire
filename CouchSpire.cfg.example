@@ -21,8 +21,10 @@ hud_x = 300
 # hud_y = 170
 hud_scale = 0.45
 
-# P1's hand size in couch co-op (1 = the game's size; the hovered card uses it too).
+# P1's resting hand size in couch co-op (1 = the game's size).
 p1_hand_scale = 0.85
+# P1's hovered or picked-up card, as a fraction of the game's full card size (the game uses 1).
+p1_focus_scale = 0.75
 # P1's hand shifted sideways in pixels (negative = left), so raised cards stay off the enemies on the right.
 p1_hand_offset = -200
 
