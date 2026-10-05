@@ -1,3 +1,10 @@
+## [0.4.2](https://github.com/bcjarrett/couchspire/compare/v0.4.1...v0.4.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* take window focus back from Big Picture on a Linux desktop at launch ([bdc0ed2](https://github.com/bcjarrett/couchspire/commit/bdc0ed2b76c23c1f11d8ee0685bd03fd6e8ce3a4))
+
 ## [0.4.1](https://github.com/bcjarrett/couchspire/compare/v0.4.0...v0.4.1) (2026-10-05)
 
 
