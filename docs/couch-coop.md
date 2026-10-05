@@ -144,7 +144,7 @@ All of these use the same keys: J/L to move and I to choose (D-pad and A on a pa
 **P2's info and deck changes**
 - **V** (keyboard) or **View/Back** (P2's pad) opens P2's deck and relics, with HP, gold and potions. J/L scrolls, U switches between deck and relics, and V or K closes it.
 - When P2's deck changes outside combat, the game's own animations play as they do for P1: a transformed card morphs into its replacement, an upgraded card flashes, and a new card pops up and flies into the deck. New relics pop into P2's relic row.
-- **Break glass:** clicking a stick in on P2's pad (L3/R3) hands P2 the main screen; Tab does the same on the keyboard. There are no on-screen swap buttons.
+- **Break glass:** clicking the left stick in on P2's pad (L3) hands P2 the main screen; Tab does the same on the keyboard. There are no on-screen swap buttons.
 - **Layout:** P2's combat band and the relic row line up with the top of the players list (names and health bars) on the left, leaving P1's relic row clear; the band starts to the right of that list. Panels on the left start below the list, panels on the right below P2's relic row.
 - **Screenshots:** F11 saves one to `couch_shots/` in the game's user folder; `shots = 1` also saves one each time a P2 screen opens.
 - **Mend** (rest site): P2 picks who to heal in their card picker.
