@@ -116,3 +116,4 @@ MIT — see [LICENSE](LICENSE).
 ## Credits
 
 Based on Local Multi-Control (DualRoleAdventure) by liwenhao0427 and GuyGinat. Thanks to them for the loopback-networking foundation this mod builds on, and for kindly agreeing to let it be published as a separate, MIT-licensed project.
+
