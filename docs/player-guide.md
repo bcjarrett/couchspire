@@ -21,7 +21,7 @@ Two players, one screen, one controller each. CouchSpire runs a real two-player 
 - **Enemy attack numbers:** when the players would take different damage (e.g. one is Intangible), the intent shows both in seat order: `1 / 12` means P1 takes 1, P2 takes 12.
 - **Rewards, shops, rest sites, treasure, events:** P1 uses the main screen, P2 uses their own panel. Purchases and card removal are billed to whoever makes them.
 - **Map:** picking the next node completes the "everyone votes" step.
-- **Taking the main screen:** P2 clicks a stick in (L3/R3); on the keyboard, press `Tab`.
+- **Taking the main screen:** P2 clicks the left stick in (L3); on the keyboard, press `Tab`.
 - **Save & continue:** quit normally; `Multiplayer → Load` resumes the run.
 
 ## Keyboard reference
