@@ -1,3 +1,10 @@
+## [0.4.1](https://github.com/bcjarrett/couchspire/compare/v0.4.0...v0.4.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* controller works from launch when started from Steam Big Picture on a Linux desktop ([c31e708](https://github.com/bcjarrett/couchspire/commit/c31e708c4d5b2b05db04465f6b1d0819b0ffd78f))
+
 # [0.4.0](https://github.com/bcjarrett/couchspire/compare/v0.3.0...v0.4.0) (2026-10-05)
 
 
