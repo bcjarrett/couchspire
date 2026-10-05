@@ -22,7 +22,7 @@ internal static class CouchRuntime
         }
 
         _initialized = true;
-        CouchLog.Info($"Couch co-op loaded (routing={(CouchConfig.RoutingEnabled ? "on" : "off")}, probe={(CouchConfig.ProbeEnabled ? "on" : "off")}, overlay={(CouchConfig.OverlayAtStart ? "on" : "off")}; settings from {CouchConfig.Source}).");
+        CouchLog.Info($"Couch co-op loaded (routing={(CouchConfig.RoutingEnabled ? "on" : "off")}, probe={(CouchConfig.ProbeEnabled ? "on" : "off")}, overlay={(CouchConfig.OverlayAtStart ? "on" : "off")}, p1 hand={CouchConfig.DriverHandScale:0.##}, p1 focus={CouchConfig.DriverFocusScale:0.##}, hud={CouchConfig.HudScale:0.##}; settings from {CouchConfig.Source}).");
         Input.Singleton.JoyConnectionChanged += OnJoyConnectionChanged;
         if (Engine.GetMainLoop() is SceneTree tree)
         {
