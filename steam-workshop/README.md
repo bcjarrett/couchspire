@@ -39,8 +39,9 @@ holds absolute local paths). The only thing kept between uploads is the Workshop
 saves its ID there; commit that file so future uploads update the same item instead of creating
 a duplicate.
 
-The item starts at visibility `2` (private) by default — pass `--visibility 0` once you're
-ready to make it public.
+Every upload sets the item to visibility `0` (public) by default, so a release goes live
+without a trip to the Workshop page. Pass `--visibility 2` (private) or `3` (unlisted) to
+upload a build only you can see, e.g. to try out a brand-new item first.
 
 ## Compatibility
 
