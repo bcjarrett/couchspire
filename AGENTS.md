@@ -123,7 +123,8 @@ runner (`ubuntu-latest`) — it has no game install, so it only handles versioni
    created. Needs both snapshots in `~/sts2-ref/` (§5).
 6. `make steam-upload TAG=vX.Y.Z TARGET=main` and again with `TARGET=beta` (locally) to push each
    zip to its own Workshop item — see `steam-workshop/README.md`. Not part of CI: SteamCMD needs a
-   Steam Guard session a CI runner doesn't have.
+   Steam Guard session a CI runner doesn't have. `make release` does steps 5 and 6 in one go, for
+   the tag it just attached.
 
 To update the Workshop listing's compatibility note without a new release (e.g. confirming the
 existing build still works on a new game patch), edit `steam-workshop/verified-versions.txt` (or
