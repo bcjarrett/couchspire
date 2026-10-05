@@ -13,10 +13,29 @@ namespace CouchSpire.Scripts.Runtime.Couch;
 /// shows the game when it is the active app, and from Big Picture the game is the fullscreen app on the TV, so while the
 /// Steam overlay is closed the game really is in front; <see cref="IsGameFocusedWindow"/> says so, and
 /// <c>GamescopeFocusPatch</c> routes the game's focus checks through it.
+/// <para>
+/// On the desktop that is not enough: the window manager hands focus back to the Big Picture window behind the game,
+/// and Steam Input sends the controller to whichever window has focus, so the game never sees the pad (and mutes,
+/// since it is in the background). So for a short while after launch, an unfocused game window asks the X11 window
+/// manager to activate it (<see cref="X11WindowActivation"/>), as opening and closing the Steam overlay would.
+/// </para>
 /// </summary>
 internal static class GamescopeFocus
 {
+    /// <summary>Only right after launch, so a player who switches away on purpose later is left alone.</summary>
+    private const ulong ActivationWindowMs = 120_000;
+
+    private const ulong ActivationIntervalMs = 1_500;
+
+    private const int MaxActivationAttempts = 5;
+
     private static bool _loggedOverride;
+
+    private static int _activationAttempts;
+
+    private static ulong _lastActivationMs;
+
+    private static readonly bool CanActivateWindow = IsActive && !IsGamescope() && IsLinuxBigPicture();
 
     /// <summary>Running under gamescope, or from Big Picture on Linux, with the fix enabled.</summary>
     public static readonly bool IsActive = CouchConfig.GamescopeFocusFix && (IsGamescope() || IsLinuxBigPicture());
@@ -49,7 +68,35 @@ internal static class GamescopeFocus
                 + "treating it as focused so controller input works.");
         }
 
+        TryActivateWindow();
         return true;
+    }
+
+    /// <summary>Asks the window manager to focus the game window, a few times at most, early after launch.</summary>
+    private static void TryActivateWindow()
+    {
+        if (!CanActivateWindow || _activationAttempts >= MaxActivationAttempts)
+        {
+            return;
+        }
+
+        ulong now = Time.GetTicksMsec();
+        if (now > ActivationWindowMs || (_activationAttempts > 0 && now - _lastActivationMs < ActivationIntervalMs))
+        {
+            return;
+        }
+
+        if (DisplayServer.WindowIsFocused() || DisplayServer.GetName() != "X11")
+        {
+            return;
+        }
+
+        _activationAttempts++;
+        _lastActivationMs = now;
+        long window = DisplayServer.WindowGetNativeHandle(DisplayServer.HandleType.WindowHandle);
+        bool sent = X11WindowActivation.TryActivate(window, out string error);
+        CouchLog.Info($"Window focus: game window 0x{window:x} unfocused under Big Picture; asked the window manager to "
+            + $"activate it (attempt {_activationAttempts}/{MaxActivationAttempts}{(sent ? "" : $", failed: {error}")}).");
     }
 
     private static bool IsGamescope()
