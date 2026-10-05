@@ -1,0 +1,10 @@
+{
+  "nodes": {
+    "anchor.P1RelicRow": { "x": 12, "y": 82, "w": 68, "h": 68 },
+    "anchor.P1TopBar": { "x": 25, "y": -4, "w": 1879, "h": 87 },
+    "anchor.PlayersList": { "x": 12, "y": 154, "w": 389, "h": 132 },
+    "mod.CouchTeammateEvent": { "x": 31, "y": 300, "w": 493, "h": 378 },
+    "mod.CouchTeammateRelicBar": { "x": 1813, "y": 158, "w": 83, "h": 48 },
+    "mod.CouchTeammateTopBar": { "x": 942, "y": 12, "w": 421, "h": 60 }
+  }
+}

@@ -390,8 +390,8 @@ internal static class CouchTestLayout
     /// <item>the combat turn banners (<see cref="NCombatStartBanner"/> "Battle Start", <see cref="NPlayerTurnBanner"/>
     /// "Player Turn", <see cref="NEnemyTurnBanner"/> "Enemy Turn") and the other full-screen story banners
     /// (<see cref="NActBanner"/> — its own darkening overlay is why a map screen briefly looks half-faded when a
-    /// new act starts; <see cref="NAncientNameBanner"/>) — each is a transient scene instance that QueueFrees
-    /// itself once its own animation finishes (confirmed in the decompiled source: none of their durations are
+    /// new act starts; <see cref="NAncientNameBanner"/>, which instead stays as the event's title and counts only while
+    /// its tweens run) — each is a transient scene instance that QueueFrees itself once its own animation finishes (confirmed in the decompiled source: none of their durations are
     /// shortened by FastMode.Instant either), so its mere presence in the tree means it's still showing;</item>
     /// <item>the mod's own "Controlled Character: Player N" notice (<see cref="NFullscreenTextVfx"/>, created by
     /// <c>LocalControlRuntime</c> from <see cref="CouchSpire.Scripts.Runtime.LocalModText.ControlledSlot"/>)
@@ -447,6 +447,8 @@ internal static class CouchTestLayout
     // installed sts2.dll.
     private static readonly FieldInfo? MapScreenTweenField = AccessTools.Field(typeof(NMapScreen), "_tween");
     private static readonly FieldInfo? OverlayBackstopFadeField = AccessTools.Field(typeof(NOverlayStack), "_backstopFade");
+    private static readonly FieldInfo? AncientBannerTweenField = AccessTools.Field(typeof(NAncientNameBanner), "_tween");
+    private static readonly FieldInfo? AncientBannerMoveTweenField = AccessTools.Field(typeof(NAncientNameBanner), "_moveTween");
 
     private static bool IsTweenRunning(GodotObject? owner, FieldInfo? tweenField)
     {
@@ -481,7 +483,9 @@ internal static class CouchTestLayout
                 return "the enemy turn banner (\"Enemy Turn\")";
             case NActBanner:
                 return "the act banner (its own darkening overlay is why a map screen can look half-faded)";
-            case NAncientNameBanner:
+            // Unlike the others, the Ancient's banner stays as the event's title once its intro finishes; only its
+            // tweens say it's still animating.
+            case NAncientNameBanner banner when IsTweenRunning(banner, AncientBannerTweenField) || IsTweenRunning(banner, AncientBannerMoveTweenField):
                 return "the Ancient name banner";
             case NFullscreenTextVfx:
                 return "the mod's \"Controlled Character\" notice (NFullscreenTextVfx)";
