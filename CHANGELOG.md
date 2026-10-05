@@ -1,3 +1,10 @@
+## [0.4.4](https://github.com/bcjarrett/couchspire/compare/v0.4.3...v0.4.4) (2026-10-05)
+
+
+### Bug Fixes
+
+* actually activate the game window over Big Picture on a Linux desktop ([0426f55](https://github.com/bcjarrett/couchspire/commit/0426f55e3d00ddb3e863ce55625d6b821b82509d))
+
 ## [0.4.3](https://github.com/bcjarrett/couchspire/compare/v0.4.2...v0.4.3) (2026-10-05)
 
 

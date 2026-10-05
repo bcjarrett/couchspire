@@ -12,7 +12,7 @@ namespace CouchSpire.Scripts;
 [ModInitializer(nameof(Init))]
 public partial class Entry
 {
-    private const string BuildMarker = "CouchSpire 0.4.3 loaded (" + GameCompat.GameBranch + " game branch)";
+    private const string BuildMarker = "CouchSpire 0.4.4 loaded (" + GameCompat.GameBranch + " game branch)";
 
     private static Harmony? _harmony;
 
