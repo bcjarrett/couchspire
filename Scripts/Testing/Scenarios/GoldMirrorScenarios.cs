@@ -1,6 +1,9 @@
 #if COUCHSPIRE_TESTS
 using CouchSpire.Scripts.Rewards;
-using CouchSpire.Scripts.Runtime;
+using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.Nodes.Screens;
+using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
+using MegaCrit.Sts2.Core.Rooms;
 
 namespace CouchSpire.Scripts.Testing.Scenarios;
 
@@ -25,24 +28,14 @@ namespace CouchSpire.Scripts.Testing.Scenarios;
 /// exercises the real <c>RelicCmdObtainPatch</c>/<c>PlayerGainGoldMirrorPatch</c> code path rather than a mock.
 ///
 /// Reaching a mirroring context: gold only mirrors in <c>isCombatRewardContext</c> (a <c>CombatRoom</c> with no
-/// combat in progress) or the Crystal Sphere event context (<c>PlayerGainGoldMirrorPatch.cs</c>). The combat path
-/// is a trap for this scenario: <c>win</c> on a Monster room enters <c>CombatRoomOfferRewardsPatch</c>, which holds
-/// <c>CombatRewardMergeContext.IsActive</c> true for the *entire* time the rewards screen is open (it only exits in
-/// a <c>finally</c> after the screen's <c>Completed</c> signal, which needs every one of P1's own reward buttons
-/// individually claimed/skipped — not just a Proceed click, since <c>RunManager.ProceedFromTerminalRewardsScreen</c>
-/// only opens the map and does not clear reward buttons or pop the room). So right after `win` + Settle, and even
-/// after the map opens, <c>CombatRewardMergeContext.IsActive</c> is still true and <c>PlayerGainGoldMirrorPatch</c>
-/// returns early on it regardless of the bug — a false negative either way.
-///
-/// This scenario instead uses the Crystal Sphere event (<c>event CRYSTAL_SPHERE</c>), which needs no combat and no
-/// reward screen at all: entering an <see cref="MegaCrit.Sts2.Core.Rooms.EventRoom"/> via the debug <c>event</c>
-/// command runs <c>EventSynchronizer.BeginEvent</c> synchronously for every player in the run (it loops
-/// <c>_playerCollection.Players</c>), so both P1 and P2 immediately have their own <c>CrystalSphere</c> instance;
-/// <c>CrystalSphere</c> doesn't override <c>EventModel.IsShared</c> (defaults to <c>false</c>), and its own event
-/// options are never touched — the scenario just checks the room state, never the event's own UI. The scenario
-/// asserts the precondition explicitly (<see cref="CrystalSphereMirrorRuntime.IsInCrystalSphereEventContext"/> and
-/// <c>!CombatRewardMergeContext.IsActive</c>) before running the flow, so a failure to reach a mirroring context at
-/// all reads differently from the suppression bug regressing.
+/// combat in progress) or the Crystal Sphere event context (<c>PlayerGainGoldMirrorPatch.cs</c>). The Crystal Sphere
+/// context is off in couch simultaneous mode (each player plays their own sphere, <c>CrystalSphereMirrorRuntime</c>),
+/// so this uses the combat one: <c>win</c> a Monster room, then close P1's reward screen. While that screen is open
+/// <c>CombatRoomOfferRewardsPatch</c> holds <c>CombatRewardMergeContext.IsActive</c> true (it only exits once the
+/// screen completes or leaves the tree), and <c>PlayerGainGoldMirrorPatch</c> returns early on it regardless of the
+/// bug. Removing the screen from the overlay stack frees it, which ends the merge; the room is still the finished
+/// <c>CombatRoom</c>. The scenario asserts that precondition explicitly before running the flow, so a failure to
+/// reach a mirroring context at all reads differently from the suppression bug regressing.
 ///
 /// To see this scenario fail without the fix: temporarily revert 06b185a's code change (restore
 /// <c>ExitSuppressionWhenCompleteAsync</c> in <c>Scripts/Patch/PlayerGainGoldMirrorPatch.cs</c> and have
@@ -56,24 +49,28 @@ internal sealed class GoldMirrorScenarios : CouchTestScenarioBase
 
     public override async Task RunAsync(CouchTestContext context)
     {
-        // Jump straight to the Crystal Sphere event. This bypasses IsAllowed (100+ gold, act > 0) the same way the
-        // `room`/`event` debug commands always do, and needs no combat or reward screen: BeginEvent gives every
-        // player (P1 and P2, since they share one RunState) their own CrystalSphere instance synchronously.
-        await context.Console(context.P1, "event CRYSTAL_SPHERE");
+        await context.EnterRoom(RoomType.Monster);
+        await context.Console(context.P1, "win");
         await context.Settle();
-        await context.Checkpoint("crystal-sphere-entered");
+        NRewardsScreen rewardsScreen = context.RewardsScreen();
+        NOverlayStack.Instance!.Remove(rewardsScreen);
+        await context.WaitUntil(() => !CombatRewardMergeContext.IsActive, "the merged reward flow to end once P1's reward screen closed");
+        await context.Settle();
+        await context.Checkpoint("combat-room-after-rewards");
 
         // Assert the mirroring precondition explicitly, before running the flow: if this fails, the scenario never
         // reached a context where PlayerGainGoldMirrorPatch would mirror at all, which is a different problem from
         // the suppression handoff regressing below.
         bool reachedMirroringContext =
             !CombatRewardMergeContext.IsActive
-            && CrystalSphereMirrorRuntime.IsInCrystalSphereEventContext(context.P1);
+            && context.P1.RunState.CurrentRoom is CombatRoom
+            && !CombatManager.Instance.IsInProgress;
         context.Expect(
             reachedMirroringContext,
-            "Expected to be in a gold-mirroring context (Crystal Sphere event, not merged-rewards) before running " +
+            "Expected to be in a gold-mirroring context (a finished CombatRoom, not merged-rewards) before running " +
             "goldmirrorflow, found CombatRewardMergeContext.IsActive=" + CombatRewardMergeContext.IsActive +
-            ", IsInCrystalSphereEventContext=" + CrystalSphereMirrorRuntime.IsInCrystalSphereEventContext(context.P1) +
+            ", room=" + context.P1.RunState.CurrentRoom?.GetType().Name +
+            ", combatInProgress=" + CombatManager.Instance.IsInProgress +
             ". The scenario's setup needs fixing, independent of the WP7 bug this scenario guards.");
 
         int p1GoldBefore = context.P1.Gold;

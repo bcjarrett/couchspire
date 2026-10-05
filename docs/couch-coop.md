@@ -149,6 +149,7 @@ All of these use the same keys: J/L to move and I to choose (D-pad and A on a pa
 - **Screenshots:** F11 saves one to `couch_shots/` in the game's user folder; `shots = 1` also saves one each time a P2 screen opens.
 - **Mend** (rest site): P2 picks who to heal in their card picker.
 - **Relic choices** (events, "choose a relic"): open in P2's card picker.
+- **Crystal Sphere** (the "divination" event): P2's pick opens their own grid in place of the event panel. Move with the D-pad (keyboard: J/L across, U down, K up), A or I divines, and X or O switches between the big (3×3) and small (1 cell) tool. P2's rewards come up in their rewards panel once the divinations are spent. Each player plays their own sphere: P2's cost and finds don't carry over to P1, and P1's don't carry over to P2.
 - **P2's relics on the main screen:** a row on the right, across from P1's relics. In combat it sits at the end of the HUD's top line. It uses the game's own relic icons, so counters, greyed-out relics and the flash when a relic triggers all show. Mouse over one for its tooltip, or click to inspect. New relics pop in with the game's animation and sound. Panels on the right start below the row.
 - **Sounds:** P2's panels and HUD click, move and back like the game's menus, and play a "no" sound when something is refused. P2's cards landing in the discard pile, P2's gold going up, P2's new relics, transforms, upgrades, cards added to P2's deck and P2's shop purchases each play the game's own sound. The game normally plays these only for the local player.
 
@@ -157,6 +158,7 @@ Checks:
 2. Shop: P2 buys a card, a potion and a relic, then removes a card. P2's gold goes down and P2's deck, potions and relics change; P1's don't.
 3. Treasure: both pick relics. Each gets their relic, and P2's gold goes up from the chest.
 4. An event outcome that removes or transforms a card: P2's card picker opens instead of P1's screen.
+5. Crystal Sphere: P2 picks "Uncover the future", spends the divinations in their grid, then claims the rewards. P1's gold and deck don't change.
 
 ## Later (known gaps)
 
