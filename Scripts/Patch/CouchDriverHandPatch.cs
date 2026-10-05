@@ -29,6 +29,7 @@ internal static class CouchDriverHandPatch
         && LocalSelfCoopContext.IsEnabled
         && (Mathf.Abs(CouchConfig.DriverHandScale - 1f) > 0.01f
             || Mathf.Abs(CouchConfig.DriverFocusScale - 1f) > 0.01f
+            || Mathf.Abs(CouchConfig.DriverFocusDrop) > 0.5f
             || Mathf.Abs(CouchConfig.DriverHandOffset) > 0.5f);
 
     [HarmonyPatch(typeof(NPlayerHand), "RefreshLayout")]
@@ -75,14 +76,14 @@ internal static class CouchDriverHandPatch
 
     /// <summary>
     /// The focused card: <c>NPlayerHand.RefreshLayout</c> snaps it to full size with its bottom edge on the hand's
-    /// baseline; keep it on the baseline at <see cref="CouchConfig.DriverFocusScale"/>. Its sideways position follows
+    /// baseline; keep it there (lowered by <see cref="CouchConfig.DriverFocusDrop"/>) at <see cref="CouchConfig.DriverFocusScale"/>. Its sideways position follows
     /// the resting hand's spacing (<see cref="CouchConfig.DriverHandScale"/>) so it stays over its slot.
     /// </summary>
     private static void ShrinkFocused(NHandCardHolder holder)
     {
         float scale = CouchConfig.DriverFocusScale;
         Vector2 target = TargetPositionRef(holder);
-        float drop = holder.Hitbox.Size.Y * 0.5f * (1f - scale);
+        float drop = holder.Hitbox.Size.Y * 0.5f * (1f - scale) + CouchConfig.DriverFocusDrop;
         Vector2 shrunk = new(target.X * CouchConfig.DriverHandScale + CouchConfig.DriverHandOffset, target.Y + drop);
         holder.SetScaleInstantly(Vector2.One * scale);
         holder.Position = new Vector2(holder.Position.X, shrunk.Y);
