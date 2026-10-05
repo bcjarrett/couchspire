@@ -1,3 +1,11 @@
+## [0.4.3](https://github.com/bcjarrett/couchspire/compare/v0.4.2...v0.4.3) (2026-10-05)
+
+
+### Bug Fixes
+
+* P2 can move the character selector after P1 embarks ([3740029](https://github.com/bcjarrett/couchspire/commit/3740029997789d5317914a7f260e6ebbbaea04cb))
+* shrink P1's hovered card further and allow lowering it ([b84ca68](https://github.com/bcjarrett/couchspire/commit/b84ca6806b44b15e5b37bf88079fc26969a0536a))
+
 ## [0.4.2](https://github.com/bcjarrett/couchspire/compare/v0.4.1...v0.4.2) (2026-10-05)
 
 
