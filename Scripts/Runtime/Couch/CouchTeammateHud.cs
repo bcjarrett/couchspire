@@ -86,6 +86,15 @@ internal sealed partial class CouchTeammateHud : Control
 
     private const float RightMargin = 40f;
 
+    /// <summary>Gap kept between the hand and the first enemy intent it would otherwise run into.</summary>
+    private const float IntentMargin = 16f;
+
+    /// <summary>
+    /// The hand squeezes no tighter than this (times card width) to clear intents; past that it runs over them, so a
+    /// big hand stays readable when an enemy stands far to the left.
+    /// </summary>
+    private const float MinIntentSpacingFactor = 0.35f;
+
     private const float BusyAlpha = 0.2f;
 
     private const double FlashSeconds = 2.5;
@@ -138,6 +147,9 @@ internal sealed partial class CouchTeammateHud : Control
     private ActionQueueSet? _actionQueues;
 
     private bool _cardTextDirty;
+
+    /// <summary>The hand is squeezed to stop short of an enemy intent (logged when it changes).</summary>
+    private bool _intentClamped;
 
     /// <summary>The teammate's cards in play last frame, to hear them land in the discard pile.</summary>
     private List<CardModel> _cardsInPlay = new();
@@ -1014,6 +1026,7 @@ internal sealed partial class CouchTeammateHud : Control
         int focus = handAway ? -1 : FocusIndex();
         float spread = FocusSpread * scale / 0.75f;
         float cardsTop = top + CardsTopOffset;
+        spacing = ClearIntents(spacing, left, cardsTop, cardSize, spread);
         float firstCenterX = left + cardSize.X * 0.5f;
         bool canAct = CouchRemotePlay.CanActNow(out _);
         for (int i = 0; i < _cardNodes.Count; i++)
@@ -1053,6 +1066,34 @@ internal sealed partial class CouchTeammateHud : Control
                 _ => CouchCards.HandGlow(card, canAct)
             });
         }
+    }
+
+    /// <summary>
+    /// Squeezes the hand so it ends before the first enemy intent in its band (tall enemies' intents reach up into
+    /// it), keeping room for the focused card's neighbors moving aside. Never below <see cref="MinIntentSpacingFactor"/>.
+    /// </summary>
+    private float ClearIntents(float spacing, float left, float cardsTop, Vector2 cardSize, float spread)
+    {
+        int count = _cardNodes.Count;
+        float bandBottom = cardsTop + cardSize.Y * (FocusScale + CursorDrop);
+        float? wall = count > 1 ? CouchLayout.IntentWall(cardsTop, bandBottom, left) : null;
+        float clamped = spacing;
+        if (wall is float wallX)
+        {
+            float fit = (wallX - IntentMargin - spread - cardSize.X - left) / (count - 1);
+            clamped = Mathf.Min(spacing, Mathf.Max(fit, cardSize.X * MinIntentSpacingFactor));
+        }
+
+        bool isClamped = clamped < spacing - 0.5f;
+        if (isClamped != _intentClamped)
+        {
+            _intentClamped = isClamped;
+            CouchLog.Info(isClamped
+                ? $"Teammate hand squeezed to clear enemy intents: wall x={wall:0}, spacing {spacing:0} -> {clamped:0} ({count} cards)."
+                : "Teammate hand no longer squeezed by enemy intents.");
+        }
+
+        return clamped;
     }
 
     /// <summary>The card that is up front: the cursor card, or the card being aimed; none in the potion row.</summary>

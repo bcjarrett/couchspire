@@ -81,6 +81,7 @@ Output goes to `test-results/<UTC timestamp>/` (gitignored):
 | `rest_site` | P1 rests, P2 smiths exactly one card; Proceed is blocked until P2 is done |
 | `shop` | P2 buys a card, a potion and a relic; P2 pays exact prices; P1 is unchanged; leaving is blocked |
 | `layout` | Map and combat checkpoints at 16:9 and 16:10 (layout vehicle) |
+| `intent_clearance` | Boss fight with P2's hand full: P2's cards stop short of the enemy intents (16:9 and 16:10) |
 | `treasure` | P1 opens the chest and picks by click, P2 through their panel; each gets exactly their own relic and chest gold |
 | `map` | P1 clicks the leftmost reachable node; the mod fills in P2's vote; the floor rises by 1 and a room is entered |
 | `gold_mirror` | In the Crystal Sphere event, a test-only `goldmirrorflow` command obtains a relic then gains gold in one flow; P2 must get the mirrored gold (guards 06b185a) |
@@ -146,7 +147,7 @@ A baseline records "what it looked like", not "what's correct", so bless only af
 
 The layout rules (every checkpoint, both aspects):
 - Mod UI is inside the viewport and has non-zero size.
-- It doesn't overlap P1's relic row, top bar or end-turn button, or other visible mod panels. The by-design
+- It doesn't overlap P1's relic row, top bar or end-turn button, enemy intents, or other visible mod panels. The by-design
   exceptions are listed with reasons in `CouchTestLayout.AllowedOverlaps`.
 - P2's combat relic row is vertically centered on P2's status line (±4 px).
 - The HUD header isn't above the players list's top.

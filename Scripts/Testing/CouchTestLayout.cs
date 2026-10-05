@@ -667,6 +667,14 @@ internal static class CouchTestLayout
             anchors[$"P1CardSelectButton{buttonIndex++}"] = button.GetGlobalRect();
         }
 
+        // Enemy intents (padded for their bob), from the same helper P2's hand uses to stop short of them
+        // (CouchLayout.IntentWall), so no mod panel - chiefly the hand - may cover what an enemy is about to do.
+        int intentIndex = 0;
+        foreach (Rect2 intent in CouchLayout.EnemyIntents())
+        {
+            anchors[$"EnemyIntent{intentIndex++}"] = intent;
+        }
+
         return anchors;
     }
 
