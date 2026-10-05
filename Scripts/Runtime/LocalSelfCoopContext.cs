@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Screens.CharacterSelect;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 using MegaCrit.Sts2.Core.Platform;
@@ -118,7 +119,7 @@ internal static class LocalSelfCoopContext
         return SetLobbyEditingPlayer(other, "switch-lobby-editing-player");
     }
 
-    public static bool SetLobbyEditingPlayer(ulong playerId, string source)
+    public static bool SetLobbyEditingPlayer(ulong playerId, string source, string? toast = null)
     {
         if (!IsEnabled || NetService == null || !GetActiveLobbyLocalPlayerIds().Contains(playerId))
         {
@@ -134,10 +135,88 @@ internal static class LocalSelfCoopContext
         {
             string slotLabel = GetSlotLabel(CurrentLobbyEditingPlayerId);
             ModLog.Info($"Lobby editing player: {previousPlayerId} -> {CurrentLobbyEditingPlayerId} (P{slotLabel}, source={source})");
-            NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(LocalModText.LobbyEditingSlot(slotLabel)));
+            UnreadyLobbyPlayer(CurrentLobbyEditingPlayerId, source);
+            NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create(toast ?? LocalModText.LobbyEditingSlot(slotLabel)));
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Called after Embark on character select. Embark readies only the player being edited, so the run starts once
+    /// every local player has pressed it. Until then the screen stays open and the lobby moves to the next player who
+    /// isn't ready, so a quick P1 can't start the run before P2 has picked.
+    /// </summary>
+    public static void HandOffLobbyAfterReady(NCharacterSelectScreen screen)
+    {
+        if (!IsEnabled || GetLobby(screen) is not { } lobby || lobby.IsAboutToBeginGame())
+        {
+            return;
+        }
+
+        ulong readyPlayerId = CurrentLobbyEditingPlayerId;
+        if (!lobby.Players.Any((player) => player.id == readyPlayerId && player.isReady))
+        {
+            // Embark didn't ready anyone (e.g. the tutorials prompt opened first; it presses Embark again itself).
+            return;
+        }
+
+        List<ulong> waitingPlayerIds = GetActiveLobbyLocalPlayerIds()
+            .Where((id) => lobby.Players.Any((player) => player.id == id && !player.isReady))
+            .ToList();
+        if (waitingPlayerIds.Count == 0)
+        {
+            return;
+        }
+
+        // Undo what Embark locked while waiting for remote players: local players still need to pick.
+        if (AccessTools.Field(typeof(NCharacterSelectScreen), "_charButtonContainer")?.GetValue(screen) is Control charButtonContainer)
+        {
+            foreach (NCharacterSelectButton button in charButtonContainer.GetChildren().OfType<NCharacterSelectButton>())
+            {
+                if (!button.IsLocked)
+                {
+                    button.Enable();
+                }
+            }
+        }
+
+        (AccessTools.Field(typeof(NCharacterSelectScreen), "_backButton")?.GetValue(screen) as NButton)?.Enable();
+        (AccessTools.Field(typeof(NCharacterSelectScreen), "_unreadyButton")?.GetValue(screen) as NButton)?.Disable();
+        (AccessTools.Field(typeof(NCharacterSelectScreen), "_embarkButton")?.GetValue(screen) as NButton)?.Enable();
+        if (AccessTools.Field(typeof(NCharacterSelectScreen), "_readyAndWaitingContainer")?.GetValue(screen) is Control waitingPanel)
+        {
+            waitingPanel.Visible = false;
+        }
+
+        ulong nextPlayerId = waitingPlayerIds[0];
+        ModLog.Info($"Lobby player {readyPlayerId} is ready; waiting on {string.Join(",", waitingPlayerIds)}. Handing the lobby to {nextPlayerId}.");
+        SetLobbyEditingPlayer(nextPlayerId, "lobby-ready-handoff",
+            LocalModText.LobbyReadyHandoff(GetSlotLabel(readyPlayerId), GetSlotLabel(nextPlayerId)));
+    }
+
+    /// <summary>A ready player who takes the lobby back to change their pick has to press Embark again.</summary>
+    private static void UnreadyLobbyPlayer(ulong playerId, string source)
+    {
+        if (ActiveCharacterSelectScreen is not { } screen
+            || !GodotObject.IsInstanceValid(screen)
+            || GetLobby(screen) is not { } lobby
+            || lobby.IsAboutToBeginGame())
+        {
+            return;
+        }
+
+        int index = lobby.Players.FindIndex((player) => player.id == playerId);
+        if (index < 0 || !lobby.Players[index].isReady)
+        {
+            return;
+        }
+
+        LobbyPlayer lobbyPlayer = lobby.Players[index];
+        lobbyPlayer.isReady = false;
+        lobby.Players[index] = lobbyPlayer;
+        screen.PlayerChanged(lobbyPlayer, false);
+        ModLog.Info($"Lobby player {playerId} is choosing again; no longer ready (source={source}).");
     }
 
     public static bool TryGetSlotIndex(ulong playerId, out int slotIndex)
@@ -212,7 +291,7 @@ internal static class LocalSelfCoopContext
         return true;
     }
 
-    /// <summary>Adds P2 to the host's character select lobby and readies them.</summary>
+    /// <summary>Adds P2 to the host's character select lobby. Each player readies with their own Embark press.</summary>
     public static bool BootstrapLocalPlayers(NCharacterSelectScreen characterSelectScreen)
     {
         ActiveCharacterSelectScreen = characterSelectScreen;
@@ -238,15 +317,6 @@ internal static class LocalSelfCoopContext
 
             NetService.SetCurrentSenderId(playerId);
             _ = lobby.AddLocalHostPlayerInternal(unlockState, MaxLocalAscensionLevel);
-        }
-
-        int index = lobby.Players.FindIndex((player) => player.id == _localPlayerIds[1]);
-        if (index >= 0 && !lobby.Players[index].isReady)
-        {
-            LobbyPlayer lobbyPlayer = lobby.Players[index];
-            lobbyPlayer.isReady = true;
-            lobby.Players[index] = lobbyPlayer;
-            characterSelectScreen.PlayerChanged(lobbyPlayer, false);
         }
 
         EnsureLobbySenderContext("bootstrap-local-players");

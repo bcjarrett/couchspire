@@ -21,7 +21,7 @@ internal static class AccessToolsAllowList
             "StartRunLobby",
             "BeginRunIfAllPlayersReady",
             "New name tried first (BeginRunForAllPlayersIfAllReady); this is the fallback. " +
-            "Scripts/Patch/StartRunLobbySetReadyPatch.cs:43."
+            "Scripts/Patch/StartRunLobbySetReadyPatch.cs:24."
         ),
     };
 

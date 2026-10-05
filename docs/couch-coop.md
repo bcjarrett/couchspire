@@ -39,7 +39,7 @@ Keyboard keys, for testing:
 
 ## Playing
 
-1. Main menu → Multiplayer → Host → **Couch Co-op** → each controller picks its character (on the keyboard, Tab switches which pick you're editing) → start.
+1. Main menu → Multiplayer → Host → **Couch Co-op** → each controller picks its character (on the keyboard, Tab switches which pick you're editing) → each player presses Embark; the run starts once both have.
 2. The controller used in the menus becomes **P1**. The first press from the other controller binds it as **P2** and takes control if it's allowed right now.
 3. After that, press any button (not a stick or the d-pad) to take control of your own character. Ending your turn hands control to the teammate automatically.
 
