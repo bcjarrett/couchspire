@@ -32,6 +32,7 @@ p1_hand_offset = -200
 # They go to the game's user folder, under couch_shots/.
 shots = 0
 
-# Steam Deck / Bazzite Game Mode (gamescope): treat the game window as focused unless the Steam overlay is open,
-# so the controller works from launch. Does nothing outside gamescope. 0 = the game's own focus check.
+# Steam Deck / Bazzite Game Mode (gamescope), or Steam Big Picture on a Linux desktop: treat the game window as
+# focused unless the Steam overlay is open, so the controller works from launch. Does nothing elsewhere.
+# 0 = the game's own focus check.
 gamescope_focus = 1

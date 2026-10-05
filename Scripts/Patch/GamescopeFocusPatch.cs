@@ -7,10 +7,10 @@ using MegaCrit.Sts2.Core.Nodes.CommonUi;
 namespace CouchSpire.Scripts.Patch;
 
 /// <summary>
-/// Under gamescope, sends the game's input focus checks to <see cref="GamescopeFocus.IsGameFocusedWindow"/>, so the
+/// Under gamescope or Linux Big Picture, sends the game's input focus checks to <see cref="GamescopeFocus.IsGameFocusedWindow"/>, so the
 /// controller works from launch. <see cref="NGame.IsGameFocusedWindow"/> is small enough for the JIT to inline into its
-/// callers, where a patch on it wouldn't run, so the call is swapped inside each caller instead. Not applied outside
-/// gamescope.
+/// callers, where a patch on it wouldn't run, so the call is swapped inside each caller instead. Not applied
+/// elsewhere.
 /// </summary>
 [HarmonyPatch]
 internal static partial class GamescopeFocusPatch
