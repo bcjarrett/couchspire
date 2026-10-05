@@ -1,3 +1,22 @@
+# [0.4.0](https://github.com/bcjarrett/couchspire/compare/v0.3.0...v0.4.0) (2026-10-05)
+
+
+### Bug Fixes
+
+* hide the teammate event panel during an event's fight ([416c093](https://github.com/bcjarrett/couchspire/commit/416c093d4fb6106769db5bfe0922c01274fb17fc))
+* keep P2's hand clear of enemy intents in couch co-op ([91e289d](https://github.com/bcjarrett/couchspire/commit/91e289d7aca0e9e18f3f83a33f8d1a5fd8dd439e))
+* P1's hovered card no longer covers the screen in couch co-op ([5fae8a1](https://github.com/bcjarrett/couchspire/commit/5fae8a10ad893522b594e660eff643f93032d767))
+* P2 can play the Crystal Sphere (divination) event in couch co-op ([2e3fe43](https://github.com/bcjarrett/couchspire/commit/2e3fe43749bd15a1ee928d1f4cb814c77824a850))
+* save couch runs under the player ids' platform so the game-over summary finishes ([6197664](https://github.com/bcjarrett/couchspire/commit/61976641441396cb3fa528e9a67be22849dbf642))
+* show each couch player's incoming damage on enemy attack intents ([da2de26](https://github.com/bcjarrett/couchspire/commit/da2de26472f595d08a6421d8bd88c91be6d6679a))
+* show P2 the cards, relics and keywords an event option refers to ([24cd55f](https://github.com/bcjarrett/couchspire/commit/24cd55f7749ab38420265645476f3092babf2610))
+
+
+### Features
+
+* each couch player presses Embark on character select ([209bf7e](https://github.com/bcjarrett/couchspire/commit/209bf7e2056c8f227dccff7922a54103dde28815))
+* release ([52a2fb1](https://github.com/bcjarrett/couchspire/commit/52a2fb10da4770adcaf393b10f050db33452ec24))
+
 # [0.3.0](https://github.com/bcjarrett/couchspire/compare/v0.2.0...v0.3.0) (2026-09-29)
 
 
