@@ -1,4 +1,4 @@
-.PHONY: help check build format test pr attach-release steam-upload snapshot
+.PHONY: help check build format test pr attach-release steam-upload release snapshot
 
 PROJECT := CouchSpire.csproj
 # Steam game branches this repo builds for (Sts2Paths.props, AGENTS.md §5).
@@ -14,6 +14,7 @@ help:
 	@echo "  pr             check, then opens a release PR to master"
 	@echo "  attach-release Build the real DLL locally and attach it to the GitHub Release CI created"
 	@echo "  steam-upload   Push a release to a Steam Workshop item (TAG=vX.Y.Z TARGET=main|beta)"
+	@echo "  release        attach-release, then steam-upload the same tag to both Workshop items"
 	@echo "  snapshot       Save the installed game's assemblies for building (TARGET=main|beta; Steam on that branch)"
 
 # Build + format-check + Layer A tests. Run before opening a release PR — this is the "test" step;
@@ -43,6 +44,13 @@ attach-release:
 #   make steam-upload TAG=v0.2.0 TARGET=beta
 steam-upload:
 	tools/upload-steam-workshop.sh --target $(TARGET) $(TAG)
+
+# Run locally after merging a release PR: attach-release, then push that same tag to both
+# Workshop items. The tag is read from CouchSpire.json after attach-release pulls master — the
+# same place attach-release gets it — so it's always the release that was just attached.
+release: attach-release
+	@set -e; tag="v$$(python3 -c 'import json; print(json.load(open("CouchSpire.json"))["version"])')"; \
+	for t in $(GAME_TARGETS); do echo "==> steam-upload $$tag ($$t)"; tools/upload-steam-workshop.sh --target $$t "$$tag"; done
 
 # Run with Steam on that game branch, and again after it gets a game patch.
 #   make snapshot TARGET=beta
