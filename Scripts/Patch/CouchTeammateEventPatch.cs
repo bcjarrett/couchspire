@@ -19,6 +19,7 @@ internal static class CouchTeammateEventPatch
         if (LocalSelfCoopContext.IsEnabled && CouchConfig.SimultaneousEnabled)
         {
             CouchTeammateEvent.Attach(__instance);
+            CouchTeammateCrystalSphere.Attach(__instance);
         }
     }
 

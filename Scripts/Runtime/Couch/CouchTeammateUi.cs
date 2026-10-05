@@ -1,7 +1,7 @@
 namespace CouchSpire.Scripts.Runtime.Couch;
 
 /// <summary>
-/// Sends teammate commands to whichever teammate UI is up: the card picker, the rewards panel, the event, rest site,
+/// Sends teammate commands to whichever teammate UI is up: the card picker, the rewards panel, the Crystal Sphere minigame, the event, rest site,
 /// treasure and shop panels, or the combat HUD.
 /// </summary>
 internal static class CouchTeammateUi
@@ -10,6 +10,7 @@ internal static class CouchTeammateUi
         CouchTeammateInfo.IsActive
         || CouchTeammateChoicePanel.IsActive
         || CouchTeammateRewards.IsActive
+        || CouchTeammateCrystalSphere.IsActive
         || CouchTeammateEvent.IsActive
         || CouchTeammateRestSite.IsActive
         || CouchTeammateTreasure.IsActive
@@ -25,6 +26,7 @@ internal static class CouchTeammateUi
         bool handledByPanel = CouchTeammateInfo.Handle(playerId, command)
             || CouchTeammateChoicePanel.Handle(playerId, command)
             || CouchTeammateRewards.Handle(playerId, command)
+            || CouchTeammateCrystalSphere.Handle(playerId, command)
             || CouchTeammateEvent.Handle(playerId, command)
             || CouchTeammateRestSite.Handle(playerId, command)
             || CouchTeammateTreasure.Handle(playerId, command)

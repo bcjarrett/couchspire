@@ -3,11 +3,13 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Events;
 using MegaCrit.Sts2.Core.Helpers;
+using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.HoverTips;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 using MegaCrit.Sts2.Core.Rooms;
@@ -20,8 +22,11 @@ namespace CouchSpire.Scripts.Runtime.Couch;
 /// event (<see cref="EventSynchronizer"/>); the teammate reads theirs here and picks options with their own controls,
 /// sent as that teammate's <see cref="OptionIndexChosenMessage"/>. In shared events the teammate votes with a
 /// <see cref="VotedForSharedEventOptionMessage"/> instead, and the game resolves once everyone has voted. The driver
-/// can't leave the room until the teammate is done. Options are drawn and animated like the game's event option buttons.
-/// The panel hides while an event's fight is on (e.g. Punch Off's "Fight"): the event room stays under the combat, and
+/// can't leave the room until the teammate is done. Options are drawn and animated like the game's event option buttons,
+/// and the option under the teammate's cursor shows its hover tips (the relic, card or keyword it references), as the
+/// driver's focused option does.
+/// The panel hides while the teammate plays the Crystal Sphere minigame (<see cref="CouchTeammateCrystalSphere"/>).
+/// The panel also hides while an event's fight is on (e.g. Punch Off's "Fight"): the event room stays under the combat, and
 /// the event isn't finished, but the teammate has to play the combat instead.
 /// </summary>
 internal sealed partial class CouchTeammateEvent : CouchPanel
@@ -59,11 +64,20 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
 
     private int _cursor;
 
+    /// <summary>The row whose option's hover tips are showing.</summary>
+    private CouchButton? _tipOwner;
+
+    /// <summary>The option whose hover tips are showing under the teammate's cursor; null if none (tests).</summary>
+    public static int? TipOptionIndex => IsActive && _instance!._tipOwner != null ? _instance._cursor : null;
+
     /// <summary>True while the teammate's event panel is up.</summary>
     public static bool IsActive => _instance != null && IsInstanceValid(_instance) && _instance.Visible;
 
-    /// <summary>True while the teammate still has their event open; the driver can't leave the room.</summary>
-    public static bool BlocksProceed => IsActive;
+    /// <summary>
+    /// True while the teammate still has their event open, or is playing its Crystal Sphere minigame; the driver can't
+    /// leave the room.
+    /// </summary>
+    public static bool BlocksProceed => IsActive || CouchTeammateCrystalSphere.IsActive;
 
     protected override float PanelWidth => 480f;
 
@@ -79,14 +93,18 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
 
     public static void NotifyProceedBlocked()
     {
-        if (!IsActive)
+        if (!BlocksProceed)
         {
             return;
         }
 
-        string seat = CouchSeats.FindByPlayer(_instance!._teammate!.NetId)?.Label ?? "P2";
+        Player? teammate = IsActive ? _instance!._teammate : CouchTeammate.FindTeammate();
+        string seat = (teammate == null ? null : CouchSeats.FindByPlayer(teammate.NetId)?.Label) ?? "P2";
         NGame.Instance?.AddChildSafely(NFullscreenTextVfx.Create($"Waiting for {seat} to finish their event"));
-        _instance.Flash("The other player is waiting for you");
+        if (IsActive)
+        {
+            _instance!.Flash("The other player is waiting for you");
+        }
     }
 
     public static bool Handle(ulong? playerId, CouchHudCommand command)
@@ -112,6 +130,7 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
 
     public override void _ExitTree()
     {
+        ClearTip();
         Track(null);
         if (_instance == this)
         {
@@ -136,10 +155,13 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
         // the event starts the combat until its page changes (an event resumed after combat sets a new page).
         bool inEventCombat = RunManager.Instance.DebugOnlyGetState()?.CurrentRoom is not EventRoom
             || (teammateEvent == _event && _enteredCombatAtStateVersion == _stateVersion);
-        if (teammateEvent == null || teammateEvent == _doneEvent || inEventCombat)
+        // The Crystal Sphere minigame has its own panel; keep tracking the event underneath so its finish page shows after.
+        bool inMinigame = CouchTeammateCrystalSphere.IsActive;
+        if (teammateEvent == null || teammateEvent == _doneEvent || inEventCombat || inMinigame)
         {
             Visible = false;
-            if (!inEventCombat)
+            ClearTip();
+            if (!inEventCombat && !inMinigame)
             {
                 Track(null);
             }
@@ -162,6 +184,7 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
 
         _cursor = rowCount == 0 ? 0 : Mathf.Clamp(_cursor, 0, rowCount - 1);
         Layout(options, shared, synchronizer);
+        UpdateTip(options);
     }
 
     /// <summary>Follows the event's state changes so text is only rebuilt when a page changes.</summary>
@@ -206,21 +229,59 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
     {
         SetTitle($"{SeatLabel(eventModel.Owner!)} · {CouchText.Plain(eventModel.Title.GetFormattedText())}");
         _description!.Text = DescriptionText(eventModel);
+        ClearTip();
         FreeRows(_rows);
         foreach (EventOption option in options)
         {
-            _rows.Add(CreateOptionRow(OptionText(eventModel, option.Title), OptionText(eventModel, option.Description)));
+            // NEventOptionButton._Ready: an Ancient's relic option shows the relic's icon.
+            Texture2D? icon = eventModel is AncientEventModel && option.Relic != null ? option.Relic.Icon : null;
+            _rows.Add(CreateOptionRow(icon, OptionText(eventModel, option.Title), OptionText(eventModel, option.Description)));
         }
 
         if (eventModel.IsFinished)
         {
-            _rows.Add(CreateOptionRow("Done", "Finished with this event"));
+            _rows.Add(CreateOptionRow(null, "Done", "Finished with this event"));
         }
     }
 
-    private RowView CreateOptionRow(string title, string description)
+    /// <summary>
+    /// <c>NEventOptionButton.OnFocus</c>: the option under the teammate's cursor shows its hover tips, opening away from
+    /// the screen edge the panel sits on.
+    /// </summary>
+    private void UpdateTip(IReadOnlyList<EventOption> options)
     {
-        RowView row = CreateRow(null);
+        EventOption? option = _cursor < options.Count && _cursor < _rows.Count ? options[_cursor] : null;
+        CouchButton? owner = option != null && !option.IsLocked && option.HoverTips.Any() ? _rows[_cursor].Root : null;
+        if (owner == _tipOwner)
+        {
+            return;
+        }
+
+        ClearTip();
+        if (owner == null)
+        {
+            return;
+        }
+
+        _tipOwner = owner;
+        HoverTipAlignment alignment = CouchConfig.EventPanelOnLeft ? HoverTipAlignment.Right : HoverTipAlignment.Left;
+        // The panel slides in and its rows move as text wraps; keep the tips attached to the row.
+        NHoverTipSet.CreateAndShow(owner, option!.HoverTips, alignment)?.SetFollowOwner();
+    }
+
+    private void ClearTip()
+    {
+        if (_tipOwner != null && IsInstanceValid(_tipOwner))
+        {
+            NHoverTipSet.Remove(_tipOwner);
+        }
+
+        _tipOwner = null;
+    }
+
+    private RowView CreateOptionRow(Texture2D? icon, string title, string description)
+    {
+        RowView row = CreateRow(icon);
         row.Label.Text = description.Length > 0 ? $"{title}\n{description}" : title;
         return row;
     }
