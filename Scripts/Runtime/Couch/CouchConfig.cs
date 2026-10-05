@@ -66,7 +66,13 @@ internal static class CouchConfig
     /// game shows it at 1; resting cards are 0.8 times <see cref="DriverHandScale"/>). A controller keeps a card
     /// focused for the whole turn, so at full size it covers the enemies and the teammate's HUD.
     /// </summary>
-    public static readonly float DriverFocusScale = Number("p1_focus_scale", 0.75f);
+    public static readonly float DriverFocusScale = Number("p1_focus_scale", 0.65f);
+
+    /// <summary>
+    /// How far below the hand's baseline the driver's focused card sits, in pixels (0 = the game's height: the whole
+    /// card shows). Its description is on the lower half, so only small values keep it readable.
+    /// </summary>
+    public static readonly float DriverFocusDrop = Number("p1_focus_drop", 0f);
 
     /// <summary>
     /// Sideways shift of the driver's hand in couch co-op, in pixels (negative = left). The enemies stand on the right,
