@@ -9,6 +9,13 @@ Rules for automated coding agents (and humans) working in this repository. Goal:
 - No destructive git operations (`reset --hard`, force-push, `checkout --` over user changes).
 - Language: **English** for all new code comments, commits, logs, and documentation.
 - Commit after each logical change with a clear message.
+- **Work on a branch in your own git worktree, never directly on `master`** or in the shared main checkout. Several
+  agent sessions often run against this repo at once and switch its branch under each other, so a commit made there
+  can land on someone else's branch. Start each task with
+  `git fetch origin && git worktree add .claude/worktrees/<topic> -b <type>/<topic> origin/master` (`.claude/` is
+  gitignored), commit there, and open a PR from that branch (§7). Gitignored files aren't in a new worktree: read
+  `src/`/`src-beta/` from the main checkout, and copy `CouchSpire.cfg` over if you need it. Remove the worktree
+  (`git worktree remove`) once the PR is merged.
 
 ## 2. Build, format, deploy
 
@@ -106,7 +113,8 @@ runner (`ubuntu-latest`) — it has no game install, so it only handles versioni
    `Entry.cs` build marker's `CouchSpire X.Y.Z` prefix — CI does that automatically on merge.
 2. `CONFIG=Release ./deploy.sh ...` and playtest the installed build locally. Before a release, run
    `./deploy.sh test all` on **both** game branches (switch branches in Steam between runs; §5).
-3. `make pr` (build + format-check + Layer A tests for both game branches, then opens a PR to `master`).
+3. Push your branch, then `make pr` from its worktree (build + format-check + Layer A tests for both game branches,
+   then opens a PR to `master`; §1).
 4. Merge the PR. This triggers the `Release` workflow: semantic-release computes the version,
    updates `CHANGELOG.md` and the version fields above, commits that back to `master`, tags it,
    and creates the GitHub Release (notes only — no DLL asset yet).
