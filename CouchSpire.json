@@ -3,7 +3,7 @@
     "name": "CouchSpire (couch co-op)",
     "author": "Ben Jarrett",
     "description": "Couch co-op on one screen: each controller drives its own character in a local multi-character run. Press a button on your controller to take over when your teammate isn't mid-action. Based on Local Multi-Control (DualRoleAdventure); do not enable both.",
-    "version": "0.4.4",
+    "version": "0.4.5",
     "min_game_version": "0.107.1",
     "has_pck": false,
     "has_dll": true,

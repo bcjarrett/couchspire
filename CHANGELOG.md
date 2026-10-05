@@ -1,3 +1,10 @@
+## [0.4.5](https://github.com/bcjarrett/couchspire/compare/v0.4.4...v0.4.5) (2026-10-05)
+
+
+### Bug Fixes
+
+* show P2's event option tooltips inside their event panel ([e51a37e](https://github.com/bcjarrett/couchspire/commit/e51a37ea9c50c68cb7f8b8307361c88f58e2d69f))
+
 ## [0.4.4](https://github.com/bcjarrett/couchspire/compare/v0.4.3...v0.4.4) (2026-10-05)
 
 
