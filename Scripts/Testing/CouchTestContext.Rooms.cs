@@ -30,5 +30,25 @@ internal sealed partial class CouchTestContext
             CouchTestLog.Info($"EnterRoom({roomType}): filled the map-history model id the debug command left empty ({roomModelId}).");
         }
     }
+
+    /// <summary>
+    /// Enters an event with the <c>event</c> console command and settles. Use this instead of calling
+    /// <c>Console(P1, "event …")</c> directly when the event can start a combat.
+    /// </summary>
+    public async Task EnterEvent(string eventIdEntry)
+    {
+        ThrowIfCancelled();
+
+        // The `event` command calls RunManager.EnterRoom directly, skipping the combat-replay setup that map travel
+        // (RunManager.EnterMapCoord) and the `room` command do. A fight started from the event would then crash its
+        // turn loop on the first checksum ("RecordInitialState must be called first"). Record it like map travel does.
+        if (RunManager.Instance.CombatReplayWriter.IsEnabled)
+        {
+            RunManager.Instance.CombatReplayWriter.RecordInitialState(RunManager.Instance.ToSave(null));
+        }
+
+        await Console(P1, $"event {eventIdEntry}");
+        await Settle();
+    }
 }
 #endif

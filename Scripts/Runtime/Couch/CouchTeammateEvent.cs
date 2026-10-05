@@ -10,6 +10,7 @@ using MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
+using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
 namespace CouchSpire.Scripts.Runtime.Couch;
@@ -20,6 +21,8 @@ namespace CouchSpire.Scripts.Runtime.Couch;
 /// sent as that teammate's <see cref="OptionIndexChosenMessage"/>. In shared events the teammate votes with a
 /// <see cref="VotedForSharedEventOptionMessage"/> instead, and the game resolves once everyone has voted. The driver
 /// can't leave the room until the teammate is done. Options are drawn and animated like the game's event option buttons.
+/// The panel hides while an event's fight is on (e.g. Punch Off's "Fight"): the event room stays under the combat, and
+/// the event isn't finished, but the teammate has to play the combat instead.
 /// </summary>
 internal sealed partial class CouchTeammateEvent : CouchPanel
 {
@@ -48,6 +51,9 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
     private int _stateVersion;
 
     private int _waitingForStateVersion = -1;
+
+    /// <summary>The <see cref="_stateVersion"/> at which the tracked event started a combat; -1 if it hasn't.</summary>
+    private int _enteredCombatAtStateVersion = -1;
 
     private string _renderedKey = "";
 
@@ -125,10 +131,19 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
             _doneEvent = teammateEvent;
         }
 
-        if (teammateEvent == null || teammateEvent == _doneEvent)
+        // An event combat pushes a CombatRoom over the EventRoom; the teammate plays that instead. A Combat-layout event
+        // (Punch Off) fights inside the event room, so the room change lags the option a little: hide from the moment
+        // the event starts the combat until its page changes (an event resumed after combat sets a new page).
+        bool inEventCombat = RunManager.Instance.DebugOnlyGetState()?.CurrentRoom is not EventRoom
+            || (teammateEvent == _event && _enteredCombatAtStateVersion == _stateVersion);
+        if (teammateEvent == null || teammateEvent == _doneEvent || inEventCombat)
         {
             Visible = false;
-            Track(null);
+            if (!inEventCombat)
+            {
+                Track(null);
+            }
+
             return;
         }
 
@@ -160,15 +175,18 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
         if (_event != null)
         {
             _event.StateChanged -= OnEventStateChanged;
+            _event.EnteringEventCombat -= OnEnteringEventCombat;
         }
 
         _event = eventModel;
         _renderedKey = "";
         _waitingForStateVersion = -1;
+        _enteredCombatAtStateVersion = -1;
         _cursor = 0;
         if (_event != null)
         {
             _event.StateChanged += OnEventStateChanged;
+            _event.EnteringEventCombat += OnEnteringEventCombat;
         }
     }
 
@@ -176,6 +194,12 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
     {
         _stateVersion++;
         _waitingForStateVersion = -1;
+    }
+
+    private void OnEnteringEventCombat()
+    {
+        _enteredCombatAtStateVersion = _stateVersion;
+        CouchLog.Info($"Teammate event {_event?.Id.Entry} entered combat; hiding the teammate event panel.");
     }
 
     private void Render(EventModel eventModel, IReadOnlyList<EventOption> options)
