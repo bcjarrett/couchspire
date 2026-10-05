@@ -9,7 +9,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Messages.Game.Sync;
 using MegaCrit.Sts2.Core.Nodes;
-using MegaCrit.Sts2.Core.Nodes.HoverTips;
+using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Vfx;
 using MegaCrit.Sts2.Core.Rooms;
@@ -23,8 +23,8 @@ namespace CouchSpire.Scripts.Runtime.Couch;
 /// sent as that teammate's <see cref="OptionIndexChosenMessage"/>. In shared events the teammate votes with a
 /// <see cref="VotedForSharedEventOptionMessage"/> instead, and the game resolves once everyone has voted. The driver
 /// can't leave the room until the teammate is done. Options are drawn and animated like the game's event option buttons,
-/// and the option under the teammate's cursor shows its hover tips (the relic, card or keyword it references), as the
-/// driver's focused option does.
+/// and the option under the teammate's cursor shows what its hover tips would (the card, relic or keyword it
+/// references) inside the panel, below the options, rather than as floating tips over the driver's screen.
 /// The panel hides while the teammate plays the Crystal Sphere minigame (<see cref="CouchTeammateCrystalSphere"/>).
 /// The panel also hides while an event's fight is on (e.g. Punch Off's "Fight"): the event room stays under the combat, and
 /// the event isn't finished, but the teammate has to play the combat instead.
@@ -64,11 +64,26 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
 
     private int _cursor;
 
-    /// <summary>The row whose option's hover tips are showing.</summary>
-    private CouchButton? _tipOwner;
+    /// <summary>Scale of the card previews in the details below the options; the card picker's readable size.</summary>
+    private const float TipCardScale = 0.46f;
 
-    /// <summary>The option whose hover tips are showing under the teammate's cursor; null if none (tests).</summary>
-    public static int? TipOptionIndex => IsActive && _instance!._tipOwner != null ? _instance._cursor : null;
+    private const float TipCardGap = 10f;
+
+    /// <summary>The option under the cursor the details were built for.</summary>
+    private EventOption? _tipFor;
+
+    /// <summary>The option whose hover tips the details show; null when none are.</summary>
+    private EventOption? _tipOption;
+
+    private readonly List<NCard> _tipCards = new();
+
+    private Label? _tipText;
+
+    /// <summary>The option whose details are showing under the teammate's cursor; null if none (tests).</summary>
+    public static int? TipOptionIndex => IsActive && _instance!._tipOption != null ? _instance._cursor : null;
+
+    /// <summary>How many card previews the details show (tests).</summary>
+    public static int TipCardCount => IsActive ? _instance!._tipCards.Count : 0;
 
     /// <summary>True while the teammate's event panel is up.</summary>
     public static bool IsActive => _instance != null && IsInstanceValid(_instance) && _instance.Visible;
@@ -126,11 +141,11 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
         TopLevel = true;
         ZIndex = 50;
         _description = CouchStyle.CreateLabel(this, 20, wrapWidth: PanelWidth - CouchFrame.PadLeft - CouchFrame.PadRight);
+        _tipText = CouchStyle.CreateLabel(this, 16, wrapWidth: PanelWidth - CouchFrame.PadLeft - CouchFrame.PadRight);
     }
 
     public override void _ExitTree()
     {
-        ClearTip();
         Track(null);
         if (_instance == this)
         {
@@ -160,7 +175,6 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
         if (teammateEvent == null || teammateEvent == _doneEvent || inEventCombat || inMinigame)
         {
             Visible = false;
-            ClearTip();
             if (!inEventCombat && !inMinigame)
             {
                 Track(null);
@@ -184,7 +198,6 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
 
         _cursor = rowCount == 0 ? 0 : Mathf.Clamp(_cursor, 0, rowCount - 1);
         Layout(options, shared, synchronizer);
-        UpdateTip(options);
     }
 
     /// <summary>Follows the event's state changes so text is only rebuilt when a page changes.</summary>
@@ -229,7 +242,7 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
     {
         SetTitle($"{SeatLabel(eventModel.Owner!)} · {CouchText.Plain(eventModel.Title.GetFormattedText())}");
         _description!.Text = DescriptionText(eventModel);
-        ClearTip();
+        SetTipOption(null);
         FreeRows(_rows);
         foreach (EventOption option in options)
         {
@@ -245,38 +258,120 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
     }
 
     /// <summary>
-    /// <c>NEventOptionButton.OnFocus</c>: the option under the teammate's cursor shows its hover tips, opening away from
-    /// the screen edge the panel sits on.
+    /// <c>NEventOptionButton.OnFocus</c> opens the focused option's hover tips over the screen. The teammate's are drawn
+    /// in the panel instead, below the options, so they don't cover the driver's screen: card previews in a row, then
+    /// the text tips (keywords, relics). Returns the y below them.
     /// </summary>
-    private void UpdateTip(IReadOnlyList<EventOption> options)
+    private float LayoutTips(IReadOnlyList<EventOption> options, float y)
     {
-        EventOption? option = _cursor < options.Count && _cursor < _rows.Count ? options[_cursor] : null;
-        CouchButton? owner = option != null && !option.IsLocked && option.HoverTips.Any() ? _rows[_cursor].Root : null;
-        if (owner == _tipOwner)
+        EventOption? option = _cursor < options.Count && !options[_cursor].IsLocked ? options[_cursor] : null;
+        SetTipOption(option);
+        float width = PanelWidth - CouchFrame.PadLeft - CouchFrame.PadRight;
+        _tipText!.Visible = _tipText.Text.Length > 0;
+        if (_tipCards.Count == 0)
         {
-            return;
+            if (_tipText.Visible)
+            {
+                SetTipTextWidth(width);
+                _tipText.Position = new Vector2(CouchFrame.PadLeft, y + 4f);
+                y = _tipText.Position.Y + _tipText.GetMinimumSize().Y;
+            }
+
+            return y;
         }
 
-        ClearTip();
-        if (owner == null)
+        float scale = Mathf.Min(TipCardScale, (width - TipCardGap * (_tipCards.Count - 1)) / _tipCards.Count / NCard.defaultSize.X);
+        Vector2 cardSize = NCard.defaultSize * scale;
+        float top = y + 8f;
+        if (_tipCards.Count == 1)
         {
-            return;
+            // One card: on the left, with the text tips beside it.
+            PlaceTipCard(_tipCards[0], CouchFrame.PadLeft + cardSize.X * 0.5f, top, scale);
+            float bottom = top + cardSize.Y;
+            if (_tipText.Visible)
+            {
+                float textLeft = CouchFrame.PadLeft + cardSize.X + 14f;
+                SetTipTextWidth(PanelWidth - CouchFrame.PadRight - textLeft);
+                _tipText.Position = new Vector2(textLeft, top);
+                bottom = Mathf.Max(bottom, top + _tipText.GetMinimumSize().Y);
+            }
+
+            return bottom + 8f;
         }
 
-        _tipOwner = owner;
-        HoverTipAlignment alignment = CouchConfig.EventPanelOnLeft ? HoverTipAlignment.Right : HoverTipAlignment.Left;
-        // The panel slides in and its rows move as text wraps; keep the tips attached to the row.
-        NHoverTipSet.CreateAndShow(owner, option!.HoverTips, alignment)?.SetFollowOwner();
+        // Several cards: a centered row, the text tips below.
+        float rowWidth = cardSize.X * _tipCards.Count + TipCardGap * (_tipCards.Count - 1);
+        float x = PanelWidth * 0.5f - rowWidth * 0.5f + cardSize.X * 0.5f;
+        foreach (NCard card in _tipCards)
+        {
+            PlaceTipCard(card, x, top, scale);
+            x += cardSize.X + TipCardGap;
+        }
+
+        y = top + cardSize.Y + 8f;
+        if (_tipText.Visible)
+        {
+            SetTipTextWidth(width);
+            _tipText.Position = new Vector2(CouchFrame.PadLeft, y + 4f);
+            y = _tipText.Position.Y + _tipText.GetMinimumSize().Y;
+        }
+
+        return y;
     }
 
-    private void ClearTip()
+    /// <summary>A label keeps its width when its minimum shrinks, so set both (the text wraps at this width).</summary>
+    private void SetTipTextWidth(float width)
     {
-        if (_tipOwner != null && IsInstanceValid(_tipOwner))
+        _tipText!.CustomMinimumSize = new Vector2(width, 0f);
+        _tipText.Size = new Vector2(width, 0f);
+    }
+
+    /// <summary>NCard's position is its center; <paramref name="top"/> is where its top edge goes.</summary>
+    private static void PlaceTipCard(NCard card, float centerX, float top, float scale)
+    {
+        card.Scale = new Vector2(scale, scale);
+        card.Position = new Vector2(centerX, top + NCard.defaultSize.Y * scale * 0.5f);
+    }
+
+    private void SetTipOption(EventOption? option)
+    {
+        if (option == _tipFor)
         {
-            NHoverTipSet.Remove(_tipOwner);
+            return;
         }
 
-        _tipOwner = null;
+        _tipFor = option;
+
+        foreach (NCard card in _tipCards)
+        {
+            CouchCards.Free(card);
+        }
+
+        _tipCards.Clear();
+        _tipText!.Text = "";
+        _tipOption = option == null || !option.HoverTips.Any() ? null : option;
+        if (_tipOption == null)
+        {
+            return;
+        }
+
+        List<string> lines = new();
+        foreach (IHoverTip tip in IHoverTip.RemoveDupes(_tipOption.HoverTips))
+        {
+            if (tip is CardHoverTip cardTip)
+            {
+                NCard card = CouchCards.Create(cardTip.Card, this);
+                card.ZIndex = 3;
+                _tipCards.Add(card);
+            }
+            else if (tip is HoverTip textTip)
+            {
+                string description = CouchText.Plain(textTip.Description);
+                lines.Add(textTip.Title != null ? $"{CouchText.Plain(textTip.Title)}: {description}" : description);
+            }
+        }
+
+        _tipText.Text = string.Join("\n", lines);
     }
 
     private RowView CreateOptionRow(Texture2D? icon, string title, string description)
@@ -302,6 +397,7 @@ internal sealed partial class CouchTeammateEvent : CouchPanel
         }
 
         y = LayoutRows(_rows, y);
+        y = LayoutTips(options, y);
         string status = waiting ? "Waiting for the event..." : "";
         if (shared)
         {
