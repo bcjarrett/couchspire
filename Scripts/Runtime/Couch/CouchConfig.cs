@@ -46,8 +46,9 @@ internal static class CouchConfig
     public static readonly bool EventPanelOnLeft = Flag("event_panel_left", "COUCHSPIRE_EVENT_PANEL_LEFT", defaultValue: true);
 
     /// <summary>
-    /// Under gamescope (Steam Deck / Bazzite Game Mode), treat the game window as focused unless the Steam overlay is
-    /// open (<see cref="GamescopeFocus"/>). Has no effect outside gamescope; <c>gamescope_focus = 0</c> turns it off.
+    /// Under gamescope (Steam Deck / Bazzite Game Mode) or Steam Big Picture on Linux, treat the game window as focused
+    /// unless the Steam overlay is open (<see cref="GamescopeFocus"/>). Has no effect elsewhere;
+    /// <c>gamescope_focus = 0</c> turns it off.
     /// </summary>
     public static readonly bool GamescopeFocusFix = Flag("gamescope_focus", "COUCHSPIRE_GAMESCOPE_FOCUS", defaultValue: true);
 
