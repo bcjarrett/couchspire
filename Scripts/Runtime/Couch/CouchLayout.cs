@@ -1,6 +1,8 @@
 using Godot;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Relics;
+using MegaCrit.Sts2.Core.Nodes.Rooms;
 
 namespace CouchSpire.Scripts.Runtime.Couch;
 
@@ -50,5 +52,61 @@ internal static class CouchLayout
     public static float RightOfPlayersList(float left)
     {
         return PlayersList() is Rect2 list ? Mathf.Max(left, list.End.X + 24f) : left;
+    }
+
+    /// <summary>Room kept around an intent for its bobbing icon and number (<c>NIntent</c> bobs its holder ~18px).</summary>
+    private const float IntentPadding = 12f;
+
+    /// <summary>
+    /// Screen rects of the living enemies' intents that are showing (the game fades them out during the enemy turn).
+    /// </summary>
+    public static IEnumerable<Rect2> EnemyIntents()
+    {
+        NCombatRoom? room = NCombatRoom.Instance;
+        if (room == null || !GodotObject.IsInstanceValid(room))
+        {
+            yield break;
+        }
+
+        foreach (NCreature creature in room.CreatureNodes)
+        {
+            if (!GodotObject.IsInstanceValid(creature) || !creature.Entity.IsEnemy || !creature.Entity.IsAlive)
+            {
+                continue;
+            }
+
+            Control? container = creature.IntentContainer;
+            if (container == null || !container.IsVisibleInTree() || container.Modulate.A < 0.05f)
+            {
+                continue;
+            }
+
+            foreach (Node child in container.GetChildren())
+            {
+                if (child is NIntent { Visible: true } intent && intent.Size.X > 0.5f && intent.Size.Y > 0.5f)
+                {
+                    yield return (intent.GetGlobalTransform() * new Rect2(Vector2.Zero, intent.Size)).Grow(IntentPadding);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Left edge of the leftmost enemy intent that reaches into the horizontal band from <paramref name="top"/> to
+    /// <paramref name="bottom"/> right of <paramref name="left"/>, or null when none does: what the teammate's hand
+    /// should stop short of.
+    /// </summary>
+    public static float? IntentWall(float top, float bottom, float left)
+    {
+        float? wall = null;
+        foreach (Rect2 rect in EnemyIntents())
+        {
+            if (rect.End.Y > top && rect.Position.Y < bottom && rect.End.X > left)
+            {
+                wall = Mathf.Min(wall ?? rect.Position.X, rect.Position.X);
+            }
+        }
+
+        return wall;
     }
 }
