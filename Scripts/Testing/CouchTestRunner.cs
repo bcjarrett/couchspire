@@ -507,8 +507,12 @@ internal static class CouchTestRunner
         // value (see docs/testing.md).
         NGame.Instance!.DebugSeedOverride = scenario.Seed;
 
+        // Embark readies only the player being edited and hands the lobby to the next one, so each player presses it.
         NButton embarkButton = await WaitHelper.ForNode<NButton>(mainMenu, "Submenus/CharacterSelectScreen/ConfirmButton", CancellationToken.None, MenuStepTimeout);
-        await UiHelper.Click(embarkButton);
+        for (int i = 0; i < playerIds.Count && RunManager.Instance.DebugOnlyGetState() == null; i++)
+        {
+            await UiHelper.Click(embarkButton);
+        }
 
         await WaitHelper.Until(() => RunManager.Instance.DebugOnlyGetState() != null, CancellationToken.None, TimeSpan.FromSeconds(30), "Run state not initialized after Embark");
         RunState runState = RunManager.Instance.DebugOnlyGetState()!;

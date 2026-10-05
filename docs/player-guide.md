@@ -12,7 +12,7 @@ Two players, one screen, one controller each. CouchSpire runs a real two-player 
 1. Main menu → **Multiplayer → Host**.
 2. Pick the **Couch Co-op** card (next to Standard / Daily / Custom).
 3. The controller you used in the menus is **P1**. Pressing a button on the second controller makes it **P2**. Each player picks a character on their own controller; duplicates are allowed.
-4. Start the run as usual.
+4. Each player presses **Embark** when happy with their pick. The run starts once both have; until then the screen hands over to whoever hasn't. Taking the pick back after embarking means pressing Embark again.
 
 ## During a run
 

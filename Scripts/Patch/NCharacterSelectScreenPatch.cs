@@ -67,3 +67,13 @@ internal static class NCharacterSelectScreenPatch
         LocalSelfCoopContext.NotifyCharacterSelectPlayerChanged(player.id);
     }
 }
+
+[HarmonyPatch(typeof(NCharacterSelectScreen), "OnEmbarkPressed")]
+internal static class NCharacterSelectScreenEmbarkPatch
+{
+    [HarmonyPostfix]
+    private static void Postfix(NCharacterSelectScreen __instance)
+    {
+        LocalSelfCoopContext.HandOffLobbyAfterReady(__instance);
+    }
+}

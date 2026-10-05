@@ -23,6 +23,11 @@ internal static class LocalModText
         return $"P{slotLabel} is choosing";
     }
 
+    public static string LobbyReadyHandoff(string readySlotLabel, string nextSlotLabel)
+    {
+        return $"P{readySlotLabel} is ready. P{nextSlotLabel} is choosing";
+    }
+
     public static string ControlledSlot(string slotLabel)
     {
         return $"Controlled Character: {RoleSlot(slotLabel)}";
